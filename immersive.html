@@ -1,210 +1,199 @@
-<!DOCTYPE html><html lang="en" class="dm_sans_f65b9734-module__rAqehG__variable playfair_display_a5dad1f2-module__6FeSRW__variable h-full antialiased"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" href="/_next/static/media/2a65768255d6b625-s.p.14by5b4al-y~f.woff2" as="font" crossorigin="" type="font/woff2"/><link rel="preload" href="/_next/static/media/5c285b27cdda1fe8-s.p.0yo6-5yoeeudq.woff2" as="font" crossorigin="" type="font/woff2"/><link rel="stylesheet" href="/_next/static/chunks/0k~utu-n4tpkb.css" data-precedence="next"/><link rel="preload" as="script" fetchPriority="low" href="/_next/static/chunks/15xrurgzs99gv.js"/><script src="/_next/static/chunks/0dgq26a5_oy.a.js" async=""></script><script src="/_next/static/chunks/16g.ca89g7fib.js" async=""></script><script src="/_next/static/chunks/0oui10gukf8nf.js" async=""></script><script src="/_next/static/chunks/turbopack-0ek5lm556em0y.js" async=""></script><script src="/_next/static/chunks/01xlw8hd842-c.js" async=""></script><script src="/_next/static/chunks/0d3shmwh5_nmn.js" async=""></script><script src="/_next/static/chunks/0drc6yrx.co1a.js" async=""></script><meta name="next-size-adjust" content=""/><title>Huni — The World&#x27;s First Honey-Sweetened Electrolyte</title><meta name="description" content="5 USDA Organic ingredients. Zero compromises. Join the waitlist for the world&#x27;s first honey-sweetened electrolyte."/><link rel="icon" href="/favicon.ico?favicon.0x3dzn~oxb6tn.ico" sizes="256x256" type="image/x-icon"/><script src="/_next/static/chunks/03~yq9q893hmn.js" noModule=""></script></head><body class="min-h-full flex flex-col"><div hidden=""><!--$--><!--/$--></div><style>
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Outfit:wght@300;400;500&display=swap');
+<!DOCTYPE html><html lang="en" class="dm_sans_f65b9734-module__rAqehG__variable playfair_display_a5dad1f2-module__6FeSRW__variable h-full antialiased"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" href="/_next/static/media/2a65768255d6b625-s.p.14by5b4al-y~f.woff2" as="font" crossorigin="" type="font/woff2"/><link rel="preload" href="/_next/static/media/5c285b27cdda1fe8-s.p.0yo6-5yoeeudq.woff2" as="font" crossorigin="" type="font/woff2"/><link rel="stylesheet" href="/_next/static/chunks/0348a-4dm82we.css" data-precedence="next"/><link rel="preload" as="script" fetchPriority="low" href="/_next/static/chunks/15xrurgzs99gv.js"/><script src="/_next/static/chunks/0dgq26a5_oy.a.js" async=""></script><script src="/_next/static/chunks/16g.ca89g7fib.js" async=""></script><script src="/_next/static/chunks/0oui10gukf8nf.js" async=""></script><script src="/_next/static/chunks/turbopack-0ek5lm556em0y.js" async=""></script><script src="/_next/static/chunks/01xlw8hd842-c.js" async=""></script><script src="/_next/static/chunks/0d3shmwh5_nmn.js" async=""></script><script src="/_next/static/chunks/11m7tu8uyw56p.js" async=""></script><meta name="next-size-adjust" content=""/><title>Huni — The World&#x27;s First Honey-Sweetened Electrolyte</title><meta name="description" content="5 USDA Organic ingredients. Zero compromises. Join the waitlist for the world&#x27;s first honey-sweetened electrolyte."/><link rel="icon" href="/favicon.ico?favicon.0x3dzn~oxb6tn.ico" sizes="256x256" type="image/x-icon"/><script src="/_next/static/chunks/03~yq9q893hmn.js" noModule=""></script></head><body class="min-h-full flex flex-col"><div hidden=""><!--$--><!--/$--></div><style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Outfit:wght@300;400;500&display=swap');
 
-        .ix-root {
-          background: #0a1a22;
-          color: #c8dde5;
+        .film-root {
+          background: #060e12; color: #c8dde5;
           font-family: 'Outfit', system-ui, sans-serif;
-          width: 100vw;
-          height: 100vh;
-          overflow: hidden;
-          position: relative;
+          width: 100vw; height: 100vh; overflow: hidden; position: relative;
+        }
+        .film-canvas { position: fixed; inset: 0; z-index: 1; }
+        .film-vignette {
+          position: fixed; inset: 0; z-index: 2; pointer-events: none;
+          background: radial-gradient(ellipse 65% 60% at 50% 50%, transparent 0%, rgba(6,14,18,0.5) 50%, rgba(6,14,18,0.95) 100%);
         }
 
-        .ix-canvas {
-          position: fixed;
-          inset: 0;
-          z-index: 1;
+        /* Cinematic letterbox bars */
+        .film-bar-top, .film-bar-bottom {
+          position: fixed; left: 0; right: 0; z-index: 5;
+          background: #060e12; pointer-events: none;
+          height: clamp(30px, 4vh, 50px);
         }
+        .film-bar-top { top: 0; }
+        .film-bar-bottom { bottom: 0; }
 
-        .ix-vignette {
-          position: fixed;
-          inset: 0;
-          z-index: 2;
-          pointer-events: none;
-          background: radial-gradient(ellipse 70% 65% at 50% 50%, transparent 0%, rgba(10,26,34,0.5) 55%, rgba(10,26,34,0.92) 100%);
+        .film-scroll {
+          position: relative; z-index: 3; width: 100%; height: 100vh;
+          overflow-y: auto; scrollbar-width: none;
         }
+        .film-scroll::-webkit-scrollbar { display: none; }
+        .film-scroll-inner { height: 700vh; }
 
-        .ix-scroll {
-          position: relative;
-          z-index: 3;
-          width: 100%;
-          height: 100vh;
-          overflow-y: auto;
-          scrollbar-width: none;
-        }
-        .ix-scroll::-webkit-scrollbar { display: none; }
-
-        .ix-scroll-inner { height: 400vh; }
-
-        .ix-section {
-          position: sticky;
-          top: 0;
-          height: 100vh;
-          display: flex;
-          align-items: center;
-          padding: 0 clamp(28px, 6vw, 80px);
+        /* ── Beat overlays ── */
+        .film-beat {
+          position: sticky; top: 0; height: 100vh;
+          display: flex; align-items: center; justify-content: center;
           pointer-events: none;
         }
 
-        .ix-content {
-          max-width: 460px;
+        /* Title card */
+        .film-title-card {
+          text-align: center;
+        }
+        .film-title-main {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: clamp(48px, 8vw, 90px);
+          font-weight: 300; letter-spacing: 0.15em;
+          color: #eaf3f7; margin-bottom: 16px;
+          opacity: 0; transform: scale(0.96);
+          transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .film-title-main.show { opacity: 1; transform: scale(1); }
+
+        .film-title-sub {
+          font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+          color: rgba(200, 221, 229, 0.3); max-width: 400px; margin: 0 auto;
+          opacity: 0; transition: opacity 0.8s ease 0.4s;
+        }
+        .film-title-sub.show { opacity: 1; }
+
+        /* Scene beat (3D body visible, text on side) */
+        .film-scene {
+          max-width: 380px; padding: 0 clamp(28px, 5vw, 60px);
           pointer-events: auto;
         }
+        .film-beat[data-align="left"] { justify-content: flex-start; }
+        .film-beat[data-align="right"] { justify-content: flex-end; }
 
-        .ix-section[data-pos="right"] { justify-content: flex-end; }
-        .ix-section[data-pos="center"] { justify-content: center; text-align: center; }
-        .ix-section[data-pos="center"] .ix-content { max-width: 500px; }
-        .ix-section[data-pos="center"] .ix-rule { margin-left: auto; margin-right: auto; }
-
-        .ix-label {
-          font-size: 10px;
-          font-weight: 500;
-          letter-spacing: 3px;
-          text-transform: uppercase;
-          color: #4A9EBF;
-          margin-bottom: 16px;
-          opacity: 0;
-          transform: translateY(10px);
-          transition: all 0.6s ease 0.1s;
+        .film-scene-label {
+          font-size: 10px; font-weight: 500; letter-spacing: 3px;
+          text-transform: uppercase; color: #4A9EBF; margin-bottom: 12px;
+          opacity: 0; transform: translateY(8px);
+          transition: all 0.5s ease 0.1s;
         }
-        .ix-label.show { opacity: 0.7; transform: translateY(0); }
+        .film-scene-label.show { opacity: 0.6; transform: translateY(0); }
 
-        .ix-title {
+        .film-scene-title {
           font-family: 'Cormorant Garamond', serif;
-          font-size: clamp(32px, 5vw, 56px);
-          font-weight: 300;
-          line-height: 1.1;
-          letter-spacing: -0.02em;
-          color: #eaf3f7;
-          white-space: pre-line;
-          margin-bottom: 20px;
-          opacity: 0;
-          transform: translateY(20px);
-          transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s;
+          font-size: clamp(28px, 4vw, 44px);
+          font-weight: 300; line-height: 1.1; letter-spacing: -0.02em;
+          color: #eaf3f7; white-space: pre-line; margin-bottom: 16px;
+          opacity: 0; transform: translateY(16px);
+          transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s;
         }
-        .ix-title.show { opacity: 1; transform: translateY(0); }
+        .film-scene-title.show { opacity: 1; transform: translateY(0); }
 
-        .ix-rule {
-          width: 0;
-          height: 1px;
-          background: #4A9EBF;
-          margin-bottom: 20px;
-          transition: width 0.8s ease 0.3s;
+        .film-scene-rule {
+          width: 0; height: 1px; background: #4A9EBF;
+          margin-bottom: 16px; transition: width 0.7s ease 0.3s;
         }
-        .ix-rule.show { width: 40px; }
+        .film-scene-rule.show { width: 32px; }
 
-        .ix-body {
-          font-size: 14px;
-          line-height: 1.8;
-          font-weight: 300;
-          color: rgba(200, 221, 229, 0.5);
-          opacity: 0;
-          transform: translateY(12px);
-          transition: all 0.7s ease 0.35s;
+        .film-scene-body {
+          font-size: 13px; line-height: 1.8; font-weight: 300;
+          color: rgba(200, 221, 229, 0.45);
+          opacity: 0; transform: translateY(10px);
+          transition: all 0.6s ease 0.35s;
         }
-        .ix-body.show { opacity: 1; transform: translateY(0); }
+        .film-scene-body.show { opacity: 1; transform: translateY(0); }
 
-        .ix-cta {
-          display: inline-block;
-          margin-top: 28px;
-          padding: 14px 36px;
-          border: 1px solid rgba(74, 158, 191, 0.35);
-          color: #4A9EBF;
-          font-size: 11px;
-          font-weight: 500;
-          letter-spacing: 2.5px;
-          text-transform: uppercase;
-          text-decoration: none;
-          transition: all 0.4s ease;
-          opacity: 0;
-          transform: translateY(10px);
+        /* Full-screen text beat */
+        .film-fulltext {
+          text-align: center; max-width: 700px; padding: 0 24px;
         }
-        .ix-cta.show {
-          opacity: 1;
-          transform: translateY(0);
-          transition-delay: 0.45s;
+        .film-fulltext-main {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: clamp(36px, 6vw, 72px);
+          font-weight: 300; line-height: 1.1; letter-spacing: -0.02em;
+          color: #eaf3f7; white-space: pre-line;
+          opacity: 0; transform: translateY(24px);
+          transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .ix-cta:hover {
-          background: rgba(74, 158, 191, 0.08);
-          border-color: #4A9EBF;
-        }
+        .film-fulltext-main.show { opacity: 1; transform: translateY(0); }
 
-        .ix-nav {
-          position: fixed;
-          top: 0; left: 0; right: 0;
-          z-index: 20;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 24px clamp(24px, 4vw, 48px);
+        .film-fulltext-sub {
+          font-size: 14px; color: rgba(200, 221, 229, 0.35);
+          margin-top: 20px; line-height: 1.7;
+          opacity: 0; transition: opacity 0.8s ease 0.4s;
+        }
+        .film-fulltext-sub.show { opacity: 1; }
+
+        /* Finale */
+        .film-finale { text-align: center; }
+        .film-finale-brand {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: clamp(56px, 10vw, 100px);
+          font-weight: 600; letter-spacing: 0.1em;
+          color: #C49A2A; margin-bottom: 20px;
+          opacity: 0; transform: scale(0.95);
+          transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .film-finale-brand.show { opacity: 1; transform: scale(1); }
+
+        .film-finale-sub {
+          font-size: 14px; color: rgba(200, 221, 229, 0.45);
+          line-height: 1.7; white-space: pre-line; max-width: 400px; margin: 0 auto 28px;
+          opacity: 0; transition: opacity 0.8s ease 0.3s;
+        }
+        .film-finale-sub.show { opacity: 1; }
+
+        .film-cta {
+          display: inline-block; padding: 14px 36px;
+          border: 1px solid rgba(196, 154, 42, 0.4); color: #C49A2A;
+          font-size: 11px; font-weight: 500; letter-spacing: 2.5px;
+          text-transform: uppercase; text-decoration: none;
+          transition: all 0.4s ease; pointer-events: auto;
+          opacity: 0; transform: translateY(8px);
+        }
+        .film-cta.show { opacity: 1; transform: translateY(0); transition-delay: 0.5s; }
+        .film-cta:hover { background: rgba(196, 154, 42, 0.08); border-color: #C49A2A; }
+
+        /* Nav */
+        .film-nav {
+          position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+          display: flex; justify-content: space-between; align-items: center;
+          padding: clamp(36px, 5vh, 56px) clamp(24px, 4vw, 48px);
           pointer-events: none;
         }
-        .ix-nav a { pointer-events: auto; text-decoration: none; }
-        .ix-logo {
-          font-family: 'Cormorant Garamond', serif;
-          font-size: 18px;
-          font-weight: 600;
-          letter-spacing: 4px;
-          color: #4A9EBF;
-          opacity: 0.7;
-          transition: opacity 0.3s;
+        .film-nav a { pointer-events: auto; text-decoration: none; }
+        .film-logo {
+          font-family: 'Cormorant Garamond', serif; font-size: 16px;
+          font-weight: 600; letter-spacing: 4px; color: #4A9EBF;
+          opacity: 0.5; transition: opacity 0.3s;
         }
-        .ix-logo:hover { opacity: 1; }
-        .ix-back {
-          font-size: 11px;
-          letter-spacing: 1.5px;
-          text-transform: uppercase;
-          color: rgba(200, 221, 229, 0.35);
-          font-weight: 400;
-          transition: color 0.3s;
+        .film-logo:hover { opacity: 0.8; }
+        .film-back {
+          font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+          color: rgba(200, 221, 229, 0.25); font-weight: 400; transition: color 0.3s;
         }
-        .ix-back:hover { color: rgba(200, 221, 229, 0.6); }
+        .film-back:hover { color: rgba(200, 221, 229, 0.5); }
 
-        .ix-dots {
-          position: fixed;
-          right: clamp(20px, 3vw, 36px);
-          top: 50%;
-          transform: translateY(-50%);
-          z-index: 20;
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-          pointer-events: auto;
+        /* Progress bar at bottom */
+        .film-progress {
+          position: fixed; bottom: clamp(30px, 4vh, 50px); left: 0; right: 0;
+          z-index: 10; height: 1px; pointer-events: none;
         }
-        .ix-dot {
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background: rgba(74, 158, 191, 0.15);
-          cursor: pointer;
-          transition: all 0.4s ease;
-        }
-        .ix-dot.on {
-          background: #4A9EBF;
-          box-shadow: 0 0 8px rgba(74, 158, 191, 0.3);
+        .film-progress-bar {
+          height: 100%; background: #4A9EBF; opacity: 0.3;
+          transition: width 0.1s linear;
         }
 
-        .ix-hint {
-          position: fixed;
-          bottom: 28px;
-          left: 50%;
-          transform: translateX(-50%);
-          z-index: 20;
-          font-size: 9px;
-          letter-spacing: 2.5px;
-          text-transform: uppercase;
-          color: rgba(200, 221, 229, 0.25);
-          pointer-events: none;
+        .film-hint {
+          position: fixed; bottom: clamp(40px, 5vh, 65px); left: 50%;
+          transform: translateX(-50%); z-index: 10;
+          font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase;
+          color: rgba(200, 221, 229, 0.2); pointer-events: none;
           transition: opacity 0.5s;
         }
-        .ix-hint.gone { opacity: 0; }
+        .film-hint.gone { opacity: 0; }
 
         @media (max-width: 768px) {
-          .ix-section[data-pos="right"] { justify-content: flex-start; }
+          .film-beat[data-align="right"] { justify-content: flex-start; }
         }
-      </style><div class="ix-root"><canvas class="ix-canvas"></canvas><div class="ix-vignette"></div><nav class="ix-nav"><a class="ix-logo" href="/">HUNI</a><a class="ix-back" href="/">Home</a></nav><div class="ix-dots"><div class="ix-dot on"></div><div class="ix-dot "></div><div class="ix-dot "></div><div class="ix-dot "></div></div><div class="ix-hint ">Scroll to explore</div><div class="ix-scroll"><div class="ix-scroll-inner"><div class="ix-section" data-pos="left"><div class="ix-content"><div class="ix-label show">The Science of Sweat</div><h2 class="ix-title show">When you move,
-you lose charge</h2><div class="ix-rule show"></div><p class="ix-body show">Every drop of sweat carries sodium, potassium, magnesium, and calcium out of your body. These aren’t just minerals — they’re the electrical signals your muscles need to fire.</p></div></div><div class="ix-section" data-pos="right"><div class="ix-content"><div class="ix-label ">Step 01 — The Pump</div><h2 class="ix-title ">Sodium out,
-potassium in</h2><div class="ix-rule "></div><p class="ix-body ">The sodium-potassium pump runs in every cell, every second. Three sodium ions out, two potassium in — consuming 25% of your body’s energy just to maintain the voltage gradient that powers movement.</p></div></div><div class="ix-section" data-pos="left"><div class="ix-content"><div class="ix-label ">Step 02 — The Signal</div><h2 class="ix-title ">Calcium triggers
-the contraction</h2><div class="ix-rule "></div><p class="ix-body ">When your brain says move, calcium floods the muscle fiber and triggers contraction. Magnesium releases the grip. Without balance between the two, cramping takes over mid-rep.</p></div></div><div class="ix-section" data-pos="center"><div class="ix-content"><div class="ix-label ">Replenish</div><h2 class="ix-title ">Rehydrate with
-what you lost</h2><div class="ix-rule "></div><p class="ix-body ">Huni replaces exactly what sweat takes — sodium, potassium, magnesium, calcium — sweetened with organic buckwheat honey. No dyes, no sucralose, no fake anything. Just real hydration.</p><a class="ix-cta " href="/#waitlist">Join the Waitlist</a></div></div></div></div></div><!--$--><!--/$--><script src="/_next/static/chunks/15xrurgzs99gv.js" id="_R_" async=""></script><script>(self.__next_f=self.__next_f||[]).push([0])</script><script>self.__next_f.push([1,"1:\"$Sreact.fragment\"\n2:I[39756,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"default\"]\n3:I[37457,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"default\"]\n4:I[47257,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"ClientPageRoot\"]\n5:I[43698,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\",\"/_next/static/chunks/0drc6yrx.co1a.js\"],\"default\"]\n8:I[97367,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"OutletBoundary\"]\n9:\"$Sreact.suspense\"\nc:I[97367,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"ViewportBoundary\"]\ne:I[97367,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"MetadataBoundary\"]\n10:I[68027,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"default\",1]\n:HL[\"/_next/static/chunks/0k~utu-n4tpkb.css\",\"style\"]\n:HL[\"/_next/static/media/2a65768255d6b625-s.p.14by5b4al-y~f.woff2\",\"font\",{\"crossOrigin\":\"\",\"type\":\"font/woff2\"}]\n:HL[\"/_next/static/media/5c285b27cdda1fe8-s.p.0yo6-5yoeeudq.woff2\",\"font\",{\"crossOrigin\":\"\",\"type\":\"font/woff2\"}]\n"])</script><script>self.__next_f.push([1,"0:{\"P\":null,\"c\":[\"\",\"immersive\"],\"q\":\"\",\"i\":false,\"f\":[[[\"\",{\"children\":[\"immersive\",{\"children\":[\"__PAGE__\",{}]}]},\"$undefined\",\"$undefined\",16],[[\"$\",\"$1\",\"c\",{\"children\":[[[\"$\",\"link\",\"0\",{\"rel\":\"stylesheet\",\"href\":\"/_next/static/chunks/0k~utu-n4tpkb.css\",\"precedence\":\"next\",\"crossOrigin\":\"$undefined\",\"nonce\":\"$undefined\"}],[\"$\",\"script\",\"script-0\",{\"src\":\"/_next/static/chunks/01xlw8hd842-c.js\",\"async\":true,\"nonce\":\"$undefined\"}],[\"$\",\"script\",\"script-1\",{\"src\":\"/_next/static/chunks/0d3shmwh5_nmn.js\",\"async\":true,\"nonce\":\"$undefined\"}]],[\"$\",\"html\",null,{\"lang\":\"en\",\"className\":\"dm_sans_f65b9734-module__rAqehG__variable playfair_display_a5dad1f2-module__6FeSRW__variable h-full antialiased\",\"children\":[\"$\",\"body\",null,{\"className\":\"min-h-full flex flex-col\",\"children\":[\"$\",\"$L2\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L3\",null,{}],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":[[[\"$\",\"title\",null,{\"children\":\"404: This page could not be found.\"}],[\"$\",\"div\",null,{\"style\":{\"fontFamily\":\"system-ui,\\\"Segoe UI\\\",Roboto,Helvetica,Arial,sans-serif,\\\"Apple Color Emoji\\\",\\\"Segoe UI Emoji\\\"\",\"height\":\"100vh\",\"textAlign\":\"center\",\"display\":\"flex\",\"flexDirection\":\"column\",\"alignItems\":\"center\",\"justifyContent\":\"center\"},\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}\"}}],[\"$\",\"h1\",null,{\"className\":\"next-error-h1\",\"style\":{\"display\":\"inline-block\",\"margin\":\"0 20px 0 0\",\"padding\":\"0 23px 0 0\",\"fontSize\":24,\"fontWeight\":500,\"verticalAlign\":\"top\",\"lineHeight\":\"49px\"},\"children\":404}],[\"$\",\"div\",null,{\"style\":{\"display\":\"inline-block\"},\"children\":[\"$\",\"h2\",null,{\"style\":{\"fontSize\":14,\"fontWeight\":400,\"lineHeight\":\"49px\",\"margin\":0},\"children\":\"This page could not be found.\"}]}]]}]}]],[]],\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\"}]}]}]]}],{\"children\":[[\"$\",\"$1\",\"c\",{\"children\":[null,[\"$\",\"$L2\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L3\",null,{}],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":\"$undefined\",\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\"}]]}],{\"children\":[[\"$\",\"$1\",\"c\",{\"children\":[[\"$\",\"$L4\",null,{\"Component\":\"$5\",\"serverProvidedParams\":{\"searchParams\":{},\"params\":{},\"promises\":[\"$@6\",\"$@7\"]}}],[[\"$\",\"script\",\"script-0\",{\"src\":\"/_next/static/chunks/0drc6yrx.co1a.js\",\"async\":true,\"nonce\":\"$undefined\"}]],[\"$\",\"$L8\",null,{\"children\":[\"$\",\"$9\",null,{\"name\":\"Next.MetadataOutlet\",\"children\":\"$@a\"}]}]]}],{},null,false,null]},null,false,\"$@b\"]},null,false,null],[\"$\",\"$1\",\"h\",{\"children\":[null,[\"$\",\"$Lc\",null,{\"children\":\"$Ld\"}],[\"$\",\"div\",null,{\"hidden\":true,\"children\":[\"$\",\"$Le\",null,{\"children\":[\"$\",\"$9\",null,{\"name\":\"Next.Metadata\",\"children\":\"$Lf\"}]}]}],[\"$\",\"meta\",null,{\"name\":\"next-size-adjust\",\"content\":\"\"}]]}],false]],\"m\":\"$undefined\",\"G\":[\"$10\",[[\"$\",\"link\",\"0\",{\"rel\":\"stylesheet\",\"href\":\"/_next/static/chunks/0k~utu-n4tpkb.css\",\"precedence\":\"next\",\"crossOrigin\":\"$undefined\",\"nonce\":\"$undefined\"}]]],\"S\":true,\"h\":null,\"s\":\"$undefined\",\"l\":\"$undefined\",\"p\":\"$undefined\",\"d\":\"$undefined\",\"b\":\"i8NEbGjkuDKv_zkR6XG4d\"}\n"])</script><script>self.__next_f.push([1,"11:[]\nb:\"$W11\"\n6:{}\n7:\"$0:f:0:1:1:children:1:children:0:props:children:0:props:serverProvidedParams:params\"\n"])</script><script>self.__next_f.push([1,"d:[[\"$\",\"meta\",\"0\",{\"charSet\":\"utf-8\"}],[\"$\",\"meta\",\"1\",{\"name\":\"viewport\",\"content\":\"width=device-width, initial-scale=1\"}]]\n"])</script><script>self.__next_f.push([1,"12:I[27201,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"IconMark\"]\na:null\nf:[[\"$\",\"title\",\"0\",{\"children\":\"Huni — The World's First Honey-Sweetened Electrolyte\"}],[\"$\",\"meta\",\"1\",{\"name\":\"description\",\"content\":\"5 USDA Organic ingredients. Zero compromises. Join the waitlist for the world's first honey-sweetened electrolyte.\"}],[\"$\",\"link\",\"2\",{\"rel\":\"icon\",\"href\":\"/favicon.ico?favicon.0x3dzn~oxb6tn.ico\",\"sizes\":\"256x256\",\"type\":\"image/x-icon\"}],[\"$\",\"$L12\",\"3\",{}]]\n"])</script></body></html>
+      </style><div class="film-root"><canvas class="film-canvas"></canvas><div class="film-vignette"></div><div class="film-bar-top"></div><div class="film-bar-bottom"></div><nav class="film-nav"><a class="film-logo" href="/">HUNI</a><a class="film-back" href="/">Home</a></nav><div class="film-progress"><div class="film-progress-bar" style="width:0%"></div></div><div class="film-hint ">Scroll to watch</div><div class="film-scroll"><div class="film-scroll-inner"><div class="film-beat" data-align="center"><div class="film-title-card"><h1 class="film-title-main show">RECOVER</h1><p class="film-title-sub show">A short film about what happens after you push your limits</p></div></div><div class="film-beat" data-align="left"><div class="film-scene"><div class="film-scene-label ">Act I</div><h2 class="film-scene-title ">You gave
+everything.</h2><div class="film-scene-rule "></div><p class="film-scene-body ">Your muscles fired thousands of contractions. You sweated out sodium, potassium, magnesium, calcium — the ions that carry every electrical signal in your body.</p></div></div><div class="film-beat" data-align="right"><div class="film-scene"><div class="film-scene-label ">Act II</div><h2 class="film-scene-title ">The pump
+never stops.</h2><div class="film-scene-rule "></div><p class="film-scene-body ">Three sodium ions out. Two potassium in. The sodium-potassium pump runs in every cell, consuming 25% of your energy just to maintain the voltage that makes movement possible.</p></div></div><div class="film-beat" data-align="center"><div class="film-fulltext"><h2 class="film-fulltext-main ">Your muscles
+are electrical.</h2><p class="film-fulltext-sub ">Every contraction is a spark. Every recovery is a recharge.</p></div></div><div class="film-beat" data-align="left"><div class="film-scene"><div class="film-scene-label ">Act III</div><h2 class="film-scene-title ">Fiber by fiber,
+you rebuild.</h2><div class="film-scene-rule "></div><p class="film-scene-body ">Calcium re-enables contraction signaling. Magnesium relaxes overworked tissue and stops the cramping. Your muscle fibers knit back together, stronger than before.</p></div></div><div class="film-beat" data-align="center"><div class="film-fulltext"><h2 class="film-fulltext-main ">This is what
+recovery
+looks like.</h2></div></div><div class="film-beat" data-align="center"><div class="film-finale"><h1 class="film-finale-brand ">HUNI</h1><p class="film-finale-sub ">Five organic ingredients. Zero compromise.
+The electrolytes your body was built to use.</p><a class="film-cta " href="/#waitlist">Join the Waitlist</a></div></div></div></div></div><!--$--><!--/$--><script src="/_next/static/chunks/15xrurgzs99gv.js" id="_R_" async=""></script><script>(self.__next_f=self.__next_f||[]).push([0])</script><script>self.__next_f.push([1,"1:\"$Sreact.fragment\"\n2:I[39756,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"default\"]\n3:I[37457,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"default\"]\n4:I[47257,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"ClientPageRoot\"]\n5:I[43698,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\",\"/_next/static/chunks/11m7tu8uyw56p.js\"],\"default\"]\n8:I[97367,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"OutletBoundary\"]\n9:\"$Sreact.suspense\"\nc:I[97367,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"ViewportBoundary\"]\ne:I[97367,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"MetadataBoundary\"]\n10:I[68027,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"default\",1]\n:HL[\"/_next/static/chunks/0348a-4dm82we.css\",\"style\"]\n:HL[\"/_next/static/media/2a65768255d6b625-s.p.14by5b4al-y~f.woff2\",\"font\",{\"crossOrigin\":\"\",\"type\":\"font/woff2\"}]\n:HL[\"/_next/static/media/5c285b27cdda1fe8-s.p.0yo6-5yoeeudq.woff2\",\"font\",{\"crossOrigin\":\"\",\"type\":\"font/woff2\"}]\n"])</script><script>self.__next_f.push([1,"0:{\"P\":null,\"c\":[\"\",\"immersive\"],\"q\":\"\",\"i\":false,\"f\":[[[\"\",{\"children\":[\"immersive\",{\"children\":[\"__PAGE__\",{}]}]},\"$undefined\",\"$undefined\",16],[[\"$\",\"$1\",\"c\",{\"children\":[[[\"$\",\"link\",\"0\",{\"rel\":\"stylesheet\",\"href\":\"/_next/static/chunks/0348a-4dm82we.css\",\"precedence\":\"next\",\"crossOrigin\":\"$undefined\",\"nonce\":\"$undefined\"}],[\"$\",\"script\",\"script-0\",{\"src\":\"/_next/static/chunks/01xlw8hd842-c.js\",\"async\":true,\"nonce\":\"$undefined\"}],[\"$\",\"script\",\"script-1\",{\"src\":\"/_next/static/chunks/0d3shmwh5_nmn.js\",\"async\":true,\"nonce\":\"$undefined\"}]],[\"$\",\"html\",null,{\"lang\":\"en\",\"className\":\"dm_sans_f65b9734-module__rAqehG__variable playfair_display_a5dad1f2-module__6FeSRW__variable h-full antialiased\",\"children\":[\"$\",\"body\",null,{\"className\":\"min-h-full flex flex-col\",\"children\":[\"$\",\"$L2\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L3\",null,{}],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":[[[\"$\",\"title\",null,{\"children\":\"404: This page could not be found.\"}],[\"$\",\"div\",null,{\"style\":{\"fontFamily\":\"system-ui,\\\"Segoe UI\\\",Roboto,Helvetica,Arial,sans-serif,\\\"Apple Color Emoji\\\",\\\"Segoe UI Emoji\\\"\",\"height\":\"100vh\",\"textAlign\":\"center\",\"display\":\"flex\",\"flexDirection\":\"column\",\"alignItems\":\"center\",\"justifyContent\":\"center\"},\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}\"}}],[\"$\",\"h1\",null,{\"className\":\"next-error-h1\",\"style\":{\"display\":\"inline-block\",\"margin\":\"0 20px 0 0\",\"padding\":\"0 23px 0 0\",\"fontSize\":24,\"fontWeight\":500,\"verticalAlign\":\"top\",\"lineHeight\":\"49px\"},\"children\":404}],[\"$\",\"div\",null,{\"style\":{\"display\":\"inline-block\"},\"children\":[\"$\",\"h2\",null,{\"style\":{\"fontSize\":14,\"fontWeight\":400,\"lineHeight\":\"49px\",\"margin\":0},\"children\":\"This page could not be found.\"}]}]]}]}]],[]],\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\"}]}]}]]}],{\"children\":[[\"$\",\"$1\",\"c\",{\"children\":[null,[\"$\",\"$L2\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L3\",null,{}],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":\"$undefined\",\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\"}]]}],{\"children\":[[\"$\",\"$1\",\"c\",{\"children\":[[\"$\",\"$L4\",null,{\"Component\":\"$5\",\"serverProvidedParams\":{\"searchParams\":{},\"params\":{},\"promises\":[\"$@6\",\"$@7\"]}}],[[\"$\",\"script\",\"script-0\",{\"src\":\"/_next/static/chunks/11m7tu8uyw56p.js\",\"async\":true,\"nonce\":\"$undefined\"}]],[\"$\",\"$L8\",null,{\"children\":[\"$\",\"$9\",null,{\"name\":\"Next.MetadataOutlet\",\"children\":\"$@a\"}]}]]}],{},null,false,null]},null,false,\"$@b\"]},null,false,null],[\"$\",\"$1\",\"h\",{\"children\":[null,[\"$\",\"$Lc\",null,{\"children\":\"$Ld\"}],[\"$\",\"div\",null,{\"hidden\":true,\"children\":[\"$\",\"$Le\",null,{\"children\":[\"$\",\"$9\",null,{\"name\":\"Next.Metadata\",\"children\":\"$Lf\"}]}]}],[\"$\",\"meta\",null,{\"name\":\"next-size-adjust\",\"content\":\"\"}]]}],false]],\"m\":\"$undefined\",\"G\":[\"$10\",[[\"$\",\"link\",\"0\",{\"rel\":\"stylesheet\",\"href\":\"/_next/static/chunks/0348a-4dm82we.css\",\"precedence\":\"next\",\"crossOrigin\":\"$undefined\",\"nonce\":\"$undefined\"}]]],\"S\":true,\"h\":null,\"s\":\"$undefined\",\"l\":\"$undefined\",\"p\":\"$undefined\",\"d\":\"$undefined\",\"b\":\"99PsxECGcs3BdZou-JuMs\"}\n"])</script><script>self.__next_f.push([1,"11:[]\nb:\"$W11\"\n6:{}\n7:\"$0:f:0:1:1:children:1:children:0:props:children:0:props:serverProvidedParams:params\"\n"])</script><script>self.__next_f.push([1,"d:[[\"$\",\"meta\",\"0\",{\"charSet\":\"utf-8\"}],[\"$\",\"meta\",\"1\",{\"name\":\"viewport\",\"content\":\"width=device-width, initial-scale=1\"}]]\n"])</script><script>self.__next_f.push([1,"12:I[27201,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"IconMark\"]\na:null\nf:[[\"$\",\"title\",\"0\",{\"children\":\"Huni — The World's First Honey-Sweetened Electrolyte\"}],[\"$\",\"meta\",\"1\",{\"name\":\"description\",\"content\":\"5 USDA Organic ingredients. Zero compromises. Join the waitlist for the world's first honey-sweetened electrolyte.\"}],[\"$\",\"link\",\"2\",{\"rel\":\"icon\",\"href\":\"/favicon.ico?favicon.0x3dzn~oxb6tn.ico\",\"sizes\":\"256x256\",\"type\":\"image/x-icon\"}],[\"$\",\"$L12\",\"3\",{}]]\n"])</script></body></html>
