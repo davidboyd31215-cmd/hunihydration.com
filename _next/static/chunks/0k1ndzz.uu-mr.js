@@ -8,7 +8,6 @@
           color: #c8dde5;
           font-family: 'Outfit', system-ui, sans-serif;
           min-height: 100vh;
-          overflow-x: hidden;
         }
 
         /* Fixed background layers */
