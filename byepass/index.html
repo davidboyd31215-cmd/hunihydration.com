@@ -1803,7 +1803,17 @@
             }
         }
     </style>
-    <script src="https://byepass-w5na.onrender.com/public/api.js"></script>
+    <script>
+        // Load api.js dynamically so it doesn't block page render during Render cold starts
+        (function() {
+            var s = document.createElement('script');
+            s.src = 'https://byepass-w5na.onrender.com/public/api.js';
+            s.onload = function() {
+                if (typeof initAPI === 'function') initAPI();
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
 </head>
 <body>
     <!-- Toast Container -->
@@ -2892,6 +2902,8 @@
         let byepassApi = null;
 
         function initAPI() {
+            if (byepassApi) return; // Already initialized
+            if (typeof ByepassAPI === 'undefined') return; // Script not loaded yet
             try {
                 byepassApi = new ByepassAPI('https://byepass-w5na.onrender.com/api');
                 byepassApi.setToastHandler(showToast);
