@@ -4338,7 +4338,12 @@
             const rmHandle = rm?.paymentHandles?.[app] || '';
             switch(app) {
                 case 'venmo':
-                    return `https://venmo.com/?txn=charge&amount=${amount}&note=${encodeURIComponent(note)}${rmHandle ? '&recipients=' + encodeURIComponent(rmHandle) : ''}`;
+                    if (rmHandle) {
+                        // Use Venmo's current pay URL with recipient
+                        const cleanHandle = rmHandle.replace(/^@/, '');
+                        return `https://account.venmo.com/pay?recipients=${encodeURIComponent(cleanHandle)}&amount=${amount}&note=${encodeURIComponent(note)}`;
+                    }
+                    return `https://account.venmo.com/pay?amount=${amount}&note=${encodeURIComponent(note)}`;
                 case 'cashapp':
                     return rmHandle ? `https://cash.app/${rmHandle}/${amount}` : `https://cash.app/$pay?amount=${amount}&note=${encodeURIComponent(note)}`;
                 case 'zelle':
@@ -5052,7 +5057,7 @@
 
             // ===== EXTRACT ACCOUNT NUMBER =====
             const accountPatterns = [
-                /Account\s*(?:Number|#|No\.?)[:\s]*([\d\s\-]{6,})/i,
+                /Account\s*(?:Number|#|No\.?)[:\s]*([\d][\d\s\-]{4,18}[\d])/i,
             ];
             for (const pattern of accountPatterns) {
                 const match = text.match(pattern);
@@ -6474,9 +6479,9 @@
 
         // ====== ACCOUNT PROFILE FUNCTIONS ======
         function openAccountProfile() {
-            const name = currentUser ? currentUser.name : 'User';
-            const email = currentUser ? currentUser.email : '';
-            const phone = currentUser ? currentUser.phone : '';
+            const name = currentUser ? (currentUser.name || 'User') : 'User';
+            const email = currentUser ? (currentUser.email || '') : '';
+            const phone = currentUser ? (currentUser.phone || '') : '';
 
             // Set display info
             const initials = name.split(' ').map(n => n[0]).join('').toUpperCase();
