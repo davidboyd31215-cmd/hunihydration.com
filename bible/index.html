@@ -2169,7 +2169,7 @@ body.mode-timeline .timeline-help { display: block; }
     <div class="settings-group-title">Find a verse</div>
     <div class="settings-section">
       <div class="settings-search">
-        <input type="text" id="settings-jump-input" placeholder="Verse (John 3:16) or keyword (love, hope, peace)" autocapitalize="words" autocorrect="off" autocomplete="off" spellcheck="false" list="verse-suggestions" />
+        <input type="text" id="settings-jump-input" placeholder="Verse (John 3:16) or keyword (love, hope, peace)" autocapitalize="words" autocorrect="off" autocomplete="off" spellcheck="false" list="verse-suggestions" enterkeyhint="go" inputmode="search" />
         <datalist id="verse-suggestions">
           <option value="Genesis 1:1">Creation</option>
           <option value="John 3:16">For God so loved the world</option>
@@ -3003,7 +3003,14 @@ function init() {
   const jumpBtn = document.getElementById('settings-jump-btn');
   const jumpInput = document.getElementById('settings-jump-input');
   if (jumpBtn) jumpBtn.addEventListener('click', doJump);
-  if (jumpInput) jumpInput.addEventListener('keydown', e => { if (e.key === 'Enter') doJump(); });
+  if (jumpInput) jumpInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doJump();
+    else if (e.key === 'Escape') {
+      // First Esc clears the input; second Esc closes the drawer.
+      if (e.target.value) { e.target.value = ''; e.preventDefault(); }
+      else if (window.closeSettings) closeSettings();
+    }
+  });
   drawer && drawer.querySelectorAll('.settings-row').forEach(row => {
     row.addEventListener('click', () => {
       const action = row.dataset.action;
@@ -3463,9 +3470,13 @@ function init() {
     document.body.classList.add('reader-mode');
   }
 
-  // Register service worker for offline caching of JSON data
+  // Register service worker after the load event so it doesn't compete
+  // with the chapter render for main-thread time. SW only matters on the
+  // *next* visit anyway.
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }, { once: true });
   }
   // iOS Add-to-Home-Screen hint — one-time, dismissible. iOS Safari has no
   // beforeinstallprompt event; without an in-app hint, install rate is ~0.
@@ -3928,7 +3939,16 @@ const _CLOZE_STARTER = [
   { ref: 'Jer.29.11', snippet: 'For I know the thoughts that I think toward you, saith the LORD, thoughts of peace, and not of evil, to give you an expected end.' },
   { ref: 'Rom.8.28', snippet: 'And we know that all things work together for good to them that love God, to them who are the called according to his purpose.' },
 ];
-function startClozePractice(startIdx) {
+function startClozePractice(startIdx, adhocVerse) {
+  // Ad-hoc single-verse practice (called from the verse-action sidebar)
+  // bypasses the bookmark list entirely.
+  if (adhocVerse && adhocVerse.ref) {
+    _clozeState.verses = [adhocVerse];
+    _clozeState.idx = 0;
+    _clozeState.hard = false;
+    renderCloze();
+    return;
+  }
   const list = getBookmarks();
   if (list.length) {
     _clozeState.verses = list;
@@ -5840,6 +5860,7 @@ function showSidebar(key, verseNum, refs) {
         <button onclick="copyVerseText(${JSON.stringify(verseText).replace(/"/g, '&quot;')}, '${book.name} ${state.chapter}:${verseNum}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy the verse text to paste anywhere">Copy text</button>
         <button onclick="showImagePickerModal(${JSON.stringify(verseText).replace(/"/g, '&quot;')}, '${book.name} ${state.chapter}:${verseNum}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Save as a shareable image">Save as image</button>
         <button id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent">Compare versions</button>
+        <button onclick="startClozePractice(0, {ref:'${key}', snippet:${JSON.stringify(verseText).replace(/"/g, '&quot;')}})" style="background:transparent;border:1px solid var(--accent);color:var(--accent);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Practice memorizing this verse (fill-in-the-blank)">🧠 Practice</button>
       </div>
       <div id="${cmpId}" style="margin-top:10px"></div>
     </div>
