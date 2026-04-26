@@ -3181,6 +3181,7 @@ function showSidebar(key, verseNum, refs) {
   const gqURL = `https://www.gotquestions.org/?s=${encodeURIComponent(book.name + ' ' + state.chapter)}`;
 
   const isBkmk = isBookmarked(key);
+  const cmpId = 'translation-compare-' + key.replace(/\./g, '-');
   document.getElementById('sidebar-content').innerHTML = `
     <div class="sidebar-header">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
@@ -3190,6 +3191,8 @@ function showSidebar(key, verseNum, refs) {
         </div>
         <button class="bookmark-btn ${isBkmk ? 'active' : ''}" onclick="onBookmarkClick('${key}', this)" aria-label="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" title="${isBkmk ? 'Remove from bookmarks' : 'Save to bookmarks'}">${isBkmk ? '★ Saved' : '☆ Save'}</button>
       </div>
+      <button id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this)" style="margin-top:10px;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent">Compare KJV / ESV / BSB</button>
+      <div id="${cmpId}" style="margin-top:10px"></div>
     </div>
     ${tqHTML}
     ${commentaryHTML}
@@ -3261,6 +3264,64 @@ function onBookmarkClick(key, btn) {
     btn.textContent = nowBookmarked ? '★ Saved' : '☆ Save';
     btn.setAttribute('aria-label', nowBookmarked ? 'Remove bookmark' : 'Add bookmark');
   }
+}
+
+// ── Compare-translations: fetch the active verse in all three translations ──
+async function compareTranslations(osisKey, btn) {
+  const m = osisKey.match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)$/);
+  if (!m) return;
+  const bookOsis = m[1], ch = +m[2], v = +m[3];
+  const bookIdx = IDX_BY_OSIS[bookOsis];
+  if (bookIdx == null) return;
+  const book = BOOKS[bookIdx];
+  const container = document.getElementById('translation-compare-' + osisKey.replace(/\./g, '-'));
+  if (!container) return;
+  if (btn) btn.style.display = 'none';
+  container.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-style:italic;font-size:12px">Loading translations...</div>';
+
+  async function fetchVerse(translation) {
+    try {
+      if (translation === 'kjv') {
+        const r = await fetch(`https://bible-api.com/${book.abbr}+${ch}:${v}?translation=kjv`);
+        if (r.ok) {
+          const d = await r.json();
+          return (d.verses && d.verses[0]) ? d.verses[0].text.trim() : '';
+        }
+        const r2 = await fetch(`https://bolls.life/get-text/KJV/${bookIdx + 1}/${ch}/`);
+        if (r2.ok) {
+          const d = await r2.json();
+          const v2 = d.find(x => x.verse === v);
+          return v2 ? (v2.text || '').replace(/<[^>]+>/g, '').trim() : '';
+        }
+      } else if (translation === 'esv') {
+        const url = `https://api.esv.org/v3/passage/text/?q=${encodeURIComponent(book.name + ' ' + ch + ':' + v)}&include-headings=false&include-footnotes=false&include-passage-references=false&include-short-copyright=false&include-verse-numbers=false&indent-poetry=false`;
+        const r = await fetch(url, { headers: { 'Authorization': `Token ${ESV_TOKEN}` } });
+        if (r.ok) {
+          const d = await r.json();
+          if (d.passages && d.passages[0]) return d.passages[0].replace(/^\s+|\s+$/g, '').replace(/\(ESV\)\s*$/, '').trim();
+        }
+      } else if (translation === 'bsb') {
+        const r = await fetch(`https://bolls.life/get-text/BSB/${bookIdx + 1}/${ch}/`);
+        if (r.ok) {
+          const d = await r.json();
+          const v2 = d.find(x => x.verse === v);
+          return v2 ? (v2.text || '').replace(/<[^>]+>/g, '').trim() : '';
+        }
+      }
+    } catch (e) { return ''; }
+    return '';
+  }
+
+  const [kjv, esv, bsb] = await Promise.all([fetchVerse('kjv'), fetchVerse('esv'), fetchVerse('bsb')]);
+  container.innerHTML = `
+    <div style="padding:0;display:flex;flex-direction:column;gap:10px">
+      ${[['KJV', kjv, '#3D5A6E'], ['ESV', esv, '#3D6E36'], ['BSB', bsb, '#7B5C3F']].map(([label, text, color]) => `
+        <div style="background:var(--bg-alt);border-left:3px solid ${color};border-radius:4px;padding:10px 12px">
+          <div style="font-size:10px;font-weight:700;color:${color};letter-spacing:0.1em;margin-bottom:4px">${label}</div>
+          <div style="font-family:var(--serif);font-size:13.5px;line-height:1.5;color:var(--text)">${text || '<em style="color:var(--text-dim)">(unavailable)</em>'}</div>
+        </div>
+      `).join('')}
+    </div>`;
 }
 
 // Haptic feedback helper (no-op where unsupported)
