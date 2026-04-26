@@ -274,6 +274,7 @@ body.sidebar-open .bible-text {
   gap: 12px;
   margin-bottom: 10px;
   padding: 6px 8px 6px 4px;
+  -webkit-tap-highlight-color: transparent;
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.16s ease, padding-left 0.16s ease, border-left-color 0.16s ease;
@@ -310,6 +311,13 @@ body.sidebar-open .bible-text {
   flex: 1;
   letter-spacing: -0.005em;
 }
+
+/* iOS Safari polish — prevent zoom on input focus, no tap-flash on touchables */
+@media (max-width: 1100px) {
+  select, input[type="text"], input[type="search"] { font-size: 16px !important; }
+}
+.pill-group button, .end-of-chapter-link, .blb-btn, .ref-card, button { -webkit-tap-highlight-color: transparent; }
+#arc-canvas, #graph-canvas, #timeline-canvas { touch-action: pinch-zoom; }
 
 /* Mobile-friendly hit areas (visual size kept small, expanded touch via padding) */
 @media (pointer: coarse) {
@@ -4577,14 +4585,39 @@ async function compareTranslations(osisKey, btn) {
   container.innerHTML = renderCompareHTML(kjv, esv, bsb, book.name, ch, v);
 }
 
+function _diffHighlight(kjv, esv, bsb) {
+  // Find words present in ONE translation but not all three
+  const tokenize = t => (t || '').toLowerCase().split(/\s+/).map(w => w.replace(/[^\w'-]/g, '')).filter(Boolean);
+  const wK = new Set(tokenize(kjv));
+  const wE = new Set(tokenize(esv));
+  const wB = new Set(tokenize(bsb));
+  const wrap = (text, ownSet, color) => {
+    if (!text) return text;
+    return text.replace(/[A-Za-z][A-Za-z'-]*/g, (m) => {
+      const lc = m.toLowerCase();
+      if (ownSet.has(lc) && (!wK.has(lc) || !wE.has(lc) || !wB.has(lc))) {
+        return `<mark style="background:${color};color:inherit;padding:0 2px;border-radius:2px">${m}</mark>`;
+      }
+      return m;
+    });
+  };
+  return {
+    kjv: wrap(kjv, wK, 'rgba(61,90,110,0.22)'),
+    esv: wrap(esv, wE, 'rgba(61,110,54,0.22)'),
+    bsb: wrap(bsb, wB, 'rgba(123,92,63,0.22)'),
+  };
+}
+
 function renderCompareHTML(kjv, esv, bsb, bookName, ch, v) {
+  const h = _diffHighlight(kjv, esv, bsb);
   return `<div style="padding:0;display:flex;flex-direction:column;gap:10px">
-    ${[['KJV', kjv, '#3D5A6E'], ['ESV', esv, '#3D6E36'], ['BSB', bsb, '#7B5C3F']].map(([label, text, color]) => `
+    ${[['KJV', h.kjv, '#3D5A6E'], ['ESV', h.esv, '#3D6E36'], ['BSB', h.bsb, '#7B5C3F']].map(([label, text, color]) => `
       <div style="background:var(--bg-alt);border-left:3px solid ${color};border-radius:4px;padding:10px 12px">
         <div style="font-size:10px;font-weight:700;color:${color};letter-spacing:0.1em;margin-bottom:4px">${label}</div>
-        <div style="font-family:var(--serif);font-size:13.5px;line-height:1.5;color:var(--text)">${text || '<em style="color:var(--text-dim)">(unavailable)</em>'}</div>
+        <div style="font-family:var(--serif);font-size:13.5px;line-height:1.55;color:var(--text)">${text || '<em style="color:var(--text-dim)">(unavailable)</em>'}</div>
       </div>
     `).join('')}
+    <div style="font-size:10px;color:var(--text-dim);font-style:italic;margin-top:2px">Highlighted words appear in only one translation.</div>
   </div>`;
 }
 
