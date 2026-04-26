@@ -2076,6 +2076,13 @@ body.mode-timeline .timeline-help { display: block; }
         </div>
         <div class="settings-row-value">Copy</div>
       </div>
+      <div class="settings-row" data-action="print">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Print this chapter</div>
+          <div class="settings-row-sub">Clean printable text — no chrome</div>
+        </div>
+        <div class="settings-row-value">Print</div>
+      </div>
     </div>
 
     <div class="settings-group-title">Help &amp; about</div>
@@ -2632,6 +2639,10 @@ function init() {
       else if (action === 'highlights') {
         closeSettings();
         showHighlightsModal();
+      }
+      else if (action === 'print') {
+        closeSettings();
+        setTimeout(() => window.print(), 250);
       }
       else if (action === 'about') {
         closeSettings();
