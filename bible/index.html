@@ -2725,6 +2725,42 @@ function init() {
   loadBookBackgrounds();
   loadCommentary();
 
+  // Continue-reading banner — only if no deep-link and last session > 5 min ago
+  if (!location.hash) {
+    try {
+      const lastRaw = localStorage.getItem('scripture-last-position');
+      if (lastRaw) {
+        const last = JSON.parse(lastRaw);
+        if (last && (Date.now() - last.ts) > 5 * 60 * 1000 && last.bookIdx != null) {
+          const lastBook = BOOKS[last.bookIdx];
+          if (lastBook && (last.bookIdx !== state.bookIdx || last.chapter !== state.chapter)) {
+            setTimeout(() => {
+              const banner = document.createElement('div');
+              banner.id = 'continue-banner';
+              banner.style.cssText = 'background:linear-gradient(135deg,var(--accent-soft),transparent);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:0 0 18px 0;font-family:var(--sans);display:flex;align-items:center;gap:12px';
+              banner.innerHTML = `
+                <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:var(--accent);text-transform:uppercase;flex-shrink:0">Pick up where you left off</div>
+                <div style="flex:1;min-width:0">
+                  <a href="#${OSIS_BY_IDX[last.bookIdx]}.${last.chapter}" style="color:var(--text);font-family:var(--serif);font-size:14px;font-weight:600;text-decoration:none">${lastBook.name} ${last.chapter}</a>
+                </div>
+                <button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:18px;padding:4px 8px" aria-label="Dismiss">&times;</button>`;
+              const text = document.getElementById('bible-text');
+              if (text && text.firstChild) text.insertBefore(banner, text.firstChild);
+            }, 800);
+          }
+        }
+      }
+    } catch(e) {}
+  }
+  // Save reading position whenever user navigates
+  window._saveReadingPosition = () => {
+    try {
+      localStorage.setItem('scripture-last-position', JSON.stringify({
+        bookIdx: state.bookIdx, chapter: state.chapter, ts: Date.now()
+      }));
+    } catch(e) {}
+  };
+
   // Apply persisted text size
   applyTextSize(localStorage.getItem('scripture-textsize') || 'M');
 
@@ -3808,6 +3844,7 @@ async function loadChapter() {
     renderChapter(book, verses);
     applyAllHighlights();
     updateHash();
+    if (window._saveReadingPosition) window._saveReadingPosition();
     if (window._refreshChapterSelect) window._refreshChapterSelect();
     if (state.mode === 'graph') { stopGraph(); startGraph(); }
     if (state.activeVerse) setTimeout(scrollToActiveVerse, 250);
@@ -4344,6 +4381,13 @@ function onBookmarkClick(key, btn) {
 }
 
 // ── Compare-translations: fetch the active verse in all three translations ──
+const _compareCache = (() => {
+  try { return JSON.parse(sessionStorage.getItem('scripture-compare-cache') || '{}'); } catch(e) { return {}; }
+})();
+function _saveCompareCache() {
+  try { sessionStorage.setItem('scripture-compare-cache', JSON.stringify(_compareCache)); } catch(e) {}
+}
+
 async function compareTranslations(osisKey, btn) {
   const m = osisKey.match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)$/);
   if (!m) return;
@@ -4354,6 +4398,12 @@ async function compareTranslations(osisKey, btn) {
   const container = document.getElementById('translation-compare-' + osisKey.replace(/\./g, '-'));
   if (!container) return;
   if (btn) btn.style.display = 'none';
+  // Use session cache if available
+  if (_compareCache[osisKey]) {
+    const c = _compareCache[osisKey];
+    container.innerHTML = renderCompareHTML(c.kjv, c.esv, c.bsb, book.name, ch, v);
+    return;
+  }
   container.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-style:italic;font-size:12px">Loading translations...</div>';
 
   async function fetchVerse(translation) {
@@ -4390,15 +4440,20 @@ async function compareTranslations(osisKey, btn) {
   }
 
   const [kjv, esv, bsb] = await Promise.all([fetchVerse('kjv'), fetchVerse('esv'), fetchVerse('bsb')]);
-  container.innerHTML = `
-    <div style="padding:0;display:flex;flex-direction:column;gap:10px">
-      ${[['KJV', kjv, '#3D5A6E'], ['ESV', esv, '#3D6E36'], ['BSB', bsb, '#7B5C3F']].map(([label, text, color]) => `
-        <div style="background:var(--bg-alt);border-left:3px solid ${color};border-radius:4px;padding:10px 12px">
-          <div style="font-size:10px;font-weight:700;color:${color};letter-spacing:0.1em;margin-bottom:4px">${label}</div>
-          <div style="font-family:var(--serif);font-size:13.5px;line-height:1.5;color:var(--text)">${text || '<em style="color:var(--text-dim)">(unavailable)</em>'}</div>
-        </div>
-      `).join('')}
-    </div>`;
+  _compareCache[osisKey] = { kjv, esv, bsb, ts: Date.now() };
+  _saveCompareCache();
+  container.innerHTML = renderCompareHTML(kjv, esv, bsb, book.name, ch, v);
+}
+
+function renderCompareHTML(kjv, esv, bsb, bookName, ch, v) {
+  return `<div style="padding:0;display:flex;flex-direction:column;gap:10px">
+    ${[['KJV', kjv, '#3D5A6E'], ['ESV', esv, '#3D6E36'], ['BSB', bsb, '#7B5C3F']].map(([label, text, color]) => `
+      <div style="background:var(--bg-alt);border-left:3px solid ${color};border-radius:4px;padding:10px 12px">
+        <div style="font-size:10px;font-weight:700;color:${color};letter-spacing:0.1em;margin-bottom:4px">${label}</div>
+        <div style="font-family:var(--serif);font-size:13.5px;line-height:1.5;color:var(--text)">${text || '<em style="color:var(--text-dim)">(unavailable)</em>'}</div>
+      </div>
+    `).join('')}
+  </div>`;
 }
 
 // Haptic feedback helper (no-op where unsupported)
