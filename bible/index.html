@@ -519,10 +519,15 @@ body.mode-inline .ref-dot::after {
 .ws-speak-btn {
   background: var(--accent-soft);
   border: 1px solid var(--accent);
-  border-radius: 50%;
-  width: 36px; height: 36px;
+  border-radius: 14px;
+  padding: 4px 12px;
   cursor: pointer;
-  font-size: 16px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -930,6 +935,52 @@ body.mode-arc .sidebar { right: -420px !important; }
   pointer-events: none;
 }
 body.mode-arc .arc-help { display: block; }
+
+/* Timeline mode */
+#timeline-stage {
+  display: none;
+  position: fixed;
+  top: var(--header-height);
+  left: 0; right: 0; bottom: 0;
+  background: var(--bg);
+  z-index: 30;
+  overflow: hidden;
+}
+body.mode-timeline #timeline-stage { display: block; }
+body.mode-timeline .bible-text,
+body.mode-timeline .legend { display: none; }
+body.mode-timeline .sidebar { right: -420px !important; }
+#timeline-canvas { width: 100%; height: 100%; display: block; cursor: pointer; }
+.timeline-tooltip {
+  position: fixed;
+  background: var(--bg-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--text);
+  pointer-events: none;
+  z-index: 200;
+  display: none;
+  max-width: 320px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+}
+.timeline-help {
+  position: fixed;
+  bottom: 16px; left: 16px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--text-muted);
+  z-index: 25;
+  display: none;
+  max-width: calc(100vw - 32px);
+}
+body.mode-timeline .timeline-help { display: block; }
 .arc-tooltip {
   position: fixed;
   background: rgba(20, 22, 28, 0.96);
@@ -1196,18 +1247,19 @@ body.mode-arc .arc-help { display: block; }
     <div class="pill-group" id="view-group">
       <button data-m="arc">Arc</button>
       <button data-m="graph">Graph</button>
+      <button data-m="timeline">Timeline</button>
     </div>
   </div>
 
   <div class="chapter-nav">
     <span class="status-pill" id="xrefs-status" title="OpenBible.info cross-references">…</span>
-    <button id="depth-toggle" class="theme-toggle desktop-only" aria-label="Toggle depth" title="Top references vs all">⭐ Top</button>
-    <button id="commentary-toggle" class="theme-toggle desktop-only" aria-label="Toggle commentary" title="Show/hide verse commentary">📖 Notes</button>
-    <button id="wordstudy-toggle" class="theme-toggle desktop-only" aria-label="Toggle word study" title="Show/hide Hebrew & Greek with Strong's numbers">🔠 Original</button>
-    <button id="redletter-toggle" class="theme-toggle desktop-only" aria-label="Toggle red-letter NT" title="Show Jesus' words in red (NT only)">✝️ Red</button>
-    <button id="settings-toggle" class="theme-toggle mobile-only" aria-label="Open settings" title="Settings & display options">⚙</button>
-    <button id="share-link" class="theme-toggle" aria-label="Copy share link" title="Copy direct link to this verse/chapter">🔗</button>
-    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">☾</button>
+    <button id="depth-toggle" class="theme-toggle desktop-only" aria-label="Toggle depth" title="Top references vs all">Top</button>
+    <button id="commentary-toggle" class="theme-toggle desktop-only" aria-label="Toggle commentary" title="Show/hide verse commentary">Notes</button>
+    <button id="wordstudy-toggle" class="theme-toggle desktop-only" aria-label="Toggle word study" title="Show/hide Hebrew & Greek with Strong's numbers">Original</button>
+    <button id="redletter-toggle" class="theme-toggle desktop-only" aria-label="Toggle red-letter NT" title="Show Jesus' words in red (NT only)">Red Letter</button>
+    <button id="settings-toggle" class="theme-toggle mobile-only" aria-label="Open settings" title="Settings & display options">Settings</button>
+    <button id="share-link" class="theme-toggle" aria-label="Copy share link" title="Copy direct link to this verse/chapter">Share</button>
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">Dark</button>
     <button id="prev-ch" aria-label="Previous chapter">&#8592;</button>
     <span id="chapter-display" class="noTag">Genesis 1</span>
     <button id="next-ch" aria-label="Next chapter">&#8594;</button>
@@ -1288,6 +1340,12 @@ body.mode-arc .arc-help { display: block; }
     </div>
   </div>
 </div>
+
+<div id="timeline-stage">
+  <canvas id="timeline-canvas"></canvas>
+  <div class="timeline-tooltip" id="timeline-tooltip"></div>
+</div>
+<div class="timeline-help">Each row is a book. Bar = period it covers, dot = when it was written. Click any book to open its first chapter.</div>
 
 <div id="ws-modal" onclick="if(event.target.id==='ws-modal')closeWordStudy()" role="dialog" aria-modal="true" aria-labelledby="ws-modal-orig">
   <div class="ws-modal-card">
@@ -1563,7 +1621,7 @@ function init() {
   const depthBtn = document.getElementById('depth-toggle');
   function syncDepthBtn() {
     if (!depthBtn) return;
-    depthBtn.textContent = state.depthMode === 'top' ? '⭐ Refs: Best' : '🌐 Refs: All';
+    depthBtn.textContent = state.depthMode === 'top' ? 'Refs: Best' : 'Refs: All';
     depthBtn.title = state.depthMode === 'top'
       ? 'Currently showing only the strongest cross-references (vote ≥ 5 + typed). Click to expand to ALL references for this verse.'
       : 'Currently showing every cross-reference for this verse. Click to filter back down to the strongest ones only.';
@@ -1585,7 +1643,7 @@ function init() {
   const commentaryBtn = document.getElementById('commentary-toggle');
   function syncCommentaryBtn() {
     if (!commentaryBtn) return;
-    commentaryBtn.textContent = state.commentaryOn ? '📖 Notes: ON' : '📖 Notes: OFF';
+    commentaryBtn.textContent = state.commentaryOn ? 'Notes: ON' : 'Notes: OFF';
     commentaryBtn.style.background = state.commentaryOn ? 'var(--accent-soft)' : '';
     commentaryBtn.style.borderColor = state.commentaryOn ? 'var(--accent)' : '';
     commentaryBtn.title = state.commentaryOn
@@ -1605,7 +1663,7 @@ function init() {
   const rlBtn = document.getElementById('redletter-toggle');
   function syncRlBtn() {
     if (!rlBtn) return;
-    rlBtn.textContent = state.redLetterOn ? '✝️ Red: ON' : '✝️ Red: OFF';
+    rlBtn.textContent = state.redLetterOn ? 'Red Letter: ON' : 'Red Letter: OFF';
     rlBtn.style.background = state.redLetterOn ? 'rgba(180,50,50,0.12)' : '';
     rlBtn.style.borderColor = state.redLetterOn ? '#B43232' : '';
     rlBtn.style.color = state.redLetterOn ? '#B43232' : '';
@@ -1626,7 +1684,7 @@ function init() {
   const wsBtn = document.getElementById('wordstudy-toggle');
   function syncWsBtn() {
     if (!wsBtn) return;
-    wsBtn.textContent = state.wordStudyOn ? '🔠 Original: ON' : '🔠 Original: OFF';
+    wsBtn.textContent = state.wordStudyOn ? 'Original: ON' : 'Original: OFF';
     wsBtn.style.background = state.wordStudyOn ? 'var(--accent-soft)' : '';
     wsBtn.style.borderColor = state.wordStudyOn ? 'var(--accent)' : '';
     wsBtn.title = state.wordStudyOn
@@ -1723,7 +1781,7 @@ function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('scripture-theme', theme);
   const btn = document.getElementById('theme-toggle');
-  if (btn) btn.textContent = theme === 'dark' ? '☀' : '☾';
+  if (btn) btn.textContent = theme === 'dark' ? 'Light' : 'Dark';
 }
 
 function setMode(mode) {
@@ -1736,6 +1794,7 @@ function setMode(mode) {
   document.querySelectorAll('.inline-refs').forEach(el => el.classList.remove('open'));
   if (mode === 'graph') { startGraph(); } else { stopGraph(); }
   if (mode === 'arc') { startArc(); } else { stopArc(); }
+  if (mode === 'timeline') { startTimeline(); } else { stopTimeline(); }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1863,7 +1922,7 @@ async function openWordStudy(strong) {
     <div class="ws-modal-orig" lang="${lang === 'Hebrew' ? 'he' : 'el'}" dir="${isHeb ? 'rtl' : 'ltr'}">${origWord || entry.g || ''}</div>
     ${translit ? `<div class="ws-modal-translit">
       <span class="ws-pronunciation">${translit}</span>
-      <button class="ws-speak-btn" onclick="speakWord('${(origWord||'').replace(/'/g,"\\'")}', ${isHeb})" aria-label="Pronounce" title="Hear pronunciation (uses your device's voice)">🔊</button>
+      <button class="ws-speak-btn" onclick="speakWord('${(origWord||'').replace(/'/g,"\\'")}', ${isHeb})" aria-label="Pronounce" title="Hear pronunciation (uses your device's voice)">Speak</button>
     </div>` : ''}
     <div class="ws-modal-meta">${lang} · Strong's ${strong.toUpperCase()}${entry.g ? ' · "' + entry.g + '"' : ''}${entry.d ? ' · ' + entry.d : ''}</div>
     ${entry.s ? `<div class="ws-modal-section-title">Definition</div><div class="ws-modal-text">${entry.s}</div>` : ''}
@@ -3271,6 +3330,272 @@ function startArc() {
 function stopArc() {
   if (arcState.cleanup) { arcState.cleanup(); arcState.cleanup = null; }
   const t = document.getElementById('arc-tooltip');
+  if (t) t.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════
+// TIMELINE MODE — historical timeline of all 66 books
+// ═══════════════════════════════════════════════════════
+let TIMELINE_DATA = null;
+let timelineState = { hover: null, cleanup: null, scale: 1, ox: 0 };
+
+async function ensureTimelineLoaded() {
+  if (TIMELINE_DATA) return TIMELINE_DATA;
+  try {
+    const r = await fetch('timeline.json');
+    if (r.ok) TIMELINE_DATA = await r.json();
+  } catch(e) {}
+  return TIMELINE_DATA;
+}
+
+function formatYear(y) {
+  if (y < 0) return Math.abs(y).toLocaleString() + ' BC';
+  if (y === 0) return '1 AD';
+  return 'AD ' + y;
+}
+
+async function startTimeline() {
+  await ensureTimelineLoaded();
+  const canvas = document.getElementById('timeline-canvas');
+  const tooltip = document.getElementById('timeline-tooltip');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let layout = null;
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    const stage = document.getElementById('timeline-stage');
+    const r = stage.getBoundingClientRect();
+    canvas.width = r.width * dpr;
+    canvas.height = r.height * dpr;
+    canvas.style.width = r.width + 'px';
+    canvas.style.height = r.height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    render();
+  }
+
+  function buildLayout() {
+    const W = canvas.width / (window.devicePixelRatio || 1);
+    const H = canvas.height / (window.devicePixelRatio || 1);
+    const leftPad = 120, rightPad = 30, topPad = 40, bottomPad = 50;
+    const usableW = (W - leftPad - rightPad) * timelineState.scale;
+    const usableH = H - topPad - bottomPad;
+    // Year range: -4000 BC to 100 AD
+    const minYr = -4000, maxYr = 100;
+    const yrToX = (y) => leftPad + ((y - minYr) / (maxYr - minYr)) * usableW + timelineState.ox;
+    const order = OSIS_BY_IDX;
+    const rowH = Math.max(14, usableH / order.length);
+    const rows = [];
+    order.forEach((osis, i) => {
+      const d = TIMELINE_DATA && TIMELINE_DATA[osis];
+      if (!d) return;
+      const y = topPad + i * rowH + rowH / 2;
+      const x1 = yrToX(d.events_start);
+      const x2 = yrToX(d.events_end);
+      const wx = yrToX(d.written);
+      rows.push({ osis, label: d.label, color: d.color || '#888', y, x1, x2, wx, era: d.era, written: d.written, range: [d.events_start, d.events_end], bookIdx: i, rowH });
+    });
+    return { rows, leftPad, rightPad, topPad, bottomPad, W, H, minYr, maxYr, yrToX };
+  }
+
+  function render() {
+    const W = canvas.width / (window.devicePixelRatio || 1);
+    const H = canvas.height / (window.devicePixelRatio || 1);
+    const styles = getComputedStyle(document.documentElement);
+    const bg = styles.getPropertyValue('--bg').trim() || '#FBFAF6';
+    const text = styles.getPropertyValue('--text').trim() || '#1a1a1a';
+    const muted = styles.getPropertyValue('--text-muted').trim() || '#666';
+    const dim = styles.getPropertyValue('--text-dim').trim() || '#999';
+    const border = styles.getPropertyValue('--border').trim() || '#E0DDD5';
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    layout = buildLayout();
+    if (!layout) return;
+
+    // Era separator lines (every 500 years)
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 0.5;
+    ctx.font = '10px -apple-system, system-ui, sans-serif';
+    ctx.fillStyle = dim;
+    ctx.textAlign = 'center';
+    for (let yr = -4000; yr <= 100; yr += 500) {
+      const x = layout.yrToX(yr);
+      if (x < layout.leftPad - 10 || x > W - layout.rightPad + 10) continue;
+      ctx.beginPath();
+      ctx.moveTo(x, layout.topPad - 8);
+      ctx.lineTo(x, H - layout.bottomPad);
+      ctx.stroke();
+      ctx.fillText(formatYear(yr), x, layout.topPad - 14);
+    }
+    // Key historical markers
+    const markers = [
+      [-1446, 'Exodus'],
+      [-1010, 'David'],
+      [-586, 'Babylon'],
+      [-538, 'Return'],
+      [33, 'Christ'],
+      [70, 'Temple Fall'],
+    ];
+    ctx.fillStyle = muted;
+    ctx.font = 'italic 10px -apple-system, system-ui, sans-serif';
+    markers.forEach(([yr, name]) => {
+      const x = layout.yrToX(yr);
+      if (x < layout.leftPad || x > W - layout.rightPad) return;
+      ctx.strokeStyle = muted;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(x, layout.topPad);
+      ctx.lineTo(x, H - layout.bottomPad);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillText(name, x, H - layout.bottomPad + 14);
+    });
+
+    // Each book row
+    layout.rows.forEach(r => {
+      const isHover = timelineState.hover && timelineState.hover.osis === r.osis;
+      // Label on left
+      ctx.font = (isHover ? 'bold ' : '') + '11px -apple-system, system-ui, sans-serif';
+      ctx.fillStyle = isHover ? text : muted;
+      ctx.textAlign = 'right';
+      ctx.fillText(r.label, layout.leftPad - 8, r.y + 3.5);
+      // Event-period bar
+      const x1 = Math.max(layout.leftPad, r.x1);
+      const x2 = Math.min(W - layout.rightPad, r.x2);
+      if (x2 > x1) {
+        ctx.fillStyle = r.color;
+        ctx.globalAlpha = isHover ? 0.95 : 0.7;
+        const barH = Math.max(6, r.rowH * 0.55);
+        ctx.fillRect(x1, r.y - barH/2, Math.max(2, x2 - x1), barH);
+        ctx.globalAlpha = 1;
+      }
+      // Written-date marker (open circle)
+      if (r.wx >= layout.leftPad && r.wx <= W - layout.rightPad) {
+        ctx.strokeStyle = isHover ? text : r.color;
+        ctx.fillStyle = bg;
+        ctx.lineWidth = isHover ? 2.5 : 1.5;
+        ctx.beginPath();
+        ctx.arc(r.wx, r.y, isHover ? 5 : 3.5, 0, Math.PI*2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    });
+    ctx.textAlign = 'left';
+  }
+
+  function pickRow(mx, my) {
+    if (!layout) return null;
+    for (const r of layout.rows) {
+      if (Math.abs(my - r.y) <= r.rowH/2) {
+        if (mx >= layout.leftPad - 80) return r;
+      }
+    }
+    return null;
+  }
+
+  function onMove(e) {
+    const r = canvas.getBoundingClientRect();
+    const mx = e.clientX - r.left, my = e.clientY - r.top;
+    const row = pickRow(mx, my);
+    if (row !== timelineState.hover) {
+      timelineState.hover = row;
+      render();
+    }
+    if (row) {
+      tooltip.innerHTML = `<div style="font-weight:600;margin-bottom:4px">${row.label}</div>
+        <div style="color:var(--text-muted);font-size:11px">${row.era}</div>
+        <div style="margin-top:6px"><strong>Written:</strong> ${formatYear(row.written)}</div>
+        <div><strong>Covers:</strong> ${formatYear(row.range[0])} – ${formatYear(row.range[1])}</div>`;
+      tooltip.style.left = (e.clientX + 14) + 'px';
+      tooltip.style.top = (e.clientY + 14) + 'px';
+      tooltip.style.display = 'block';
+    } else {
+      tooltip.style.display = 'none';
+    }
+  }
+  function onLeave() {
+    timelineState.hover = null;
+    tooltip.style.display = 'none';
+    render();
+  }
+  function onClick(e) {
+    const r = canvas.getBoundingClientRect();
+    const row = pickRow(e.clientX - r.left, e.clientY - r.top);
+    if (!row) return;
+    haptic(8);
+    state.bookIdx = row.bookIdx;
+    state.chapter = 1;
+    state.activeVerse = null;
+    setMode('sidebar');
+    document.querySelectorAll('#mode-group button, #view-group button').forEach(b => b.classList.toggle('active', b.dataset.m === 'sidebar'));
+    loadChapter();
+  }
+  function onWheel(e) {
+    if (!layout) return;
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 1/1.15;
+    const newScale = Math.max(1, Math.min(8, timelineState.scale * factor));
+    // Keep cursor x position stable
+    const r = canvas.getBoundingClientRect();
+    const mx = e.clientX - r.left;
+    const before = (mx - layout.leftPad - timelineState.ox) / timelineState.scale;
+    timelineState.scale = newScale;
+    timelineState.ox = mx - layout.leftPad - before * newScale;
+    render();
+  }
+  let dragStart = null;
+  function onDown(e) { dragStart = { x: e.clientX, ox: timelineState.ox }; }
+  function onUp() { dragStart = null; }
+  function onDrag(e) {
+    if (!dragStart) return onMove(e);
+    timelineState.ox = dragStart.ox + (e.clientX - dragStart.x);
+    render();
+  }
+
+  canvas.addEventListener('mousemove', onDrag);
+  canvas.addEventListener('mouseleave', onLeave);
+  canvas.addEventListener('mousedown', onDown);
+  window.addEventListener('mouseup', onUp);
+  canvas.addEventListener('click', onClick);
+  canvas.addEventListener('wheel', onWheel, { passive: false });
+  // Touch: pinch-zoom + pan
+  let touchStart = null;
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) touchStart = { x: e.touches[0].clientX, ox: timelineState.ox, kind:'pan' };
+    else if (e.touches.length === 2) {
+      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      touchStart = { dist, scale: timelineState.scale, kind:'pinch' };
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchmove', e => {
+    if (!touchStart) return;
+    if (touchStart.kind === 'pan' && e.touches.length === 1) {
+      timelineState.ox = touchStart.ox + (e.touches[0].clientX - touchStart.x);
+      render();
+    } else if (touchStart.kind === 'pinch' && e.touches.length === 2) {
+      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      timelineState.scale = Math.max(1, Math.min(8, touchStart.scale * (dist / touchStart.dist)));
+      render();
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchend', () => { touchStart = null; }, { passive: true });
+  window.addEventListener('resize', resize);
+  resize();
+  timelineState.cleanup = () => {
+    canvas.removeEventListener('mousemove', onDrag);
+    canvas.removeEventListener('mouseleave', onLeave);
+    canvas.removeEventListener('mousedown', onDown);
+    window.removeEventListener('mouseup', onUp);
+    canvas.removeEventListener('click', onClick);
+    canvas.removeEventListener('wheel', onWheel);
+    window.removeEventListener('resize', resize);
+  };
+}
+
+function stopTimeline() {
+  if (timelineState.cleanup) { timelineState.cleanup(); timelineState.cleanup = null; }
+  const t = document.getElementById('timeline-tooltip');
   if (t) t.style.display = 'none';
 }
 
