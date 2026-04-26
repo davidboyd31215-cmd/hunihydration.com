@@ -258,6 +258,71 @@ body.mode-inline .ref-dot::after {
   border-left: 2px solid var(--border-strong);
 }
 .inline-refs.open { display: block; animation: fade 0.18s ease; }
+
+/* Word Study (Hebrew/Greek interlinear) */
+.ws-strip {
+  margin: 6px 0 12px 36px;
+  padding: 10px 12px;
+  background: var(--bg-alt);
+  border-radius: 4px;
+  font-family: var(--sans);
+  font-size: 12px;
+  line-height: 1.85;
+  display: flex; flex-wrap: wrap; gap: 4px 10px;
+}
+.ws-word {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.ws-word:hover { background: var(--accent-soft); }
+.ws-orig { font-size: 17px; color: var(--text); font-weight: 500; }
+.ws-gloss { font-size: 9.5px; color: var(--text-muted); margin-top: 1px; letter-spacing: 0.2px; max-width: 100px; text-align: center; }
+.ws-strong { font-size: 8.5px; color: var(--text-dim); font-variant-numeric: tabular-nums; margin-top: 1px; }
+@media (max-width: 820px) { .ws-strip { margin-left: 0; } }
+
+#ws-modal {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 400;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  -webkit-tap-highlight-color: transparent;
+}
+#ws-modal.open { display: flex; animation: fade 0.16s ease; }
+.ws-modal-card {
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  max-width: 540px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 22px 24px 24px;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+  position: relative;
+}
+.ws-modal-close {
+  position: absolute; top: 10px; right: 12px;
+  background: none; border: none; font-size: 22px;
+  color: var(--text-dim); cursor: pointer;
+  width: 32px; height: 32px; border-radius: 50%;
+}
+.ws-modal-close:hover { background: var(--border); color: var(--text); }
+.ws-modal-orig { font-size: 28px; color: var(--text); font-weight: 600; margin-bottom: 4px; }
+.ws-modal-meta { font-family: var(--sans); font-size: 11px; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 14px; }
+.ws-modal-section-title { font-family: var(--sans); font-size: 10px; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; font-weight: 600; margin-top: 16px; margin-bottom: 6px; }
+.ws-modal-text { font-family: var(--serif); font-size: 14px; line-height: 1.55; color: var(--text); }
+.ws-modal-list { font-family: var(--sans); font-size: 12px; color: var(--text-muted); }
+.ws-conc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px 10px; }
+.ws-conc-link { color: var(--accent); text-decoration: none; cursor: pointer; }
+.ws-conc-link:hover { text-decoration: underline; }
 @media (max-width: 820px) {
   .inline-refs {
     margin: 6px 0 14px 0;
@@ -874,6 +939,7 @@ body.mode-arc .arc-help { display: block; }
     <span class="status-pill" id="xrefs-status" title="OpenBible.info cross-references">…</span>
     <button id="depth-toggle" class="theme-toggle" aria-label="Toggle depth" title="Top references vs all">⭐ Top</button>
     <button id="commentary-toggle" class="theme-toggle" aria-label="Toggle commentary" title="Show/hide verse commentary">📖 Commentary</button>
+    <button id="wordstudy-toggle" class="theme-toggle" aria-label="Toggle word study" title="Show/hide Hebrew & Greek with Strong's numbers">🔠 Original</button>
     <button id="share-link" class="theme-toggle" aria-label="Copy share link" title="Copy direct link to this verse/chapter">🔗 Share</button>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">☾</button>
     <button id="prev-ch" aria-label="Previous chapter">&#8592;</button>
@@ -909,6 +975,13 @@ body.mode-arc .arc-help { display: block; }
   <div class="graph-tooltip" id="graph-tooltip"></div>
 </div>
 <div class="graph-help">Drag to pan · scroll to zoom · click a node to read it</div>
+
+<div id="ws-modal" onclick="if(event.target.id==='ws-modal')closeWordStudy()" role="dialog" aria-modal="true" aria-labelledby="ws-modal-orig">
+  <div class="ws-modal-card">
+    <button class="ws-modal-close" onclick="closeWordStudy()" aria-label="Close">&times;</button>
+    <div id="ws-modal-body"></div>
+  </div>
+</div>
 
 <div id="arc-stage">
   <canvas id="arc-canvas"></canvas>
@@ -1080,7 +1153,42 @@ let state = {
   verses: [],
   depthMode: localStorage.getItem('scripture-depth') || 'top', // 'top' or 'all'
   commentaryOn: localStorage.getItem('scripture-commentary') === 'on',
+  wordStudyOn: localStorage.getItem('scripture-wordstudy') === 'on',
 };
+
+const INTERLINEAR_CACHE = {};
+let LEXICON = null;
+let CONCORDANCE = null;
+
+async function ensureInterlinearLoaded(osisBook) {
+  if (INTERLINEAR_CACHE[osisBook]) return INTERLINEAR_CACHE[osisBook];
+  try {
+    const r = await fetch(`interlinear/${osisBook}.json`);
+    if (!r.ok) return null;
+    INTERLINEAR_CACHE[osisBook] = await r.json();
+    return INTERLINEAR_CACHE[osisBook];
+  } catch(e) { return null; }
+}
+
+async function ensureLexiconLoaded() {
+  if (LEXICON) return LEXICON;
+  try {
+    const r = await fetch('lexicon.json');
+    if (!r.ok) return null;
+    LEXICON = await r.json();
+    return LEXICON;
+  } catch(e) { return null; }
+}
+
+async function ensureConcordanceLoaded() {
+  if (CONCORDANCE) return CONCORDANCE;
+  try {
+    const r = await fetch('concordance.json');
+    if (!r.ok) return null;
+    CONCORDANCE = await r.json();
+    return CONCORDANCE;
+  } catch(e) { return null; }
+}
 
 // ═══════════════════════════════════════════════════════
 // INIT
@@ -1176,6 +1284,31 @@ function init() {
     if (state.verses && state.verses.length) renderChapter(BOOKS[state.bookIdx], state.verses);
   });
 
+  // Word Study toggle (Hebrew/Greek + Strong's)
+  const wsBtn = document.getElementById('wordstudy-toggle');
+  function syncWsBtn() {
+    if (!wsBtn) return;
+    wsBtn.textContent = state.wordStudyOn ? '🔠 Original: ON' : '🔠 Original: OFF';
+    wsBtn.style.background = state.wordStudyOn ? 'var(--accent-soft)' : '';
+    wsBtn.style.borderColor = state.wordStudyOn ? 'var(--accent)' : '';
+    wsBtn.title = state.wordStudyOn
+      ? 'Hebrew/Greek interlinear is showing — click each word for Strong\'s definition'
+      : 'Click to show original Hebrew/Greek words with Strong\'s numbers and concordance';
+  }
+  syncWsBtn();
+  if (wsBtn) wsBtn.addEventListener('click', async () => {
+    state.wordStudyOn = !state.wordStudyOn;
+    localStorage.setItem('scripture-wordstudy', state.wordStudyOn ? 'on' : 'off');
+    syncWsBtn();
+    if (state.wordStudyOn) {
+      const osisBook = OSIS_BY_IDX[state.bookIdx];
+      await ensureInterlinearLoaded(osisBook);
+      ensureLexiconLoaded(); // background prefetch
+      ensureConcordanceLoaded(); // background prefetch
+    }
+    if (state.verses && state.verses.length) renderChapter(BOOKS[state.bookIdx], state.verses);
+  });
+
   // Share-link button
   const shareBtn = document.getElementById('share-link');
   if (shareBtn) {
@@ -1248,6 +1381,56 @@ const _SYNOPTICS = new Set(['Matt','Mark','Luke']);
 const _HISTORICAL = new Set(['1Sam','2Sam','1Kgs','2Kgs','1Chr','2Chr']);
 const _PROPHETS = new Set(['Isa','Jer','Lam','Ezek','Dan','Hos','Joel','Amos','Obad','Jonah','Mic','Nah','Hab','Zeph','Hag','Zech','Mal']);
 const _PAULINE = new Set(['Rom','1Cor','2Cor','Gal','Eph','Phil','Col','1Thess','2Thess','1Tim','2Tim','Titus','Phlm']);
+
+async function openWordStudy(strong) {
+  if (!strong) return;
+  const modal = document.getElementById('ws-modal');
+  const body = document.getElementById('ws-modal-body');
+  body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading…</div>';
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  const [lex, conc] = await Promise.all([ensureLexiconLoaded(), ensureConcordanceLoaded()]);
+  const entry = lex && lex[strong];
+  const concList = (conc && conc[strong]) || [];
+
+  if (!entry) {
+    body.innerHTML = `<div style="padding:20px;color:var(--text-muted)">No lexicon entry found for ${strong.toUpperCase()}.</div>`;
+    return;
+  }
+
+  const lang = strong.startsWith('h') ? 'Hebrew' : 'Greek';
+  const longDefs = (entry.l || []).filter(Boolean);
+  const concHTML = concList.slice(0, 60).map(loc => {
+    const [bIdx, ch, v] = loc;
+    const bName = BOOKS[bIdx]?.name || '?';
+    const osis = `${OSIS_BY_IDX[bIdx]}.${ch}.${v}`;
+    return `<a class="ws-conc-link" onclick="navigateToOsis('${osis}'); closeWordStudy(); return false">${bName} ${ch}:${v}</a>`;
+  }).join('');
+  const moreCount = concList.length > 60 ? concList.length - 60 : 0;
+
+  body.innerHTML = `
+    <div class="ws-modal-orig" lang="${lang === 'Hebrew' ? 'he' : 'el'}">${entry.g || ''}</div>
+    <div class="ws-modal-meta">${lang} · Strong's ${strong.toUpperCase()}${entry.d ? ' · ' + entry.d : ''}</div>
+    ${entry.s ? `<div class="ws-modal-section-title">Definition</div><div class="ws-modal-text">${entry.s}</div>` : ''}
+    ${longDefs.length ? `<div class="ws-modal-section-title">Detailed senses</div><ul class="ws-modal-list" style="padding-left:18px;line-height:1.6">${longDefs.map(d => `<li>${d}</li>`).join('')}</ul>` : ''}
+    ${entry.c ? `<div class="ws-modal-section-title">Notes</div><div class="ws-modal-list" style="font-style:italic;line-height:1.55">${entry.c}</div>` : ''}
+    ${concList.length ? `<div class="ws-modal-section-title">Concordance — ${concList.length}${concList.length >= 200 ? '+' : ''} occurrences</div><div class="ws-conc-grid">${concHTML}</div>${moreCount ? `<div style="font-size:11px;color:var(--text-dim);margin-top:8px">+ ${moreCount} more not shown</div>` : ''}` : ''}
+  `;
+}
+
+function closeWordStudy() {
+  const modal = document.getElementById('ws-modal');
+  modal.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('ws-modal');
+    if (modal && modal.classList.contains('open')) closeWordStudy();
+  }
+});
 
 function showVoteInfo(votes, evt) {
   const existing = document.getElementById('vote-info-popup');
@@ -1665,6 +1848,12 @@ async function loadChapter() {
     updateHash();
     if (state.mode === 'graph') { stopGraph(); startGraph(); }
     if (state.activeVerse) setTimeout(scrollToActiveVerse, 80);
+    if (state.wordStudyOn) {
+      const osisBook = OSIS_BY_IDX[state.bookIdx];
+      ensureInterlinearLoaded(osisBook).then(data => {
+        if (data && state.verses && state.verses.length) renderChapter(book, state.verses);
+      });
+    }
   } catch(e) {
     textEl.innerHTML = `<div class="loading" style="padding:40px;line-height:1.8">
       <strong>Could not load chapter.</strong><br><br>
@@ -1750,6 +1939,24 @@ function renderChapter(book, verses) {
         <span class="verse-text">${v.text.trim()}${dotsHtml}</span>
       </div>
     `;
+    if (state.wordStudyOn && INTERLINEAR_CACHE[bookOsis]) {
+      const wsVerses = INTERLINEAR_CACHE[bookOsis][String(state.chapter)];
+      const wsWords = wsVerses && wsVerses[String(v.verse)];
+      if (wsWords && wsWords.length) {
+        html += `<div class="ws-strip" onclick="event.stopPropagation()">`;
+        wsWords.forEach((wd, idx) => {
+          if (!wd.s) return;
+          const escWord = (wd.w || '').replace(/"/g, '&quot;');
+          const escGloss = (wd.t || '').replace(/"/g, '&quot;');
+          html += `<span class="ws-word" onclick="openWordStudy('${wd.s}')" tabindex="0" role="button">
+            <span class="ws-orig" lang="${wd.s.startsWith('h') ? 'he' : 'el'}">${escWord}</span>
+            <span class="ws-gloss">${escGloss}</span>
+            <span class="ws-strong">${wd.s.toUpperCase()}</span>
+          </span>`;
+        });
+        html += `</div>`;
+      }
+    }
 
     if (hasRefs) {
       html += `<div class="inline-refs" id="inline-${v.verse}">`;
