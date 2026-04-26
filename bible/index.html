@@ -380,6 +380,78 @@ body.mode-inline .ref-dot::after {
 .pill-group button { transition: background 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s, box-shadow 0.2s; }
 .pill-group button.active { transform: scale(1.02); }
 
+/* Skeleton loader (verse-shaped) */
+.verse-skeleton {
+  display: flex; gap: 12px; margin-bottom: 12px; padding: 6px 4px;
+  align-items: flex-start;
+}
+.verse-skeleton .vs-num {
+  width: 18px; height: 14px; background: var(--border); border-radius: 3px;
+  margin-top: 4px; flex-shrink: 0;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+.verse-skeleton .vs-text {
+  height: 18px; background: var(--border); border-radius: 4px;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.85; }
+}
+
+/* End-of-chapter nav (continue reading) */
+.end-of-chapter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 40px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+.end-of-chapter-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text);
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.end-of-chapter-link:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.end-of-chapter-link:active { transform: scale(0.99); }
+.end-of-chapter-link.next { justify-content: flex-end; text-align: right; }
+.end-of-chapter-link .end-arrow {
+  font-size: 28px;
+  color: var(--accent);
+  font-weight: 300;
+  line-height: 1;
+}
+.end-of-chapter-link .end-label { display: flex; flex-direction: column; gap: 2px; }
+.end-of-chapter-link .end-meta {
+  font-family: var(--sans);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+.end-of-chapter-link .end-name {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+@media (max-width: 540px) {
+  .end-of-chapter { grid-template-columns: 1fr; }
+}
+
 /* Currently-speaking verse highlight (read-aloud) */
 .verse.speaking {
   background: linear-gradient(90deg, var(--accent-soft), transparent 80%) !important;
@@ -3367,7 +3439,13 @@ async function loadChapter() {
   document.getElementById('book-select').value = state.bookIdx;
 
   const textEl = document.getElementById('bible-text');
-  textEl.innerHTML = '<div class="loading">Loading…</div>';
+  // Verse-shaped skeleton while loading — better perceived speed than "Loading…"
+  let skel = `<div class="book-title">${book.name}</div><div class="chapter-title">Chapter ${state.chapter}</div>`;
+  for (let _i = 0; _i < 8; _i++) {
+    const w = 70 + (_i * 13) % 25;
+    skel += `<div class="verse-skeleton"><div class="vs-num"></div><div class="vs-text" style="width:${w}%"></div></div>`;
+  }
+  textEl.innerHTML = skel;
 
   try {
     let verses = null;
@@ -3575,6 +3653,35 @@ function renderChapter(book, verses) {
       html += `</div>`;
     }
   });
+
+  // End-of-chapter "Continue to next chapter" CTA — natural reading flow
+  const maxCh = book.chapters;
+  const hasNext = state.chapter < maxCh;
+  const hasPrev = state.chapter > 1;
+  if (hasNext || hasPrev) {
+    html += `<nav class="end-of-chapter" aria-label="Chapter navigation">`;
+    if (hasPrev) {
+      html += `<a class="end-of-chapter-link prev" href="#${osisBook}.${state.chapter - 1}" onclick="event.preventDefault(); document.getElementById('prev-ch').click()">
+        <span class="end-arrow">‹</span>
+        <span class="end-label"><span class="end-meta">Previous</span><span class="end-name">${book.name} ${state.chapter - 1}</span></span>
+      </a>`;
+    } else {
+      html += `<span></span>`;
+    }
+    if (hasNext) {
+      html += `<a class="end-of-chapter-link next" href="#${osisBook}.${state.chapter + 1}" onclick="event.preventDefault(); document.getElementById('next-ch').click()">
+        <span class="end-label"><span class="end-meta">Continue reading</span><span class="end-name">${book.name} ${state.chapter + 1}</span></span>
+        <span class="end-arrow">›</span>
+      </a>`;
+    } else if (state.bookIdx < BOOKS.length - 1) {
+      const nextBook = BOOKS[state.bookIdx + 1];
+      html += `<a class="end-of-chapter-link next" href="#${OSIS_BY_IDX[state.bookIdx + 1]}.1" onclick="event.preventDefault(); state.bookIdx++; state.chapter = 1; state.activeVerse = null; loadChapter()">
+        <span class="end-label"><span class="end-meta">Continue to next book</span><span class="end-name">${nextBook.name} 1</span></span>
+        <span class="end-arrow">›</span>
+      </a>`;
+    }
+    html += `</nav>`;
+  }
 
   textEl.innerHTML = html;
 }
