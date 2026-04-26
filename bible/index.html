@@ -2697,13 +2697,29 @@ function init() {
     });
   });
 
-  // Chapter nav
+  // Chapter nav — book-aware. Previously dead-ended at chapter 1 / last
+  // chapter; now rolls into the previous/next book so a single-book reader
+  // can keep tapping past the boundary.
   document.getElementById('prev-ch').addEventListener('click', () => {
-    if (state.chapter > 1) { state.chapter--; state.activeVerse = null; loadChapter(); }
+    if (state.chapter > 1) {
+      state.chapter--; state.activeVerse = null; loadChapter();
+    } else if (state.bookIdx > 0) {
+      state.bookIdx--;
+      state.chapter = BOOKS[state.bookIdx].chapters;
+      state.activeVerse = null;
+      loadChapter();
+    }
   });
   document.getElementById('next-ch').addEventListener('click', () => {
     const max = BOOKS[state.bookIdx].chapters;
-    if (state.chapter < max) { state.chapter++; state.activeVerse = null; loadChapter(); }
+    if (state.chapter < max) {
+      state.chapter++; state.activeVerse = null; loadChapter();
+    } else if (state.bookIdx < BOOKS.length - 1) {
+      state.bookIdx++;
+      state.chapter = 1;
+      state.activeVerse = null;
+      loadChapter();
+    }
   });
 
   // Deep-link routing: parse #Book.Chapter[.Verse] on load and on hashchange
@@ -5323,11 +5339,14 @@ function renderChapter(book, verses) {
     }
   } catch (e) {}
 
-  // Verse of the Day — deterministic, date-seeded, only on book 0 ch 1 (home)
+  // Verse of the Day — deterministic, date-seeded. Shows on the FIRST chapter
+  // the user opens each day (any book/chapter), then auto-suppresses on
+  // subsequent navigations until tomorrow. Hard-dismiss via the X button.
   let votdHTML = '';
   const dayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const votdDismissed = localStorage.getItem('scripture-votd-dismissed-' + dayKey);
-  if (state.bookIdx === 0 && state.chapter === 1 && THEOLOGY_Q && !votdDismissed) {
+  const votdSeen = localStorage.getItem('scripture-votd-seen-' + dayKey);
+  if (THEOLOGY_Q && !votdDismissed && !votdSeen) {
     const keys = Object.keys(THEOLOGY_Q);
     if (keys.length > 0) {
       const today = new Date();
@@ -5346,6 +5365,8 @@ function renderChapter(book, verses) {
           </div>
           <button onclick="localStorage.setItem('scripture-votd-dismissed-${dayKey}','1'); document.getElementById('votd-banner').remove()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px 8px;font-size:18px;line-height:1;flex-shrink:0" aria-label="Dismiss for today">&times;</button>
         </div>`;
+      // Mark as seen for today so subsequent navigations don't re-pop the banner
+      try { localStorage.setItem('scripture-votd-seen-' + dayKey, '1'); } catch(e) {}
     }
   }
 
