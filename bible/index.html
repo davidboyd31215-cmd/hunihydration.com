@@ -282,6 +282,34 @@ body.mode-inline .ref-dot::after {
 .verse.red-letter .verse-text { color: #B43232; }
 [data-theme="dark"] .verse.red-letter .verse-text { color: #E47373; }
 
+/* Bookmark button */
+.bookmark-btn {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 6px 12px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.bookmark-btn:hover { border-color: var(--accent); color: var(--accent); }
+.bookmark-btn.active {
+  background: #FFE39A;
+  color: #6B4D00;
+  border-color: #D4B870;
+}
+[data-theme="dark"] .bookmark-btn.active {
+  background: rgba(255,227,154,0.15);
+  color: #FFE39A;
+  border-color: #B89846;
+}
+
 /* Book background card */
 .book-bg-card {
   background: var(--bg-alt);
@@ -1411,6 +1439,13 @@ body.mode-timeline .timeline-help { display: block; }
         </div>
         <div class="settings-row-value">Go</div>
       </div>
+      <div class="settings-row" data-action="bookmarks">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Bookmarks</div>
+          <div class="settings-row-sub" id="settings-bookmarks-sub">No verses saved yet</div>
+        </div>
+        <div class="settings-row-value" id="settings-bookmarks-value">0</div>
+      </div>
       <div class="settings-row" data-action="translation">
         <div class="settings-row-main">
           <div class="settings-row-label">Translation</div>
@@ -1886,6 +1921,12 @@ function init() {
     }
     const ds = document.getElementById('settings-depth-sub');
     if (ds) ds.textContent = state.depthMode === 'top' ? 'Showing top references only' : 'Showing all references';
+    // Bookmark count
+    const bs = getBookmarks();
+    const bv = document.getElementById('settings-bookmarks-value');
+    const bsub = document.getElementById('settings-bookmarks-sub');
+    if (bv) bv.textContent = bs.length;
+    if (bsub) bsub.textContent = bs.length === 0 ? 'No verses saved yet' : `${bs.length} verse${bs.length === 1 ? '' : 's'} saved — tap to view`;
   }
   // Helper: cycle to next value in a list
   function _cycle(list, current) { const i = list.indexOf(current); return list[(i+1) % list.length]; }
@@ -1955,6 +1996,9 @@ function init() {
         const pick = FAMOUS[Math.floor(Math.random() * FAMOUS.length)];
         navigateToOsis(pick);
         closeSettings();
+      }
+      else if (action === 'bookmarks') {
+        showBookmarksModal();
       }
       syncSettingsValues();
     });
@@ -2195,6 +2239,43 @@ function closeWordStudy() {
   document.body.style.overflow = '';
 }
 
+function showBookmarksModal() {
+  const modal = document.getElementById('ws-modal');
+  const body = document.getElementById('ws-modal-body');
+  const list = getBookmarks();
+  if (list.length === 0) {
+    body.innerHTML = `
+      <div style="padding:20px;text-align:center">
+        <div style="font-size:48px;line-height:1;margin-bottom:10px;color:var(--text-dim)">☆</div>
+        <div style="font-family:var(--serif);font-size:16px;color:var(--text);margin-bottom:6px">No bookmarks yet</div>
+        <div style="font-family:var(--sans);font-size:13px;color:var(--text-muted);line-height:1.5">Tap the <strong>☆ Save</strong> button on any verse's sidebar to save it here.</div>
+      </div>
+    `;
+  } else {
+    body.innerHTML = `
+      <div class="ws-modal-orig" style="font-size:24px">Bookmarks</div>
+      <div class="ws-modal-meta">${list.length} verse${list.length === 1 ? '' : 's'} saved</div>
+      ${list.map(b => `
+        <div onclick="navigateToOsis('${b.ref}'); closeWordStudy(); closeSettings();" style="padding:12px 14px;margin:8px 0;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid #D4B870;border-radius:4px;cursor:pointer;font-family:var(--sans);position:relative">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-weight:600;font-size:14px;color:var(--accent)">${osisToHuman(b.ref)}</span>
+            <button onclick="event.stopPropagation(); removeBookmark('${b.ref}'); showBookmarksModal();" style="background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;padding:0 6px;line-height:1" aria-label="Remove">&times;</button>
+          </div>
+          <div style="font-family:var(--serif);font-size:13px;color:var(--text);font-style:italic;line-height:1.45">${b.snippet || ''}</div>
+        </div>
+      `).join('')}
+    `;
+  }
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function removeBookmark(ref) {
+  const list = getBookmarks().filter(b => b.ref !== ref);
+  saveBookmarks(list);
+  haptic(6);
+}
+
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     const modal = document.getElementById('ws-modal');
@@ -2355,6 +2436,32 @@ function updateHash() {
       bookIdx: state.bookIdx, chapter: state.chapter, activeVerse: state.activeVerse
     }));
   } catch(e) {}
+}
+
+// ── Bookmarks / favorites ─────────────────────────────────
+function getBookmarks() {
+  try { return JSON.parse(localStorage.getItem('scripture-bookmarks') || '[]'); }
+  catch { return []; }
+}
+function saveBookmarks(arr) {
+  try { localStorage.setItem('scripture-bookmarks', JSON.stringify(arr.slice(0, 200))); }
+  catch {}
+}
+function isBookmarked(osisRef) {
+  return getBookmarks().some(b => b.ref === osisRef);
+}
+function toggleBookmark(osisRef, snippet) {
+  const list = getBookmarks();
+  const idx = list.findIndex(b => b.ref === osisRef);
+  if (idx >= 0) {
+    list.splice(idx, 1);
+    haptic(6);
+  } else {
+    list.unshift({ ref: osisRef, snippet: (snippet || '').substring(0, 120), savedAt: Date.now() });
+    haptic([8, 30, 8]);
+  }
+  saveBookmarks(list);
+  return idx < 0; // returns true if now bookmarked
 }
 
 // Restore last reading position if no URL hash is present
@@ -2976,10 +3083,16 @@ function showSidebar(key, verseNum, refs) {
   ` : '';
   const gqURL = `https://www.gotquestions.org/?s=${encodeURIComponent(book.name + ' ' + state.chapter)}`;
 
+  const isBkmk = isBookmarked(key);
   document.getElementById('sidebar-content').innerHTML = `
     <div class="sidebar-header">
-      <div class="sidebar-verse-address">${book.name} ${state.chapter}:${verseNum}</div>
-      <div class="sidebar-verse-text">${verseText.substring(0,140)}${verseText.length>140?'...':''}</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div class="sidebar-verse-address">${book.name} ${state.chapter}:${verseNum}</div>
+          <div class="sidebar-verse-text">${verseText.substring(0,140)}${verseText.length>140?'...':''}</div>
+        </div>
+        <button class="bookmark-btn ${isBkmk ? 'active' : ''}" onclick="onBookmarkClick('${key}', this)" aria-label="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" title="${isBkmk ? 'Remove from bookmarks' : 'Save to bookmarks'}">${isBkmk ? '★ Saved' : '☆ Save'}</button>
+      </div>
     </div>
     ${tqHTML}
     ${commentaryHTML}
@@ -3032,6 +3145,17 @@ function showSidebar(key, verseNum, refs) {
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.body.classList.remove('sidebar-open');
+}
+
+function onBookmarkClick(key, btn) {
+  const verseEl = document.querySelector(`.verse[data-key="${key}"] .verse-text`);
+  const snippet = verseEl ? verseEl.textContent.trim() : '';
+  const nowBookmarked = toggleBookmark(key, snippet);
+  if (btn) {
+    btn.classList.toggle('active', nowBookmarked);
+    btn.textContent = nowBookmarked ? '★ Saved' : '☆ Save';
+    btn.setAttribute('aria-label', nowBookmarked ? 'Remove bookmark' : 'Add bookmark');
+  }
 }
 
 // Haptic feedback helper (no-op where unsupported)
