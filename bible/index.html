@@ -410,7 +410,7 @@ body.mode-inline .ref-dot::after {
 
 /* Mobile/Desktop visibility helpers */
 .mobile-only { display: none; }
-@media (max-width: 820px) {
+@media (max-width: 1100px) {
   .desktop-only { display: none !important; }
   .mobile-only { display: inline-flex !important; }
 }
@@ -590,7 +590,7 @@ body.mode-inline .ref-dot::after {
 .ws-orig { font-size: 17px; color: var(--text); font-weight: 500; }
 .ws-gloss { font-size: 9.5px; color: var(--text-muted); margin-top: 1px; letter-spacing: 0.2px; max-width: 100px; text-align: center; }
 .ws-strong { font-size: 8.5px; color: var(--text-dim); font-variant-numeric: tabular-nums; margin-top: 1px; }
-@media (max-width: 820px) { .ws-strip { margin-left: 0; } }
+@media (max-width: 1100px) { .ws-strip { margin-left: 0; } }
 
 #ws-modal {
   display: none;
@@ -660,7 +660,7 @@ body.mode-inline .ref-dot::after {
 .ws-conc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px 10px; }
 .ws-conc-link { color: var(--accent); text-decoration: none; cursor: pointer; }
 .ws-conc-link:hover { text-decoration: underline; }
-@media (max-width: 820px) {
+@media (max-width: 1100px) {
   .inline-refs {
     margin: 6px 0 14px 0;
     padding-left: 12px;
@@ -872,7 +872,7 @@ body.mode-inline .ref-dot::after {
   z-index: 5;
 }
 .sidebar-close:hover { color: var(--text); background: var(--border); border-color: var(--border-strong); }
-@media (max-width: 820px) {
+@media (max-width: 1100px) {
   /* Hide the X on mobile — tap outside to close, swipe-down also works */
   .sidebar-close { display: none; }
   /* Make the backdrop more obvious so users know they can tap it */
@@ -1160,7 +1160,7 @@ body.mode-timeline .timeline-help { display: block; }
 [data-theme="dark"] .ref-card:hover { background: #262A33; }
 
 /* Mobile */
-@media (max-width: 820px) {
+@media (max-width: 1100px) {
   :root { --header-height: 56px; }
   .header {
     flex-wrap: nowrap;
@@ -1334,6 +1334,57 @@ body.mode-timeline .timeline-help { display: block; }
 
   /* Settings drawer rows — slightly tighter */
   .settings-row { min-height: 56px; padding: 12px 16px; }
+
+  /* Bottom nav bar — thumb-friendly chapter navigation on phones */
+  #bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px));
+    z-index: 40;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(20, 20, 24, 0.88);
+    border-top: 1px solid var(--border);
+  }
+  [data-theme="light"] #bottom-nav { background: rgba(255, 255, 255, 0.92); }
+  body.mode-arc #bottom-nav,
+  body.mode-graph #bottom-nav,
+  body.mode-timeline #bottom-nav { display: none; }
+  body.sidebar-open #bottom-nav { opacity: 0; pointer-events: none; }
+  #bottom-nav button.bn-arrow {
+    background: var(--bg-alt);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    font-size: 18px;
+    width: 48px; height: 44px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    font-weight: 500;
+  }
+  #bottom-nav button.bn-arrow:active { transform: scale(0.95); }
+  #bottom-nav .bn-label {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    text-align: center;
+    margin: 0 8px;
+  }
+  /* Push verses up so the bottom nav doesn't cover them */
+  body.mode-sidebar .bible-text,
+  body.mode-inline .bible-text { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+#bottom-nav { display: none; }
+@media (max-width: 1100px) {
+  #bottom-nav { display: flex; }
 }
 
 @media (max-width: 480px) {
@@ -1483,6 +1534,11 @@ body.mode-timeline .timeline-help { display: block; }
   </div>
 
   <div id="sidebar-backdrop" onclick="closeSidebar()"></div>
+  <nav id="bottom-nav" aria-label="Chapter navigation">
+    <button class="bn-arrow" onclick="document.getElementById('prev-ch').click()" aria-label="Previous chapter">‹</button>
+    <span class="bn-label" id="bn-label">Genesis 1</span>
+    <button class="bn-arrow" onclick="document.getElementById('next-ch').click()" aria-label="Next chapter">›</button>
+  </nav>
   <aside class="sidebar" id="sidebar">
     <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close">&#215;</button>
     <div id="sidebar-content" class="noTag">
@@ -2631,7 +2687,15 @@ function scrollToActiveVerse() {
   const el = document.getElementById('v-' + state.activeVerse);
   if (!el) return;
   if (state.mode === 'sidebar' || state.mode === 'inline') el.click();
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Wait for sidebar to open and layout to settle, then scroll
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || 60;
+      const rect = el.getBoundingClientRect();
+      const targetY = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2);
+      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+    });
+  });
 }
 
 async function loadCrossRefs() {
@@ -2882,6 +2946,8 @@ async function loadChapter() {
 
   const book = BOOKS[state.bookIdx];
   document.getElementById('chapter-display').textContent = `${book.name} ${state.chapter}`;
+  const bnLabel = document.getElementById('bn-label');
+  if (bnLabel) bnLabel.textContent = `${book.name} ${state.chapter}`;
   document.getElementById('book-select').value = state.bookIdx;
 
   const textEl = document.getElementById('bible-text');
@@ -2903,7 +2969,7 @@ async function loadChapter() {
     updateHash();
     if (window._refreshChapterSelect) window._refreshChapterSelect();
     if (state.mode === 'graph') { stopGraph(); startGraph(); }
-    if (state.activeVerse) setTimeout(scrollToActiveVerse, 80);
+    if (state.activeVerse) setTimeout(scrollToActiveVerse, 250);
     if (state.wordStudyOn) {
       const osisBook = OSIS_BY_IDX[state.bookIdx];
       ensureInterlinearLoaded(osisBook).then(data => {
@@ -3827,17 +3893,30 @@ function startArc() {
     // Use cached dim layer if zoom/pan/colorMode/chapter haven't changed
     const cacheKey = `${arcState.zoom.toFixed(2)}|${Math.round(arcState.panX)}|${arcState.colorMode}|${state.bookIdx}.${state.chapter}|${w}x${h}`;
     if (!_dimCache || _dimCache.key !== cacheKey) {
-      // Render lazily — schedule for next frame so interactive feels responsive
       if (!_dimCache || _dimCache.colorMode !== arcState.colorMode || _dimCache.chapter !== `${state.bookIdx}.${state.chapter}`) {
-        // Color mode or chapter changed — must re-render
-        _dimCache = {
-          canvas: _renderDimToOffscreen(w, h, baseY, margin, baseUsableW),
-          key: cacheKey,
-          zoom: arcState.zoom, panX: arcState.panX,
-          colorMode: arcState.colorMode,
-          chapter: `${state.bookIdx}.${state.chapter}`,
-          w, h
+        // First render OR major change — defer dim layer to idle, draw highlights+labels NOW for instant feedback
+        const buildDimAsync = () => {
+          _dimCache = {
+            canvas: _renderDimToOffscreen(w, h, baseY, margin, baseUsableW),
+            key: cacheKey,
+            zoom: arcState.zoom, panX: arcState.panX,
+            colorMode: arcState.colorMode,
+            chapter: `${state.bookIdx}.${state.chapter}`,
+            w, h
+          };
+          renderArc(); // re-render with dim layer in place
         };
+        if (window.requestIdleCallback) {
+          requestIdleCallback(buildDimAsync, { timeout: 1500 });
+        } else {
+          setTimeout(buildDimAsync, 50);
+        }
+        // Show "rendering…" label so user knows it's coming
+        ctx.fillStyle = '#5A6070';
+        ctx.font = '11px -apple-system, system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('Rendering full layer…', w - margin, 20);
+        ctx.textAlign = 'left';
       } else {
         // Just zoom/pan changed — debounce-render new dim, but draw old dim transformed in the meantime
         if (_dimCache && _dimCache.canvas) {
