@@ -240,14 +240,17 @@ select:hover { border-color: var(--border-strong); }
   padding: 56px 32px 96px;
   max-width: 680px;
   margin: 0 auto;
-  transition: max-width 0.25s ease, margin 0.25s ease, padding 0.25s ease;
+  /* Animate horizontal POSITION only (transform doesn't trigger layout),
+     so opening the sidebar doesn't reflow the verse text horizontally. */
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
 }
 
-body.sidebar-open .bible-text {
-  max-width: none;
-  margin: 0;
-  padding: 56px 32px 96px calc(50vw - 340px);
-  padding-right: calc(var(--sidebar-width) + 64px);
+@media (min-width: 1101px) {
+  /* On desktop the sidebar pushes from the right; slide the column LEFT
+     by ~half the sidebar width so it stays centered in the visible area
+     without changing the column's max-width (which would re-wrap text). */
+  body.sidebar-open .bible-text { transform: translateX(calc(var(--sidebar-width) / -2 - 16px)); }
 }
 
 .book-title {
@@ -305,9 +308,11 @@ body.sidebar-open .bible-text {
 }
 .verse.active {
   background: var(--accent-soft);
-  border-left: 4px solid var(--accent);
-  padding-left: 6px;
-  box-shadow: inset 2px 0 0 0 var(--accent);
+  /* Keep border WIDTH constant (2px) so the verse text doesn't shift
+     horizontally when activated. Use color + an outset shadow to make
+     the indicator stronger without a layout-shifting width change. */
+  border-left-color: var(--accent);
+  box-shadow: -2px 0 0 0 var(--accent);
 }
 
 .verse-num {
@@ -880,6 +885,28 @@ body.mode-inline .ref-dot::after {
   .desktop-only { display: none !important; }
   .mobile-only { display: inline-flex !important; }
 }
+
+/* Desktop-only header search input — small, unobtrusive, instant. */
+#header-search {
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-alt);
+  color: var(--text);
+  outline: none;
+  width: 220px;
+  margin-right: 6px;
+  transition: width 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+#header-search:focus {
+  width: 320px;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  background: var(--bg);
+}
+#header-search::placeholder { color: var(--text-muted); opacity: 0.85; }
 
 /* Settings drawer (mobile) */
 #settings-drawer {
@@ -2086,7 +2113,6 @@ body.mode-timeline .timeline-help { display: block; }
       <button class="active" data-t="kjv" title="King James Version (1611) — classical English with thee/thou/begat" aria-label="King James Version">KJV</button>
       <button data-t="esv" title="English Standard Version — modern, readable, literal" aria-label="English Standard Version">ESV</button>
       <button data-t="bsb" title="Berean Standard Bible — modern, free to copy, literal" aria-label="Berean Standard Bible">BSB</button>
-      <button data-t="rvr" title="Reina-Valera 1960 — la Biblia clásica en español" aria-label="Reina-Valera 1960 — Spanish">RVR</button>
     </div>
 
     <div class="pill-group" id="mode-group" role="group" aria-label="Where related verses appear">
@@ -2109,6 +2135,7 @@ body.mode-timeline .timeline-help { display: block; }
     <button id="commentary-toggle" class="theme-toggle" hidden aria-label="Toggle commentary" title="Show/hide verse commentary">Notes</button>
     <button id="wordstudy-toggle" class="theme-toggle" hidden aria-label="Toggle word study" title="Show/hide Hebrew & Greek with Strong's numbers">Original</button>
     <button id="redletter-toggle" class="theme-toggle" hidden aria-label="Toggle red-letter NT" title="Show Jesus' words in red (NT only)">Red Letter</button>
+    <input type="search" id="header-search" class="desktop-only" placeholder="Verse or keyword (e.g. John 3:16, hope)" autocapitalize="words" autocorrect="off" autocomplete="off" spellcheck="false" enterkeyhint="go" inputmode="search" aria-label="Search verse or keyword" />
     <button id="settings-toggle" class="theme-toggle icon-btn" aria-label="Open settings" title="Settings & display options"><svg width="16" height="14" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1 2 L15 2 M1 7 L15 7 M1 12 L15 12"/></svg></button>
     <button id="read-aloud-btn" class="theme-toggle icon-btn" aria-label="Read chapter aloud" aria-pressed="false" title="Read this chapter aloud"><svg width="16" height="14" viewBox="0 0 16 14" fill="currentColor"><path d="M1 4 L4 4 L8 1 L8 13 L4 10 L1 10 Z"/><path d="M10 4 Q12 7 10 10" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M11.5 2.5 Q15 7 11.5 11.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></button>
     <button id="share-link" class="theme-toggle desktop-only icon-btn" aria-label="Copy share link" title="Copy direct link to this verse/chapter"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="3" cy="7" r="2"/><circle cx="11" cy="3" r="2"/><circle cx="11" cy="11" r="2"/><line x1="4.7" y1="6" x2="9.3" y2="3.8"/><line x1="4.7" y1="8" x2="9.3" y2="10.2"/></svg></button>
@@ -2682,9 +2709,7 @@ function init() {
       document.querySelectorAll('#translation-group button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       state.translation = btn.dataset.t;
-      // Update <html lang> so screen readers and Chrome's translate hint
-      // know whether to read the verses as English or Spanish.
-      document.documentElement.lang = (state.translation === 'rvr') ? 'es' : 'en';
+      document.documentElement.lang = 'en';
       loadChapter();
     });
   });
@@ -2963,23 +2988,42 @@ function init() {
     saved: ['Eph.2.8','Acts.16.31','Rom.10.9','Acts.4.12','Acts.2.21','Rom.10.13'],
   };
 
-  function doJump() {
-    const inp = document.getElementById('settings-jump-input');
-    if (!inp) return;
-    const ref = inp.value.trim();
-    if (!ref) return;
+  // Shared resolver for any verse-or-keyword input (settings-jump-input,
+  // header-search, etc.). Returns true if it dispatched something.
+  window._scriptureResolveInput = function(rawValue) {
+    const ref = (rawValue || '').trim();
+    if (!ref) return false;
     haptic(8);
-    // If input is a single English word (no digits/colons/spaces) AND we have
-    // it in the famous-words index, show a picker of curated verses.
     const oneWord = ref.toLowerCase();
     if (!/[\d:.]/.test(oneWord) && /^[a-z]+$/i.test(oneWord) && FAMOUS_WORDS[oneWord]) {
       showKeywordPicker(oneWord, FAMOUS_WORDS[oneWord]);
-      inp.value = '';
-      return;
+      return true;
     }
     navigateHumanRef(ref);
-    inp.value = '';
-    closeSettings();
+    return true;
+  };
+  function doJump() {
+    const inp = document.getElementById('settings-jump-input');
+    if (!inp) return;
+    if (window._scriptureResolveInput(inp.value)) {
+      inp.value = '';
+      closeSettings();
+    }
+  }
+  // Header search (desktop only) — same resolver, no drawer to close.
+  const headerSearch = document.getElementById('header-search');
+  if (headerSearch) {
+    headerSearch.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        if (window._scriptureResolveInput(headerSearch.value)) {
+          headerSearch.value = '';
+          headerSearch.blur();
+        }
+      } else if (e.key === 'Escape') {
+        if (headerSearch.value) { headerSearch.value = ''; e.preventDefault(); }
+        else headerSearch.blur();
+      }
+    });
   }
   // Render a small modal with the curated verses for a famous word
   window.showKeywordPicker = function(word, refs) {
@@ -3028,7 +3072,7 @@ function init() {
         applyTextSize(next);
       }
       else if (action === 'translation') {
-        state.translation = _cycle(['kjv','esv','bsb','rvr'], state.translation);
+        state.translation = _cycle(['kjv','esv','bsb'], state.translation);
         document.querySelectorAll('#translation-group button').forEach(b => b.classList.toggle('active', b.dataset.t === state.translation));
         loadChapter();
       }
@@ -4831,7 +4875,7 @@ function parseHash() {
   if (qIdx >= 0) {
     const params = new URLSearchParams(hash.slice(qIdx + 1));
     const t = (params.get('t') || '').toLowerCase();
-    if (['kjv', 'esv', 'bsb', 'rvr'].includes(t)) translationOverride = t;
+    if (['kjv', 'esv', 'bsb'].includes(t)) translationOverride = t;
     hash = hash.slice(0, qIdx);
   }
   const m = hash.match(/^([1-3]?[A-Za-z]+)\.(\d+)(?:\.(\d+))?$/);
@@ -5523,8 +5567,8 @@ function renderChapter(book, verses) {
     refs.forEach(r => { typeCounts[r.type] = (typeCounts[r.type]||0)+1; });
     obList.forEach(r => { const t = r.t || 'THEMATIC'; typeCounts[t] = (typeCounts[t]||0)+1; });
     const typeOrder = ['PROPHECY','FULFILLMENT','QUOTE','PARALLEL','THEMATIC'];
-    // Letter prefix lets color-blind users distinguish types — color alone
-    // collapses Prophecy↔Parallel for deuteranopes.
+    // Single-letter type code only (color-blind friendly without the noisy
+    // vote-count number that was meaningless to most readers).
     const TYPE_LETTER = { PROPHECY:'P', FULFILLMENT:'F', QUOTE:'Q', PARALLEL:'L', THEMATIC:'T' };
     let dotsHtml = '';
     if (hasRefs) {
@@ -5532,7 +5576,7 @@ function renderChapter(book, verses) {
       typeOrder.forEach(type => {
         if (!typeCounts[type]) return;
         const letter = TYPE_LETTER[type] || '';
-        dotsHtml += `<span class="ref-dot ${type.toLowerCase()}" title="${type.toLowerCase()} (${typeCounts[type]})"><span style="opacity:0.85;font-weight:700;margin-right:2px">${letter}</span>${typeCounts[type]}</span>`;
+        dotsHtml += `<span class="ref-dot ${type.toLowerCase()}" title="${type.toLowerCase()} — ${typeCounts[type]} reference${typeCounts[type] === 1 ? '' : 's'}">${letter}</span>`;
       });
       dotsHtml += '</span>';
     }
@@ -6425,7 +6469,11 @@ function startGraph() {
     });
   });
 
-  // OpenBible.info refs for the current chapter (typed as 'OB')
+  // OpenBible.info refs — cap per source verse so the graph is readable.
+  // A verse like Romans 8:28 has 100+ refs; rendering them all collapses
+  // the graph into an unreadable hairball. Top 20 by vote score keeps the
+  // structure visible.
+  const PER_SOURCE_CAP = 20;
   if (OB_REFS) {
     Object.entries(OB_REFS).forEach(([sourceKey, refList]) => {
       if (!inCurChapter(sourceKey)) return;
@@ -6433,7 +6481,9 @@ function startGraph() {
         nodeMap[sourceKey] = makeNode(sourceKey, sourceKey.replace(/\./g,' '), true, cw, ch);
         nodes.push(nodeMap[sourceKey]);
       }
-      refList.forEach(r => {
+      // Sort by vote DESC so the strongest connections survive the cap.
+      const top = [...refList].sort((a, b) => (b.v || 0) - (a.v || 0)).slice(0, PER_SOURCE_CAP);
+      top.forEach(r => {
         const tk = 'T:' + r.r;
         if (!nodeMap[tk]) {
           nodeMap[tk] = makeNode(tk, osisToHuman(r.r), false, cw, ch);
@@ -7386,15 +7436,38 @@ function renderGraph(ctx, nodes, edges, cw, ch) {
   const accentColor = styles.getPropertyValue('--accent').trim() || '#2A4D6E';
   const mutedColor = styles.getPropertyValue('--text-muted').trim() || '#666';
 
+  // Pre-compute median target-node degree so labels go to the more-connected
+  // (more interesting) target verses, not random ones.
+  const targetDegs = nodes.filter(n => !n.isSource).map(n => n.deg || 0).sort((a,b) => b - a);
+  const labelThreshold = targetDegs[Math.min(10, targetDegs.length - 1)] || 0;
+
   nodes.forEach(n => {
-    const r = n.isSource ? Math.min(14, 5 + (n.deg||1)*0.8) : 4;
-    ctx.fillStyle = n.isSource ? accentColor : mutedColor;
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, r, 0, Math.PI*2);
-    ctx.fill();
-    if (n.isSource || (graphState.hover === n)) {
-      ctx.fillStyle = textColor;
-      ctx.font = '11px -apple-system, system-ui, sans-serif';
+    const r = n.isSource
+      ? Math.min(18, 7 + (n.deg||1) * 0.9)
+      : Math.min(7, 3 + (n.deg||1) * 0.6);
+    // Source nodes filled accent; target nodes get a ring instead of solid
+    // fill so they read as 'pointed at' rather than competing with sources.
+    if (n.isSource) {
+      ctx.fillStyle = accentColor;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, Math.PI*2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = styles.getPropertyValue('--bg').trim() || '#fff';
+      ctx.strokeStyle = mutedColor;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    // Labels: always for sources, for top-degree targets, and on hover.
+    const showLabel = n.isSource
+      || graphState.hover === n
+      || (!n.isSource && (n.deg || 0) >= labelThreshold && (n.deg || 0) >= 2);
+    if (showLabel) {
+      ctx.fillStyle = n.isSource ? textColor : mutedColor;
+      ctx.font = (n.isSource ? '600 12px' : '11px') + ' -apple-system, system-ui, sans-serif';
       ctx.fillText(n.label, n.x + r + 4, n.y + 4);
     }
   });
