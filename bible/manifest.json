@@ -1,0 +1,43 @@
+{
+  "name": "Scripture Link",
+  "short_name": "Scripture",
+  "description": "Bible study with 344K cross-references, Hebrew/Greek word study, commentary, and sermons.",
+  "start_url": "/bible/",
+  "display": "standalone",
+  "scope": "/bible/",
+  "background_color": "#15171C",
+  "theme_color": "#2A4D6E",
+  "orientation": "any",
+  "categories": ["education", "books", "lifestyle"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%232A4D6E'/%3E%3Ctext x='96' y='130' font-family='Georgia,serif' font-size='120' fill='white' text-anchor='middle' font-weight='600'%3ES%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%232A4D6E'/%3E%3Ctext x='256' y='350' font-family='Georgia,serif' font-size='320' fill='white' text-anchor='middle' font-weight='600'%3ES%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "John 3:16",
+      "short_name": "John 3:16",
+      "url": "/bible/#John.3.16"
+    },
+    {
+      "name": "Psalm 23",
+      "short_name": "Psalm 23",
+      "url": "/bible/#Ps.23"
+    },
+    {
+      "name": "Romans 8",
+      "short_name": "Romans 8",
+      "url": "/bible/#Rom.8"
+    }
+  ]
+}
