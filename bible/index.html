@@ -2006,6 +2006,13 @@ body.mode-timeline .timeline-help { display: block; }
         </div>
         <div class="settings-row-value">Pick</div>
       </div>
+      <div class="settings-row" id="settings-streak-row" style="display:none">
+        <div class="settings-row-main">
+          <div class="settings-row-label" id="settings-streak-label">Reading streak</div>
+          <div class="settings-row-sub" id="settings-streak-sub">Show up every day to keep your streak alive</div>
+        </div>
+        <div class="settings-row-value" id="settings-streak-value" style="font-variant-numeric:tabular-nums">0🔥</div>
+      </div>
       <div class="settings-row" data-action="bookmarks">
         <div class="settings-row-main">
           <div class="settings-row-label">My saved verses</div>
@@ -2601,6 +2608,20 @@ function init() {
     setVal('settings-highlights-value', String(hls.length), 'action');
     const hsub = document.getElementById('settings-highlights-sub');
     if (hsub) hsub.textContent = hls.length === 0 ? 'Long-press a verse to highlight in 4 colors' : `${hls.length} highlighted verse${hls.length === 1 ? '' : 's'} — tap to view`;
+    // Reading streak
+    const streak = (window._getReadingStreak && window._getReadingStreak()) || 0;
+    const streakRow = document.getElementById('settings-streak-row');
+    const streakLabel = document.getElementById('settings-streak-label');
+    const streakSub = document.getElementById('settings-streak-sub');
+    const streakVal = document.getElementById('settings-streak-value');
+    if (streakRow && streak > 0) {
+      streakRow.style.display = '';
+      if (streakLabel) streakLabel.textContent = streak === 1 ? 'Reading streak — Day 1' : `Reading streak — ${streak} days`;
+      if (streakVal) streakVal.textContent = streak + '🔥';
+      if (streakSub) streakSub.textContent = streak === 1 ? 'Come back tomorrow to keep it going' : streak >= 7 ? `${streak} days in a row — keep it up!` : 'Come back daily to grow the streak';
+    } else if (streakRow) {
+      streakRow.style.display = 'none';
+    }
   }
   // Helper: cycle to next value in a list
   function _cycle(list, current) { const i = list.indexOf(current); return list[(i+1) % list.length]; }
@@ -2865,13 +2886,39 @@ function init() {
       }
     } catch(e) {}
   }
-  // Save reading position whenever user navigates
+  // Save reading position whenever user navigates + record reading streak
   window._saveReadingPosition = () => {
     try {
       localStorage.setItem('scripture-last-position', JSON.stringify({
         bookIdx: state.bookIdx, chapter: state.chapter, ts: Date.now()
       }));
+      // Record today as a reading day for streak tracking
+      const today = new Date().toISOString().slice(0, 10);
+      const days = JSON.parse(localStorage.getItem('scripture-read-days') || '[]');
+      if (days[days.length - 1] !== today) {
+        days.push(today);
+        // Cap at last 365 days to keep storage bounded
+        if (days.length > 365) days.splice(0, days.length - 365);
+        localStorage.setItem('scripture-read-days', JSON.stringify(days));
+      }
     } catch(e) {}
+  };
+
+  // Compute current consecutive-day streak from scripture-read-days array
+  window._getReadingStreak = () => {
+    try {
+      const days = JSON.parse(localStorage.getItem('scripture-read-days') || '[]');
+      if (!days.length) return 0;
+      let streak = 0;
+      const today = new Date();
+      for (let i = 0; i < 365; i++) {
+        const d = new Date(today.getTime() - i * 86400000).toISOString().slice(0, 10);
+        if (days.includes(d)) streak++;
+        else if (i === 0) continue; // today not yet logged is fine
+        else break;
+      }
+      return streak;
+    } catch(e) { return 0; }
   };
 
   // Apply persisted text size
@@ -3912,7 +3959,14 @@ function parseHash() {
     return false;
   }
   state.bookIdx = idx;
-  state.chapter = Math.max(1, Math.min(BOOKS[idx].chapters, +m[2]));
+  const chReq = +m[2];
+  const chMax = BOOKS[idx].chapters;
+  if (chReq > chMax) {
+    showToast(`${BOOKS[idx].name} only has ${chMax} chapter${chMax === 1 ? '' : 's'} — opening chapter ${chMax}`, 'error');
+  }
+  state.chapter = Math.max(1, Math.min(chMax, chReq));
+  // Clamp verse later (after chapter loads we'll know the verse count); for
+  // now, accept the requested verse and let renderChapter/scroll handle missing.
   state.activeVerse = m[3] ? +m[3] : null;
   return true;
 }
@@ -3924,6 +3978,23 @@ function updateHash() {
     ? `#${osis}.${state.chapter}.${state.activeVerse}`
     : `#${osis}.${state.chapter}`;
   if (location.hash !== newHash) history.replaceState(null, '', newHash);
+  // Update document.title + meta description so pinned tabs, bookmarks, and
+  // shared links reflect the active passage. Crawlers running JS pick this up too.
+  try {
+    const book = BOOKS[state.bookIdx];
+    if (book) {
+      const ref = state.activeVerse
+        ? `${book.name} ${state.chapter}:${state.activeVerse}`
+        : `${book.name} ${state.chapter}`;
+      document.title = `${ref} — Scripture Link`;
+      const md = document.querySelector('meta[name="description"]');
+      if (md) md.setAttribute('content', `Read ${ref} with cross-references, Hebrew/Greek interlinear, and commentary.`);
+      const ogt = document.querySelector('meta[property="og:title"]');
+      if (ogt) ogt.setAttribute('content', `${ref} — Scripture Link`);
+      const ogu = document.querySelector('meta[property="og:url"]');
+      if (ogu) ogu.setAttribute('content', `https://hunihydration.com/bible/${newHash}`);
+    }
+  } catch(e) {}
   // Persist last-position so a fresh visit restores where the user left off
   try {
     localStorage.setItem('scripture-lastpos', JSON.stringify({
@@ -3939,7 +4010,7 @@ function getBookmarks() {
 }
 function saveBookmarks(arr) {
   try { localStorage.setItem('scripture-bookmarks', JSON.stringify(arr.slice(0, 200))); }
-  catch {}
+  catch (e) { try { showToast('Storage full — remove old bookmarks/highlights to save more', 'error'); } catch (_) {} }
 }
 function isBookmarked(osisRef) {
   return getBookmarks().some(b => b.ref === osisRef);
@@ -4290,6 +4361,15 @@ async function loadChapter() {
     }
 
     state.verses = verses;
+    // Clamp activeVerse against actual loaded verse count so a deep link
+    // like #Ps.23.99 doesn't try to scroll to a non-existent verse.
+    if (state.activeVerse != null && verses.length) {
+      const maxVerse = verses[verses.length - 1].verse || verses.length;
+      if (state.activeVerse > maxVerse) {
+        showToast(`${book.name} ${state.chapter} only has ${maxVerse} verse${maxVerse === 1 ? '' : 's'}`, 'error');
+        state.activeVerse = null;
+      }
+    }
     renderChapter(book, verses);
     applyAllHighlights();
     // Announce chapter change to screen readers
@@ -4949,7 +5029,10 @@ function haptic(pattern = 8) {
 // ── Verse highlighting (long-press / right-click) ──────────────
 const HL_KEY = 'scripture-highlights';
 function getHighlights() { try { return JSON.parse(localStorage.getItem(HL_KEY) || '{}'); } catch(e) { return {}; } }
-function saveHighlights(h) { localStorage.setItem(HL_KEY, JSON.stringify(h)); }
+function saveHighlights(h) {
+  try { localStorage.setItem(HL_KEY, JSON.stringify(h)); }
+  catch (e) { try { showToast('Storage full — remove old bookmarks/highlights to save more', 'error'); } catch (_) {} }
+}
 function applyHighlight(verseEl, color) {
   ['hl-yellow','hl-pink','hl-green','hl-blue'].forEach(c => verseEl.classList.remove(c));
   if (color) verseEl.classList.add('hl-' + color);
