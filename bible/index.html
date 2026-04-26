@@ -308,18 +308,21 @@ body.sidebar-open .bible-text {
 
 .verse-num {
   /* Match the verse body's serif so numbers feel like part of the text,
-     not a UI control. Light weight, oldstyle figures where available. */
+     not a UI control. Light weight, oldstyle figures where available.
+     Tappable: clicking copies the citation. */
   font-family: var(--serif);
   font-size: var(--verse-num-size, 11px);
   color: var(--text-dim);
   min-width: 22px;
   margin-top: 6px;
   text-align: right;
-  user-select: none;
   font-variant-numeric: oldstyle-nums;
   font-feature-settings: 'onum';
   font-weight: 400;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
+.verse-num:hover { color: var(--accent); }
 /* Screen-reader-only utility for live regions */
 .sr-only {
   position: absolute !important;
@@ -4049,6 +4052,13 @@ function exportVerseImage(verseText, reference, gradName, format) {
   showToast(`Verse image saved`);
 }
 
+// Tap a verse number to copy the citation (e.g. "Romans 8:28") to clipboard.
+window.copyCitation = async function(ref) {
+  haptic(6);
+  try { await navigator.clipboard.writeText(ref); showToast(`Reference ${ref} copied`); }
+  catch (e) { prompt('Copy:', ref); }
+};
+
 async function copyVerseLink(osisKey, verseText, ref) {
   const url = `${location.origin}${location.pathname}#${osisKey}`;
   // If we have the verse text and reference, build a richer payload that
@@ -5279,7 +5289,7 @@ function renderChapter(book, verses) {
     const isRed = isRedLetter(bookOsis, state.chapter, v.verse);
     html += `
       <div class="verse ${hasRefs?'has-refs':''}${isRed?' red-letter':''}" id="v-${v.verse}" data-verse="${v.verse}" data-key="${key}" onclick="onVerseClick(this)">
-        <span class="verse-num">${v.verse}</span>
+        <span class="verse-num" onclick="event.stopPropagation(); copyCitation('${book.name} ${state.chapter}:${v.verse}')" title="Copy reference (${book.name} ${state.chapter}:${v.verse})">${v.verse}</span>
         <span class="verse-text">${v.text.trim()}${dotsHtml}</span>
       </div>
     `;
@@ -5616,9 +5626,9 @@ function showSidebar(key, verseNum, refs) {
       <div id="${cmpId}" style="margin-top:10px"></div>
     </div>
     ${tqHTML}
-    ${commentaryHTML}
     ${refHTML}
     ${obHTML}
+    ${commentaryHTML}
     <div class="blb-section">
       <div class="blb-title">Study tools</div>
       <div class="blb-links">
