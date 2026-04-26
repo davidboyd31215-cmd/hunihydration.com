@@ -2589,6 +2589,7 @@ function removeBookmark(ref) {
 }
 
 document.addEventListener('keydown', (e) => {
+  // Always handle Escape regardless of focus
   if (e.key === 'Escape') {
     const modal = document.getElementById('ws-modal');
     if (modal && modal.classList.contains('open')) { closeWordStudy(); return; }
@@ -2597,7 +2598,59 @@ document.addEventListener('keydown', (e) => {
     const sidebar = document.getElementById('sidebar');
     if (sidebar && sidebar.classList.contains('open')) { closeSidebar(); return; }
   }
+
+  // Skip other shortcuts when typing in inputs/selects
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+  // / or Cmd/Ctrl+K → focus jump-to-verse (open Settings if needed)
+  if (e.key === '/' || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k')) {
+    e.preventDefault();
+    const settingsBtn = document.getElementById('settings-toggle');
+    const drawer = document.getElementById('settings-drawer');
+    const jumpInput = document.getElementById('settings-jump-input');
+    if (drawer && !drawer.classList.contains('open') && settingsBtn) {
+      settingsBtn.click();
+    }
+    setTimeout(() => jumpInput && jumpInput.focus(), 80);
+    return;
+  }
+  // Arrow keys for chapter navigation
+  if (e.key === 'ArrowLeft' && !e.metaKey && !e.ctrlKey) { e.preventDefault(); document.getElementById('prev-ch')?.click(); return; }
+  if (e.key === 'ArrowRight' && !e.metaKey && !e.ctrlKey) { e.preventDefault(); document.getElementById('next-ch')?.click(); return; }
+  // , → open Settings
+  if (e.key === ',') { e.preventDefault(); document.getElementById('settings-toggle')?.click() || document.getElementById('mode-group')?.querySelector('button[data-m="sidebar"]')?.click(); return; }
+  // ? → keyboard help
+  if (e.key === '?') { e.preventDefault(); showKeyboardHelp(); return; }
+  // n / p as alternates for arrow keys (vim-ish)
+  if (e.key === 'n' || e.key === 'j') { document.getElementById('next-ch')?.click(); return; }
+  if (e.key === 'p' || e.key === 'k') { document.getElementById('prev-ch')?.click(); return; }
 });
+
+function showKeyboardHelp() {
+  const existing = document.getElementById('kbd-help');
+  if (existing) { existing.remove(); return; }
+  const m = document.createElement('div');
+  m.id = 'kbd-help';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;display:flex;align-items:center;justify-content:center;padding:24px;font-family:var(--sans)';
+  m.innerHTML = `
+    <div style="background:var(--bg);border:1px solid var(--border-strong);border-radius:10px;padding:24px 28px;max-width:420px;width:100%;box-shadow:0 12px 36px rgba(0,0,0,0.3)">
+      <div style="font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:14px;color:var(--text)">Keyboard shortcuts</div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:10px 18px;font-size:13px;color:var(--text-muted)">
+        <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">/</kbd><span>Jump to verse</span>
+        <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">⌘K</kbd><span>Jump to verse</span>
+        <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">←  →</kbd><span>Previous / next chapter</span>
+        <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">,</kbd><span>Open menu</span>
+        <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">Esc</kbd><span>Close any panel</span>
+        <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">?</kbd><span>Show this help</span>
+      </div>
+      <div style="margin-top:18px;text-align:right">
+        <button onclick="document.getElementById('kbd-help').remove()" style="background:var(--accent);color:white;border:none;padding:8px 16px;border-radius:6px;font-weight:600;cursor:pointer;font-family:var(--sans);font-size:13px">Got it</button>
+      </div>
+    </div>`;
+  m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
+  document.body.appendChild(m);
+}
 
 function showVoteInfo(votes, evt) {
   const existing = document.getElementById('vote-info-popup');
