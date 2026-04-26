@@ -3576,11 +3576,28 @@ async function loadBookBackgrounds() {
 }
 
 let COMMENTARY = null;
+let COMMENTARY_CHAPTER = null; // chapter-level fallback when no verse note exists
 async function loadCommentary() {
   try {
     const r = await fetch('commentary.json');
     if (r.ok) COMMENTARY = await r.json();
   } catch(e) {}
+  // Chapter-level fallback file (~1189 entries, one per chapter).
+  // Tried separately so a missing/old fallback file doesn't block verse notes.
+  try {
+    const rc = await fetch('commentary_chapter.json');
+    if (rc.ok) COMMENTARY_CHAPTER = await rc.json();
+  } catch(e) {}
+}
+// Helper: resolve commentary for an OSIS verse key, falling back to the
+// chapter-level note if no verse-level entry exists.
+function getCommentaryFor(key) {
+  if (COMMENTARY && COMMENTARY[key]) return { text: COMMENTARY[key], scope: 'verse' };
+  if (COMMENTARY_CHAPTER && key) {
+    const chKey = key.split('.').slice(0, 2).join('.'); // "Mark.11.23" → "Mark.11"
+    if (COMMENTARY_CHAPTER[chKey]) return { text: COMMENTARY_CHAPTER[chKey], scope: 'chapter' };
+  }
+  return null;
 }
 
 let SERMONS = null;
@@ -5522,7 +5539,9 @@ function renderChapter(book, verses) {
 
     const isRed = isRedLetter(bookOsis, state.chapter, v.verse);
     // Subtle visual indicator on the verse number when this verse has
-    // commentary, a theological question, or one or more sermons mapped to it.
+    // verse-level commentary, a theological question, or sermons mapped
+    // to it. (Chapter-level fallback commentary is intentionally excluded
+    // here — every verse would underline otherwise.)
     const hasExtra = !!((COMMENTARY && COMMENTARY[key])
       || (THEOLOGY_Q && THEOLOGY_Q[key])
       || (typeof getSermonsForVerse === 'function' && getSermonsForVerse(bookOsis, state.chapter, v.verse).length > 0));
@@ -5804,19 +5823,25 @@ function showSidebar(key, verseNum, refs) {
     obHTML += `</div>`;
   }
 
-  // Commentary section — uses Reformed/expositional notes when available; falls back to GTY sermon link
+  // Commentary section — verse-level note first, chapter-level fallback,
+  // then a generic 'no commentary yet' card with a MacArthur link.
   let commentaryHTML = '';
   if (state.commentaryOn) {
-    const note = COMMENTARY && COMMENTARY[key];
+    const noteEntry = (typeof getCommentaryFor === 'function') ? getCommentaryFor(key) : null;
     const refStr = encodeURIComponent(book.name + ' ' + state.chapter + ':' + verseNum);
     const gtyURL = `https://www.gty.org/search?q=${refStr}`;
-    if (note) {
-      commentaryHTML = `<div class="sidebar-section" style="border-left:3px solid #6B4D00;background:linear-gradient(135deg,rgba(212,184,112,0.08),transparent);padding:14px 16px;margin-top:8px;border-radius:4px">
+    if (noteEntry) {
+      const isChapter = noteEntry.scope === 'chapter';
+      const headerLabel = isChapter ? 'Chapter overview' : 'Editorial note';
+      const subLabel = isChapter
+        ? `Whole-chapter context · By Scripture Link · Reformed/expositional`
+        : `By Scripture Link · Reformed/expositional`;
+      commentaryHTML = `<div class="sidebar-section" style="border-left:3px solid #6B4D00;background:linear-gradient(135deg,rgba(212,184,112,${isChapter ? '0.05' : '0.08'}),transparent);padding:14px 16px;margin-top:8px;border-radius:4px">
         <div style="font-size:10px;letter-spacing:0.1em;color:#A07A20;text-transform:uppercase;margin-bottom:8px;font-weight:600;display:flex;justify-content:space-between;align-items:center">
-          <span>Editorial note</span>
-          <span style="font-size:9px;font-style:italic;color:var(--text-dim);text-transform:none;letter-spacing:0" title="Original to Scripture Link, not John MacArthur. Reformed/expositional perspective.">By Scripture Link · Reformed/expositional</span>
+          <span>${headerLabel}</span>
+          <span style="font-size:9px;font-style:italic;color:var(--text-dim);text-transform:none;letter-spacing:0" title="Original to Scripture Link, not John MacArthur. Reformed/expositional perspective.">${subLabel}</span>
         </div>
-        <div style="font-family:var(--serif);font-size:14px;line-height:1.65;color:var(--text)">${note}</div>
+        <div style="font-family:var(--serif);font-size:${isChapter ? '13.5' : '14'}px;line-height:1.65;color:${isChapter ? 'var(--text-muted)' : 'var(--text)'}">${noteEntry.text}</div>
         <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
           <a href="${gtyURL}" target="_blank" rel="noopener" style="display:inline-block;background:#6B4D00;color:#FFF3D6;padding:6px 12px;border-radius:4px;font-family:var(--sans);font-size:11px;text-decoration:none">MacArthur sermons on this passage ↗</a>
         </div>
@@ -5825,7 +5850,7 @@ function showSidebar(key, verseNum, refs) {
       commentaryHTML = `<div class="sidebar-section" style="border-left:3px solid #6B4D00;background:linear-gradient(135deg,rgba(212,184,112,0.06),transparent);padding:12px 14px;margin-top:8px;border-radius:4px">
         <div style="font-size:10px;letter-spacing:0.1em;color:#A07A20;text-transform:uppercase;margin-bottom:6px;font-weight:600">Commentary</div>
         <div style="font-family:var(--serif);font-size:13px;line-height:1.55;color:var(--text-muted);font-style:italic">
-          No commentary written for this verse yet — currently covering the 200 most-cited verses. Read MacArthur's sermons on the chapter:
+          No editorial note for this verse yet. Read MacArthur's sermons on the chapter:
         </div>
         <div style="margin-top:10px"><a href="${gtyURL}" target="_blank" rel="noopener" style="display:inline-block;background:#6B4D00;color:#FFF3D6;padding:6px 12px;border-radius:4px;font-family:var(--sans);font-size:11px;text-decoration:none">MacArthur on ${book.name} ${state.chapter} ↗</a></div>
       </div>`;
