@@ -3072,11 +3072,14 @@ document.addEventListener('keydown', (e) => {
 
 function exportVerseImage(verseText, reference, gradName, format) {
   const gradients = {
-    sunset:  ['#FFB088', '#7E445B'],
-    ocean:   ['#3D5A6E', '#1B3247'],
-    sage:    ['#A8B79A', '#3F5238'],
-    paper:   ['#F4ECD8', '#D4B870'],
-    night:   ['#2A2E38', '#0A0B0D'],
+    sunset:   ['#FFB088', '#7E445B'],
+    ocean:    ['#3D5A6E', '#1B3247'],
+    sage:     ['#A8B79A', '#3F5238'],
+    paper:    ['#F4ECD8', '#D4B870'],
+    night:    ['#2A2E38', '#0A0B0D'],
+    rose:     ['#E89BAA', '#5C2538'],
+    gold:     ['#E8C770', '#7A5D1F'],
+    midnight: ['#1A2942', '#000814'],
   };
   const palette = gradients[gradName] || gradients.ocean;
   const isStory = format === 'story';
@@ -3175,51 +3178,112 @@ async function copyVerseText(text, ref) {
   catch { prompt('Copy:', out); }
 }
 
+function _renderImagePreview(canvasEl, verseText, reference, gradName, format) {
+  // Render a scaled preview into the given canvas
+  const isStory = format === 'story';
+  const W = isStory ? 270 : 360, H = isStory ? 480 : 360; // preview dims
+  canvasEl.width = W; canvasEl.height = H;
+  const ctx = canvasEl.getContext('2d');
+  const gradients = {
+    sunset:['#FFB088','#7E445B'], ocean:['#3D5A6E','#1B3247'],
+    sage:['#A8B79A','#3F5238'], paper:['#F4ECD8','#D4B870'],
+    night:['#2A2E38','#0A0B0D'], rose:['#E89BAA','#5C2538'],
+    gold:['#E8C770','#7A5D1F'], midnight:['#1A2942','#000814'],
+  };
+  const palette = gradients[gradName] || gradients.ocean;
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, palette[0]); grad.addColorStop(1, palette[1]);
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const text = verseText.replace(/\s+/g, ' ').trim();
+  const len = text.length;
+  const fontSize = len < 80 ? 18 : (len < 160 ? 15 : 12);
+  ctx.font = `500 ${fontSize}px Georgia, serif`;
+  const maxW = W - 40;
+  const words = text.split(' '); const lines = []; let line = '';
+  words.forEach(w => {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW) { lines.push(line); line = w; }
+    else line = test;
+  });
+  if (line) lines.push(line);
+  const maxLines = isStory ? 12 : 7;
+  if (lines.length > maxLines) lines.length = maxLines, lines[lines.length-1] += '…';
+  const lineH = fontSize * 1.35;
+  const startY = H/2 - (lines.length * lineH)/2 + lineH/2;
+  lines.forEach((l, i) => ctx.fillText(l, W/2, startY + i * lineH));
+  ctx.font = `600 11px -apple-system, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillText('— ' + reference, W/2, startY + lines.length * lineH + 14);
+  ctx.font = `500 8px sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillText('hunihydration.com/bible', W/2, H - 14);
+}
+
 function showImagePickerModal(verseText, reference) {
   const existing = document.getElementById('img-picker');
   if (existing) { existing.remove(); return; }
   const m = document.createElement('div');
   m.id = 'img-picker';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:600;display:flex;align-items:center;justify-content:center;padding:24px;font-family:var(--sans)';
-  const previews = [
-    ['ocean', 'linear-gradient(135deg,#3D5A6E,#1B3247)'],
-    ['sunset', 'linear-gradient(135deg,#FFB088,#7E445B)'],
-    ['sage', 'linear-gradient(135deg,#A8B79A,#3F5238)'],
-    ['paper', 'linear-gradient(135deg,#F4ECD8,#D4B870)'],
-    ['night', 'linear-gradient(135deg,#2A2E38,#0A0B0D)'],
-  ];
+  const gradNames = ['ocean','sunset','sage','paper','night','rose','gold','midnight'];
   const safeText = verseText.replace(/'/g, "\\'");
   m.innerHTML = `
-    <div style="background:var(--bg);border:1px solid var(--border-strong);border-radius:10px;padding:22px 24px 20px;max-width:480px;width:100%;box-shadow:0 12px 36px rgba(0,0,0,0.3)">
+    <div style="background:var(--bg);border:1px solid var(--border-strong);border-radius:10px;padding:22px 24px 20px;max-width:520px;width:100%;box-shadow:0 12px 36px rgba(0,0,0,0.3);max-height:92vh;overflow-y:auto">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div style="font-family:var(--serif);font-size:18px;font-weight:600;color:var(--text)">Save as image</div>
         <button onclick="document.getElementById('img-picker').remove()" style="background:none;border:none;font-size:22px;color:var(--text-dim);cursor:pointer">&times;</button>
       </div>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Pick a format and background for ${reference}.</div>
-      <div style="display:flex;gap:6px;margin-bottom:14px;background:var(--bg-alt);padding:3px;border-radius:8px;border:1px solid var(--border)">
-        <button id="img-fmt-square" data-fmt="square" class="img-fmt active" style="flex:1;background:var(--bg);color:var(--text);border:none;padding:8px 12px;border-radius:6px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer">▢ Square (Instagram)</button>
+      <div style="display:flex;gap:6px;margin-bottom:12px;background:var(--bg-alt);padding:3px;border-radius:8px;border:1px solid var(--border)">
+        <button id="img-fmt-square" data-fmt="square" class="img-fmt active" style="flex:1;background:var(--bg);color:var(--text);border:none;padding:8px 12px;border-radius:6px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer">▢ Square</button>
         <button id="img-fmt-story" data-fmt="story" class="img-fmt" style="flex:1;background:transparent;color:var(--text-muted);border:none;padding:8px 12px;border-radius:6px;font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer">▭ Story (9:16)</button>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">
-        ${previews.map(([n, g]) => `<button onclick="exportVerseImage('${safeText}','${reference}','${n}',document.querySelector('.img-fmt.active').dataset.fmt); document.getElementById('img-picker').remove()" style="background:${g};border:none;border-radius:8px;height:80px;cursor:pointer;color:white;font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px" title="${n}">${n}</button>`).join('')}
+      <!-- Live preview -->
+      <div style="display:flex;justify-content:center;margin-bottom:14px;background:var(--bg-alt);padding:14px;border-radius:8px">
+        <canvas id="img-preview" style="max-width:100%;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,0.25)"></canvas>
       </div>
+      <div style="font-size:11px;letter-spacing:0.06em;font-weight:600;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px">Background</div>
+      <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-bottom:16px">
+        ${gradNames.map(n => `<button data-grad="${n}" class="img-grad" style="border:2px solid transparent;border-radius:50%;width:36px;height:36px;cursor:pointer;padding:0" title="${n}"><span style="display:block;width:100%;height:100%;border-radius:50%;background:linear-gradient(135deg,${({sunset:'#FFB088,#7E445B',ocean:'#3D5A6E,#1B3247',sage:'#A8B79A,#3F5238',paper:'#F4ECD8,#D4B870',night:'#2A2E38,#0A0B0D',rose:'#E89BAA,#5C2538',gold:'#E8C770,#7A5D1F',midnight:'#1A2942,#000814'})[n]})"></span></button>`).join('')}
+      </div>
+      <button id="img-download-btn" style="width:100%;background:var(--accent);color:white;border:none;padding:12px;border-radius:8px;font-weight:600;cursor:pointer;font-family:var(--sans);font-size:14px">Download image</button>
     </div>`;
   m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
   document.body.appendChild(m);
-  // Format toggle behavior
+
+  // State for picker
+  let curFmt = 'square', curGrad = 'ocean';
+  const previewCanvas = m.querySelector('#img-preview');
+  const refresh = () => _renderImagePreview(previewCanvas, verseText, reference, curGrad, curFmt);
+  refresh();
+
+  // Format toggle
   m.querySelectorAll('.img-fmt').forEach(b => {
     b.addEventListener('click', () => {
       m.querySelectorAll('.img-fmt').forEach(x => {
         x.classList.remove('active');
-        x.style.background = 'transparent';
-        x.style.color = 'var(--text-muted)';
-        x.style.fontWeight = '500';
+        x.style.background = 'transparent'; x.style.color = 'var(--text-muted)'; x.style.fontWeight = '500';
       });
       b.classList.add('active');
-      b.style.background = 'var(--bg)';
-      b.style.color = 'var(--text)';
-      b.style.fontWeight = '600';
+      b.style.background = 'var(--bg)'; b.style.color = 'var(--text)'; b.style.fontWeight = '600';
+      curFmt = b.dataset.fmt; refresh();
     });
+  });
+  // Gradient picker
+  const grads = m.querySelectorAll('.img-grad');
+  function selectGrad(b) {
+    grads.forEach(x => x.style.borderColor = 'transparent');
+    b.style.borderColor = 'var(--text)';
+    curGrad = b.dataset.grad;
+    refresh();
+  }
+  grads.forEach(b => b.addEventListener('click', () => selectGrad(b)));
+  selectGrad(grads[0]); // default first
+  // Download
+  m.querySelector('#img-download-btn').addEventListener('click', () => {
+    exportVerseImage(verseText, reference, curGrad, curFmt);
+    m.remove();
   });
 }
 
