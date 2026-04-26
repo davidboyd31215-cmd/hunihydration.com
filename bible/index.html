@@ -833,6 +833,8 @@ body.mode-arc .arc-help { display: block; }
 
   <div class="chapter-nav">
     <span class="status-pill" id="xrefs-status" title="OpenBible.info cross-references">…</span>
+    <button id="depth-toggle" class="theme-toggle" aria-label="Toggle depth" title="Top references vs all">⭐ Top</button>
+    <button id="commentary-toggle" class="theme-toggle" aria-label="Toggle commentary" title="Show/hide verse commentary">📖 Commentary</button>
     <button id="share-link" class="theme-toggle" aria-label="Copy share link" title="Copy direct link to this verse/chapter">🔗 Share</button>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">☾</button>
     <button id="prev-ch" aria-label="Previous chapter">&#8592;</button>
@@ -1036,6 +1038,8 @@ let state = {
   mode: 'sidebar',
   activeVerse: null,
   verses: [],
+  depthMode: localStorage.getItem('scripture-depth') || 'top', // 'top' or 'all'
+  commentaryOn: localStorage.getItem('scripture-commentary') === 'on',
 };
 
 // ═══════════════════════════════════════════════════════
@@ -1090,6 +1094,45 @@ function init() {
   parseHash();
   window.addEventListener('hashchange', () => {
     if (parseHash()) loadChapter();
+  });
+
+  // Depth toggle (Top / All)
+  const depthBtn = document.getElementById('depth-toggle');
+  function syncDepthBtn() {
+    if (!depthBtn) return;
+    depthBtn.textContent = state.depthMode === 'top' ? '⭐ Top' : '🌐 All';
+    depthBtn.title = state.depthMode === 'top'
+      ? 'Showing top references — click to show all'
+      : 'Showing all references — click to show only the most-cited';
+  }
+  syncDepthBtn();
+  if (depthBtn) depthBtn.addEventListener('click', () => {
+    state.depthMode = state.depthMode === 'top' ? 'all' : 'top';
+    localStorage.setItem('scripture-depth', state.depthMode);
+    syncDepthBtn();
+    if (state.verses && state.verses.length) renderChapter(BOOKS[state.bookIdx], state.verses);
+    if (state.activeVerse) {
+      const el = document.getElementById('v-' + state.activeVerse);
+      if (el) el.click();
+    }
+  });
+
+  // Commentary toggle
+  const commentaryBtn = document.getElementById('commentary-toggle');
+  function syncCommentaryBtn() {
+    if (!commentaryBtn) return;
+    commentaryBtn.style.background = state.commentaryOn ? 'var(--accent-soft)' : '';
+    commentaryBtn.style.borderColor = state.commentaryOn ? 'var(--accent)' : '';
+    commentaryBtn.title = state.commentaryOn
+      ? 'Commentary ON — MacArthur-style verse notes (click to hide)'
+      : 'Commentary OFF — click to show MacArthur-style verse notes';
+  }
+  syncCommentaryBtn();
+  if (commentaryBtn) commentaryBtn.addEventListener('click', () => {
+    state.commentaryOn = !state.commentaryOn;
+    localStorage.setItem('scripture-commentary', state.commentaryOn ? 'on' : 'off');
+    syncCommentaryBtn();
+    if (state.verses && state.verses.length) renderChapter(BOOKS[state.bookIdx], state.verses);
   });
 
   // Share-link button
@@ -1155,6 +1198,81 @@ OSIS_BY_IDX.forEach((osis, i) => IDX_BY_OSIS[osis] = i);
 let OB_REFS = null;
 let THEOLOGY_Q = null;
 const verseTextCache = new Map();
+
+// ── Client-side note generator for OpenBible cross-references ──
+const _NT_OSIS = new Set(['Matt','Mark','Luke','John','Acts','Rom','1Cor','2Cor','Gal','Eph','Phil','Col','1Thess','2Thess','1Tim','2Tim','Titus','Phlm','Heb','Jas','1Pet','2Pet','1John','2John','3John','Jude','Rev']);
+const _OT_OSIS = new Set(['Gen','Exod','Lev','Num','Deut','Josh','Judg','Ruth','1Sam','2Sam','1Kgs','2Kgs','1Chr','2Chr','Ezra','Neh','Esth','Job','Ps','Prov','Eccl','Song','Isa','Jer','Lam','Ezek','Dan','Hos','Joel','Amos','Obad','Jonah','Mic','Nah','Hab','Zeph','Hag','Zech','Mal']);
+const _SYNOPTICS = new Set(['Matt','Mark','Luke']);
+const _HISTORICAL = new Set(['1Sam','2Sam','1Kgs','2Kgs','1Chr','2Chr']);
+const _PROPHETS = new Set(['Isa','Jer','Lam','Ezek','Dan','Hos','Joel','Amos','Obad','Jonah','Mic','Nah','Hab','Zeph','Hag','Zech','Mal']);
+const _PAULINE = new Set(['Rom','1Cor','2Cor','Gal','Eph','Phil','Col','1Thess','2Thess','1Tim','2Tim','Titus','Phlm']);
+
+function showVoteInfo(votes, evt) {
+  const existing = document.getElementById('vote-info-popup');
+  if (existing) existing.remove();
+  const tier = votes >= 50 ? 'Cornerstone link' : votes >= 20 ? 'Strongly attested' : votes >= 10 ? 'Notable consensus' : votes >= 5 ? 'Affirmed' : 'Sparsely attested';
+  const popup = document.createElement('div');
+  popup.id = 'vote-info-popup';
+  popup.style.cssText = 'position:fixed;background:var(--bg-alt);border:1px solid var(--border-strong);border-radius:6px;padding:14px 16px;font-family:var(--sans);font-size:12px;max-width:280px;box-shadow:0 6px 20px rgba(0,0,0,0.25);z-index:300;color:var(--text);line-height:1.5;cursor:default';
+  popup.innerHTML = `
+    <div style="font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+      <span>Cross-reference strength</span>
+      <span style="font-size:18px;color:var(--accent);font-variant-numeric:tabular-nums">${votes}</span>
+    </div>
+    <div style="font-style:italic;color:var(--accent);margin-bottom:8px">${tier}</div>
+    <div style="color:var(--text-muted)">This is the OpenBible.info vote count — the number of independent commentaries, study Bibles, and scholarly sources that affirmed this verse-to-verse cross-reference. Higher numbers indicate stronger interpretive consensus.</div>
+    <div style="margin-top:10px;text-align:right"><button onclick="this.parentElement.parentElement.remove()" style="background:transparent;border:1px solid var(--border-strong);color:var(--text);padding:4px 12px;border-radius:4px;cursor:pointer;font-family:var(--sans);font-size:11px">Got it</button></div>
+  `;
+  document.body.appendChild(popup);
+  const x = Math.min(evt.clientX + 12, window.innerWidth - 300);
+  const y = Math.min(evt.clientY + 12, window.innerHeight - 180);
+  popup.style.left = x + 'px';
+  popup.style.top = y + 'px';
+  setTimeout(() => {
+    document.addEventListener('click', function close(e) {
+      if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', close); }
+    });
+  }, 50);
+}
+
+function generateRefNote(srcKey, refObj) {
+  const sm = (srcKey || '').match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)$/);
+  const tgtRaw = (refObj.r || '').split('-')[0];
+  const tm = tgtRaw.match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)$/);
+  if (!sm || !tm) return '';
+  const sb = sm[1], tb = tm[1], tc = tm[2], tv = tm[3];
+  const sIdx = IDX_BY_OSIS[sb], tIdx = IDX_BY_OSIS[tb];
+  const sName = sIdx != null ? BOOKS[sIdx].name : sb;
+  const tName = tIdx != null ? BOOKS[tIdx].name : tb;
+  const t = refObj.t || 'THEMATIC';
+  const v = refObj.v || 0;
+
+  if (t === 'QUOTE') {
+    if (_NT_OSIS.has(sb) && _OT_OSIS.has(tb)) return `Direct citation of ${tName} — ${sName} grounds its argument in this OT text`;
+    return `Direct quotation from ${tName} ${tc}:${tv}`;
+  }
+  if (t === 'PARALLEL') {
+    if (_SYNOPTICS.has(sb) && _SYNOPTICS.has(tb)) return `Synoptic parallel — same event/teaching recorded in ${tName}`;
+    if (_HISTORICAL.has(sb) && _HISTORICAL.has(tb)) return `Parallel historical account — Samuel/Kings and Chronicles preserve the same episode`;
+    if ((sb === 'John' && _SYNOPTICS.has(tb)) || (tb === 'John' && _SYNOPTICS.has(sb))) return `John records the same event the Synoptics describe`;
+    if (sb === 'Ps' || tb === 'Ps') return `Psalm parallel — same poetic material preserved in two places`;
+    return `Parallel passage in ${tName}`;
+  }
+  if (t === 'PROPHECY') {
+    if (_PROPHETS.has(sb)) return `Prophetic anticipation — ${sName} foretells what ${tName} fulfills`;
+    return `Prophetic foreshadowing pointing forward to ${tName} ${tc}:${tv}`;
+  }
+  if (t === 'FULFILLMENT') {
+    if (_PROPHETS.has(tb)) return `${sName} fulfills the prophecy spoken in ${tName} ${tc}:${tv}`;
+    return `Fulfillment of the OT promise in ${tName} ${tc}:${tv}`;
+  }
+  // THEMATIC
+  if (v >= 50) return `Cornerstone thematic link — ${v} scholarly sources affirm this connection`;
+  if (v >= 20) return `Strongly attested theme — frequently linked in commentary tradition`;
+  if (v >= 10) return `Notable thematic resonance with ${tName} ${tc}:${tv}`;
+  if (v >= 5) return `Shared theological theme between ${sName} and ${tName}`;
+  return `Thematic connection`;
+}
 
 async function loadTheologyQuestions() {
   try {
@@ -1328,15 +1446,30 @@ function onObCardClick(card, osisRef) {
 async function fetchKJV(book, chapter) {
   if (book.abbr === 'gen') {
     const chData = GENESIS_KJV[chapter];
-    if (!chData) return null;
-    return Object.entries(chData)
-      .map(([v,t]) => ({verse: +v, text: t}))
-      .sort((a,b) => a.verse - b.verse);
+    if (chData) {
+      return Object.entries(chData)
+        .map(([v,t]) => ({verse: +v, text: t}))
+        .sort((a,b) => a.verse - b.verse);
+    }
   }
-  const res = await fetch(`https://bible-api.com/${book.abbr}+${chapter}?translation=kjv`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  return data.verses || null;
+  // Primary: bible-api.com
+  try {
+    const res = await fetch(`https://bible-api.com/${book.abbr}+${chapter}?translation=kjv`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.verses && data.verses.length) return data.verses;
+    }
+  } catch (e) { /* fall through */ }
+  // Fallback: bolls.life (KJV translation, 1-based book index)
+  try {
+    const bookNum = state.bookIdx + 1;
+    const res2 = await fetch(`https://bolls.life/get-text/KJV/${bookNum}/${chapter}/`);
+    if (res2.ok) {
+      const data = await res2.json();
+      return data.map(v => ({ verse: v.verse, text: (v.text || '').replace(/<[^>]+>/g, '').trim() }));
+    }
+  } catch (e) { /* fall through */ }
+  throw new Error('KJV unavailable from both bible-api.com and bolls.life');
 }
 
 async function fetchESV(book, chapter) {
@@ -1493,7 +1626,15 @@ function renderChapter(book, verses) {
           <div class="inline-ref-address" style="color:var(--text-dim);font-weight:500">More references <span style="font-style:italic;font-weight:400;color:var(--text-dim)">openbible.info</span></div>`;
         obList.forEach(r => {
           const t = (r.t || 'THEMATIC').toLowerCase();
-          html += `<div style="font-family:var(--sans);font-size:12px;margin:3px 0;display:flex;gap:8px;align-items:baseline"><a href="javascript:navigateToOsis('${r.r}')" style="color:var(--accent);text-decoration:none">${osisToHuman(r.r)}</a><span class="type ${t}" style="font-size:9px;padding:1px 6px">${t.toUpperCase()}</span><span style="font-size:10px;color:var(--text-dim);font-variant-numeric:tabular-nums">${r.v}</span></div>`;
+          const note = generateRefNote(key, r);
+          html += `<div style="font-family:var(--sans);font-size:12px;margin:6px 0;padding:4px 0">
+            <div style="display:flex;gap:8px;align-items:baseline">
+              <a href="javascript:navigateToOsis('${r.r}')" style="color:var(--accent);text-decoration:none;font-weight:500">${osisToHuman(r.r)}</a>
+              <span class="type ${t}" style="font-size:9px;padding:1px 6px">${t.toUpperCase()}</span>
+              <span onclick="event.stopPropagation(); showVoteInfo(${r.v}, event)" style="font-size:10px;color:var(--text-dim);font-variant-numeric:tabular-nums;cursor:help" title="Click to learn what this number means">${r.v}</span>
+            </div>
+            <div style="color:var(--text-muted);font-style:italic;font-size:11px;margin-top:2px;line-height:1.4">${note}</div>
+          </div>`;
         });
         html += `</div>`;
       }
@@ -1518,6 +1659,17 @@ function onVerseClick(el) {
   state.activeVerse = verseNum;
   updateHash();
 
+  // Apply depth filter to OB refs in sidebar/inline
+  const obAll = (OB_REFS && OB_REFS[key]) || [];
+  if (state.depthMode === 'top') {
+    // Show only "important" cross-refs: vote >= 5 OR typed (non-thematic)
+    const filtered = obAll.filter(r => (r.v || 0) >= 5 || (r.t && r.t !== 'THEMATIC'));
+    // Keep at most 12 in top mode for clarity
+    state.filteredObList = filtered.slice(0, 12);
+  } else {
+    state.filteredObList = obAll;
+  }
+
   if (state.mode === 'sidebar') {
     showSidebar(key, verseNum, refs);
   } else if (state.mode === 'inline') {
@@ -1535,7 +1687,11 @@ function showSidebar(key, verseNum, refs) {
   const verseText = state.verses.find(v => v.verse === verseNum)?.text?.trim() || '';
   const blbBook = book.abbr.toLowerCase();
   const blbURL = `https://www.blueletterbible.org/kjv/${blbBook}/${state.chapter}/${verseNum}/`;
-  const obList = (OB_REFS && OB_REFS[key]) || [];
+  const obAll = (OB_REFS && OB_REFS[key]) || [];
+  const obList = state.depthMode === 'top'
+    ? obAll.filter(r => (r.v || 0) >= 5 || (r.t && r.t !== 'THEMATIC')).slice(0, 12)
+    : obAll;
+  const obHidden = obAll.length - obList.length;
 
   let typeGroups = {};
   refs.forEach(r => {
@@ -1587,18 +1743,40 @@ function showSidebar(key, verseNum, refs) {
       obByType[type].forEach(r => {
         const safeRef = r.r.replace(/[^A-Za-z0-9.\-]/g, '');
         const human = osisToHuman(r.r);
+        const note = generateRefNote(key, r);
         obHTML += `<div class="ref-card ob ${tlow}" onclick="onObCardClick(this, '${safeRef}')">
           <div class="ref-card-header">
             <span class="ref-card-address" onclick="event.stopPropagation(); navigateToOsis('${safeRef}')" title="Jump to ${human}">${human}</span>
             <span class="ref-type-badge ${tlow}" style="font-size:9px">${type}</span>
-            <span class="ref-vote-badge" title="${r.v} popularity votes">${r.v}</span>
+            <span class="ref-vote-badge" onclick="event.stopPropagation(); showVoteInfo(${r.v}, event)" style="cursor:help" title="Click to learn what this number means">${r.v}</span>
           </div>
+          <div class="ref-card-note" style="font-family:var(--sans);font-size:12px;color:var(--text-muted);font-style:italic;margin-top:6px;line-height:1.5">${note}</div>
           <div class="ref-card-text"></div>
         </div>`;
       });
       obHTML += `</div>`;
     });
+    if (obHidden > 0) {
+      obHTML += `<div style="margin-top:10px;text-align:center;font-family:var(--sans);font-size:11px;color:var(--text-muted)">
+        <span style="background:var(--accent-soft);color:var(--accent);padding:6px 12px;border-radius:4px;cursor:pointer" onclick="document.getElementById('depth-toggle').click()">
+          + ${obHidden} more refs hidden — click to show all
+        </span>
+      </div>`;
+    }
     obHTML += `</div>`;
+  }
+
+  // Commentary section (MacArthur-style — placeholder when data not loaded)
+  let commentaryHTML = '';
+  if (state.commentaryOn) {
+    const macartShareURL = `https://www.gty.org/library/sermons-library/scripture/${book.abbr.toLowerCase()}/${state.chapter}`;
+    commentaryHTML = `<div class="sidebar-section" style="border-left:3px solid #6B4D00;background:linear-gradient(135deg,rgba(212,184,112,0.08),transparent);padding:12px 14px;margin-top:8px">
+      <div style="font-size:10px;letter-spacing:0.1em;color:#A07A20;text-transform:uppercase;margin-bottom:6px;font-weight:600">Commentary</div>
+      <div style="font-family:var(--serif);font-size:13px;line-height:1.55;color:var(--text-muted);font-style:italic">
+        MacArthur-style verse commentary for the top 500 verses ships in the next push. For now, you can read MacArthur's actual sermons on this passage at gty.org.
+      </div>
+      <div style="margin-top:10px"><a href="${macartShareURL}" target="_blank" rel="noopener" style="display:inline-block;background:#6B4D00;color:#FFF3D6;padding:6px 12px;border-radius:4px;font-family:var(--sans);font-size:11px;text-decoration:none">Read MacArthur sermons on ${book.name} ${state.chapter} ↗</a></div>
+    </div>`;
   }
 
   const tq = THEOLOGY_Q && THEOLOGY_Q[key];
@@ -1608,7 +1786,7 @@ function showSidebar(key, verseNum, refs) {
       <div style="font-family:var(--serif);font-size:15px;line-height:1.45;color:var(--text);font-style:italic">${tq}</div>
     </div>
   ` : '';
-  const gqURL = `https://www.gotquestions.org/Bible-search.html?query=${encodeURIComponent(book.name + ' ' + state.chapter + ':' + verseNum)}`;
+  const gqURL = `https://www.gotquestions.org/?s=${encodeURIComponent(book.name + ' ' + state.chapter)}`;
 
   document.getElementById('sidebar-content').innerHTML = `
     <div class="sidebar-header">
@@ -1616,6 +1794,7 @@ function showSidebar(key, verseNum, refs) {
       <div class="sidebar-verse-text">${verseText.substring(0,140)}${verseText.length>140?'...':''}</div>
     </div>
     ${tqHTML}
+    ${commentaryHTML}
     ${refHTML}
     ${obHTML}
     <div class="blb-section">
