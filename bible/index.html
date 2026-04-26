@@ -701,8 +701,9 @@ body.mode-inline .ref-dot::after {
   background: var(--bg);
   border-left: 1px solid var(--border);
   overflow-y: auto;
-  transition: right 0.25s ease;
+  transition: right 0.34s cubic-bezier(0.32, 0.72, 0, 1);
   z-index: 50;
+  will-change: right, bottom, transform;
 }
 .sidebar.open { right: 0; }
 
@@ -722,9 +723,10 @@ body.mode-inline .ref-dot::after {
   margin-bottom: 4px;
 }
 .sidebar-verse-text {
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  font-family: var(--serif);
 }
 
 .sidebar-section { padding: 14px 22px 4px; }
@@ -868,10 +870,14 @@ body.mode-inline .ref-dot::after {
   display: none;
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.32);
+  background: rgba(0, 0, 0, 0);
   z-index: 45;
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
+  transition: background 0.3s ease;
+}
+body.sidebar-open #sidebar-backdrop {
+  background: rgba(0, 0, 0, 0.32);
 }
 body.sidebar-open #sidebar-backdrop { display: block; }
 @media (min-width: 821px) { body.sidebar-open #sidebar-backdrop { display: none; } }
@@ -940,14 +946,19 @@ body.sidebar-open #sidebar-backdrop { display: block; }
   background: transparent;
   color: var(--text-muted);
   border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 3px 9px;
+  border-radius: 6px;
+  padding: 6px 12px;
   cursor: pointer;
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: 12.5px;
+  font-weight: 500;
   line-height: 1.2;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
 }
-.theme-toggle:hover { color: var(--text); border-color: var(--border-strong); }
+.theme-toggle:hover { color: var(--text); border-color: var(--border-strong); background: var(--bg-alt); }
+.theme-toggle:active { transform: scale(0.97); }
 
 /* Graph mode */
 #graph-stage {
@@ -1126,15 +1137,29 @@ body.mode-timeline .timeline-help { display: block; }
   :root { --header-height: 56px; }
   .header {
     flex-wrap: nowrap;
-    padding: 6px 10px;
+    padding: 8px 10px;
     height: var(--header-height);
     align-items: center;
     gap: 6px;
-    overflow: hidden;
+    overflow: visible;
+    min-width: 0;
   }
   .logo { display: none; }
-  .header-controls { display: contents; }
-  .chapter-nav { gap: 4px; flex-shrink: 0; margin-left: auto; }
+  .header-controls {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: nowrap;
+  }
+  .chapter-nav {
+    gap: 4px;
+    flex-shrink: 0;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+  }
   .ctrl-label { display: none; }
   /* Hide everything except essentials in the header bar; rest goes to Settings */
   #mode-group, #view-group, #translation-group, #depth-toggle, #commentary-toggle, #wordstudy-toggle, #redletter-toggle {
@@ -1410,9 +1435,9 @@ body.mode-timeline .timeline-help { display: block; }
     <button id="commentary-toggle" class="theme-toggle desktop-only" aria-label="Toggle commentary" title="Show/hide verse commentary">Notes</button>
     <button id="wordstudy-toggle" class="theme-toggle desktop-only" aria-label="Toggle word study" title="Show/hide Hebrew & Greek with Strong's numbers">Original</button>
     <button id="redletter-toggle" class="theme-toggle desktop-only" aria-label="Toggle red-letter NT" title="Show Jesus' words in red (NT only)">Red Letter</button>
-    <button id="settings-toggle" class="theme-toggle mobile-only" aria-label="Open settings" title="Settings & display options">Settings</button>
-    <button id="read-aloud-btn" class="theme-toggle" aria-label="Read chapter aloud" title="Read this chapter aloud">Listen</button>
-    <button id="share-link" class="theme-toggle" aria-label="Copy share link" title="Copy direct link to this verse/chapter">Share</button>
+    <button id="settings-toggle" class="theme-toggle mobile-only" aria-label="Open settings" title="Settings & display options">Menu</button>
+    <button id="read-aloud-btn" class="theme-toggle desktop-only" aria-label="Read chapter aloud" title="Read this chapter aloud">Listen</button>
+    <button id="share-link" class="theme-toggle desktop-only" aria-label="Copy share link" title="Copy direct link to this verse/chapter">Share</button>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">Dark</button>
     <button id="prev-ch" aria-label="Previous chapter">&#8592;</button>
     <span id="chapter-display" class="noTag">Genesis 1</span>
@@ -1473,6 +1498,20 @@ body.mode-timeline .timeline-help { display: block; }
           <div class="settings-row-sub" id="settings-bookmarks-sub">No verses saved yet</div>
         </div>
         <div class="settings-row-value" id="settings-bookmarks-value">0</div>
+      </div>
+      <div class="settings-row" data-action="listen">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Listen</div>
+          <div class="settings-row-sub">Read this chapter aloud</div>
+        </div>
+        <div class="settings-row-value" id="settings-listen-value">Play</div>
+      </div>
+      <div class="settings-row" data-action="share">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Share</div>
+          <div class="settings-row-sub">Copy direct link to this verse</div>
+        </div>
+        <div class="settings-row-value">Copy</div>
       </div>
       <div class="settings-row" data-action="translation">
         <div class="settings-row-main">
@@ -2027,6 +2066,15 @@ function init() {
       }
       else if (action === 'bookmarks') {
         showBookmarksModal();
+      }
+      else if (action === 'listen') {
+        document.getElementById('read-aloud-btn').click();
+        const lv = document.getElementById('settings-listen-value');
+        if (lv) lv.textContent = (document.getElementById('read-aloud-btn').textContent === 'Stop') ? 'Stop' : 'Play';
+      }
+      else if (action === 'share') {
+        document.getElementById('share-link').click();
+        closeSettings();
       }
       syncSettingsValues();
     });
@@ -3187,7 +3235,7 @@ function showSidebar(key, verseNum, refs) {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
         <div style="flex:1;min-width:0">
           <div class="sidebar-verse-address">${book.name} ${state.chapter}:${verseNum}</div>
-          <div class="sidebar-verse-text">${verseText.substring(0,140)}${verseText.length>140?'...':''}</div>
+          <div class="sidebar-verse-text">${verseText}</div>
         </div>
         <button class="bookmark-btn ${isBkmk ? 'active' : ''}" onclick="onBookmarkClick('${key}', this)" aria-label="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" title="${isBkmk ? 'Remove from bookmarks' : 'Save to bookmarks'}">${isBkmk ? '★ Saved' : '☆ Save'}</button>
       </div>
@@ -3662,9 +3710,63 @@ function startArc() {
     renderArc();
   }
 
+  // Cache the dim layer to an offscreen canvas. Re-render when zoom/pan changes significantly
+  // OR when colorMode/chapter changes. Between full re-renders, just blit + redraw highlights.
+  let _dimCache = null; // { canvas, zoom, panX, colorMode, w, h }
+  let _dimDebounce = null;
+
+  function _renderDimToOffscreen(w, h, baseY, margin, baseUsableW) {
+    const dpr = window.devicePixelRatio || 1;
+    const off = document.createElement('canvas');
+    off.width = w * dpr; off.height = h * dpr;
+    const octx = off.getContext('2d');
+    octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const usableW = baseUsableW * arcState.zoom;
+    const { idx, total } = arcState.verseIdx;
+    const curBook = OSIS_BY_IDX[state.bookIdx];
+    const curCh = state.chapter;
+    // Group arcs by stroke color → one Path2D per color → one stroke() per color
+    const paths = new Map(); // color → Path2D
+    Object.entries(OB_REFS).forEach(([srcKey, refs]) => {
+      const si = idx.get(srcKey);
+      if (si == null) return;
+      const sx = margin + (si / Math.max(1, total - 1)) * usableW + arcState.panX;
+      // Skip current-chapter arcs (they get redrawn live, brighter)
+      const sp = _parseOsis(srcKey);
+      if (sp && sp.book === curBook && sp.ch === curCh) return;
+      // Cull source way off-screen
+      if (sx < -w * 2 || sx > w * 3) return;
+      refs.forEach(r => {
+        const tgtKey = r.r.split('-')[0];
+        const ti = idx.get(tgtKey);
+        if (ti == null) return;
+        const tx = margin + (ti / Math.max(1, total - 1)) * usableW + arcState.panX;
+        const radius = Math.abs(tx - sx) / 2;
+        if (radius < 0.5) return;
+        // Cull arcs whose entire bounding box is off-screen
+        const cx = (sx + tx) / 2;
+        if (cx + radius < 0 || cx - radius > w) return;
+        if (baseY - radius > h) return;
+        const color = arcColorFor(r, srcKey, tgtKey);
+        let p = paths.get(color);
+        if (!p) { p = new Path2D(); paths.set(color, p); }
+        p.moveTo(cx + radius, baseY);
+        p.arc(cx, baseY, radius, 0, Math.PI, true);
+      });
+    });
+    octx.globalAlpha = 0.07;
+    octx.lineWidth = 0.4;
+    paths.forEach((path, color) => {
+      octx.strokeStyle = color;
+      octx.stroke(path);
+    });
+    return off;
+  }
+
   function renderArc() {
-    const w = canvas.width / (window.devicePixelRatio || 1);
-    const h = canvas.height / (window.devicePixelRatio || 1);
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
     const margin = 30;
     const baseY = h - 60;
     const baseUsableW = w - 2 * margin;
@@ -3676,36 +3778,58 @@ function startArc() {
     };
     const curBook = OSIS_BY_IDX[state.bookIdx];
     const curCh = state.chapter;
-    const inCur = (k) => {
-      const p = _parseOsis(k);
-      return p && p.book === curBook && p.ch === curCh;
-    };
 
+    // Background fill
     ctx.fillStyle = '#0A0B0D';
     ctx.fillRect(0, 0, w, h);
 
-    // Pass 1: dim background arcs (whole Bible)
-    ctx.globalAlpha = 0.06;
-    ctx.lineWidth = 0.4;
-    Object.entries(OB_REFS).forEach(([srcKey, refs]) => {
-      const sx = xFor(srcKey);
-      if (sx == null) return;
-      if (inCur(srcKey)) return; // draw current-chapter ones in pass 2
-      refs.forEach(r => {
-        const tgtKey = r.r.split('-')[0];
-        const tx = xFor(tgtKey);
-        if (tx == null) return;
-        const cx = (sx + tx) / 2;
-        const radius = Math.abs(tx - sx) / 2;
-        if (radius < 0.5) return;
-        ctx.strokeStyle = arcColorFor(r, srcKey, tgtKey);
-        ctx.beginPath();
-        ctx.arc(cx, baseY, radius, Math.PI, 0, false);
-        ctx.stroke();
-      });
-    });
+    // Use cached dim layer if zoom/pan/colorMode/chapter haven't changed
+    const cacheKey = `${arcState.zoom.toFixed(2)}|${Math.round(arcState.panX)}|${arcState.colorMode}|${state.bookIdx}.${state.chapter}|${w}x${h}`;
+    if (!_dimCache || _dimCache.key !== cacheKey) {
+      // Render lazily — schedule for next frame so interactive feels responsive
+      if (!_dimCache || _dimCache.colorMode !== arcState.colorMode || _dimCache.chapter !== `${state.bookIdx}.${state.chapter}`) {
+        // Color mode or chapter changed — must re-render
+        _dimCache = {
+          canvas: _renderDimToOffscreen(w, h, baseY, margin, baseUsableW),
+          key: cacheKey,
+          zoom: arcState.zoom, panX: arcState.panX,
+          colorMode: arcState.colorMode,
+          chapter: `${state.bookIdx}.${state.chapter}`,
+          w, h
+        };
+      } else {
+        // Just zoom/pan changed — debounce-render new dim, but draw old dim transformed in the meantime
+        if (_dimCache && _dimCache.canvas) {
+          // Compute transform from cached state to current
+          const scaleRatio = arcState.zoom / _dimCache.zoom;
+          const panDelta = arcState.panX - _dimCache.panX * scaleRatio;
+          ctx.save();
+          ctx.translate(margin + panDelta, 0);
+          ctx.scale(scaleRatio, 1);
+          ctx.translate(-margin, 0);
+          ctx.drawImage(_dimCache.canvas, 0, 0, _dimCache.w, _dimCache.h);
+          ctx.restore();
+        }
+        if (_dimDebounce) clearTimeout(_dimDebounce);
+        _dimDebounce = setTimeout(() => {
+          _dimCache = {
+            canvas: _renderDimToOffscreen(w, h, baseY, margin, baseUsableW),
+            key: cacheKey,
+            zoom: arcState.zoom, panX: arcState.panX,
+            colorMode: arcState.colorMode,
+            chapter: `${state.bookIdx}.${state.chapter}`,
+            w, h
+          };
+          renderArc();
+        }, 180);
+      }
+    }
+    // Draw cached dim if we have one and didn't already draw transformed
+    if (_dimCache && _dimCache.key === cacheKey) {
+      ctx.drawImage(_dimCache.canvas, 0, 0, _dimCache.w, _dimCache.h);
+    }
 
-    // Book separator ticks + labels (only when zoomed enough)
+    // Book separator ticks + labels
     ctx.globalAlpha = 0.4;
     ctx.strokeStyle = '#3D424F';
     ctx.lineWidth = 0.5;
@@ -3716,7 +3840,6 @@ function startArc() {
       ctx.moveTo(x, baseY);
       ctx.lineTo(x, baseY + 14);
       ctx.stroke();
-      // Show book labels when zoomed in enough
       if (arcState.zoom >= 2) {
         const bIdx = IDX_BY_OSIS[bookOsis];
         const bName = bIdx != null ? BOOKS[bIdx].name : bookOsis;
@@ -3730,12 +3853,14 @@ function startArc() {
       }
     });
 
-    // Pass 2: highlighted current-chapter arcs
+    // Highlighted current-chapter arcs — render live (small set, fast). Path2D batched by color.
     let highlighted = 0;
-    ctx.globalAlpha = 0.85;
-    ctx.lineWidth = 1.2;
+    ctx.globalAlpha = 0.9;
+    ctx.lineWidth = 1.4;
+    const hPaths = new Map();
     Object.entries(OB_REFS).forEach(([srcKey, refs]) => {
-      if (!inCur(srcKey)) return;
+      const sp = _parseOsis(srcKey);
+      if (!sp || sp.book !== curBook || sp.ch !== curCh) return;
       const sx = xFor(srcKey);
       if (sx == null) return;
       refs.forEach(r => {
@@ -3745,12 +3870,18 @@ function startArc() {
         const cx = (sx + tx) / 2;
         const radius = Math.abs(tx - sx) / 2;
         if (radius < 0.5) return;
-        ctx.strokeStyle = arcColorFor(r, srcKey, tgtKey);
-        ctx.beginPath();
-        ctx.arc(cx, baseY, radius, Math.PI, 0, false);
-        ctx.stroke();
+        if (cx + radius < 0 || cx - radius > w) return;
+        const color = arcColorFor(r, srcKey, tgtKey);
+        let p = hPaths.get(color);
+        if (!p) { p = new Path2D(); hPaths.set(color, p); }
+        p.moveTo(cx + radius, baseY);
+        p.arc(cx, baseY, radius, 0, Math.PI, true);
         highlighted++;
       });
+    });
+    hPaths.forEach((path, color) => {
+      ctx.strokeStyle = color;
+      ctx.stroke(path);
     });
 
     // Baseline + label
@@ -3770,6 +3901,8 @@ function startArc() {
     ctx.fillText('Revelation', w - margin, baseY + 30);
     ctx.textAlign = 'left';
   }
+  // Invalidate dim cache when chapter changes
+  arcState.invalidateCache = () => { _dimCache = null; };
 
   arcState.render = renderArc;
   resize();
@@ -3837,13 +3970,14 @@ function startArc() {
       loadChapter();
     }
   }
+  let _wheelRaf = null;
   function onWheel(e) {
     e.preventDefault();
     const r = canvas.getBoundingClientRect();
     const mx = e.clientX - r.left;
     const oldZoom = arcState.zoom;
     const factor = e.deltaY < 0 ? 1.18 : 1 / 1.18;
-    const newZoom = Math.max(1, Math.min(40, oldZoom * factor));
+    const newZoom = Math.max(1, Math.min(80, oldZoom * factor));
     if (newZoom === oldZoom) return;
     // Keep cursor x-pos stable
     const margin = 30;
@@ -3876,7 +4010,7 @@ function startArc() {
     if (touchState.mode === 'pinch' && e.touches.length === 2) {
       const t1 = e.touches[0], t2 = e.touches[1];
       const d = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-      const newZoom = Math.max(1, Math.min(40, touchState.startZoom * (d / touchState.startDist)));
+      const newZoom = Math.max(1, Math.min(80, touchState.startZoom * (d / touchState.startDist)));
       const r = canvas.getBoundingClientRect();
       const margin = 30;
       const baseUsableW = r.width - 2 * margin;
@@ -4047,32 +4181,61 @@ async function startTimeline() {
     });
 
     // Each book row
+    const accentColor = styles.getPropertyValue('--accent').trim() || '#2A4D6E';
     layout.rows.forEach(r => {
       const isHover = timelineState.hover && timelineState.hover.osis === r.osis;
+      const isCurrent = r.bookIdx === state.bookIdx;
+      // Highlight band for current book
+      if (isCurrent) {
+        ctx.fillStyle = accentColor;
+        ctx.globalAlpha = 0.10;
+        ctx.fillRect(0, r.y - r.rowH/2, W, r.rowH);
+        ctx.globalAlpha = 1;
+        // Left-edge marker
+        ctx.fillStyle = accentColor;
+        ctx.fillRect(0, r.y - r.rowH/2, 4, r.rowH);
+      }
       // Label on left
-      ctx.font = (isHover ? 'bold ' : '') + '11px -apple-system, system-ui, sans-serif';
-      ctx.fillStyle = isHover ? text : muted;
+      ctx.font = ((isHover || isCurrent) ? 'bold ' : '') + (isCurrent ? '12.5px' : '11px') + ' -apple-system, system-ui, sans-serif';
+      ctx.fillStyle = isCurrent ? accentColor : (isHover ? text : muted);
       ctx.textAlign = 'right';
       ctx.fillText(r.label, layout.leftPad - 8, r.y + 3.5);
       // Event-period bar
       const x1 = Math.max(layout.leftPad, r.x1);
       const x2 = Math.min(W - layout.rightPad, r.x2);
       if (x2 > x1) {
-        ctx.fillStyle = r.color;
-        ctx.globalAlpha = isHover ? 0.95 : 0.7;
-        const barH = Math.max(6, r.rowH * 0.55);
+        ctx.fillStyle = isCurrent ? accentColor : r.color;
+        ctx.globalAlpha = isCurrent ? 1.0 : (isHover ? 0.95 : 0.7);
+        const barH = Math.max(isCurrent ? 8 : 6, r.rowH * (isCurrent ? 0.7 : 0.55));
         ctx.fillRect(x1, r.y - barH/2, Math.max(2, x2 - x1), barH);
         ctx.globalAlpha = 1;
       }
       // Written-date marker (open circle)
       if (r.wx >= layout.leftPad && r.wx <= W - layout.rightPad) {
-        ctx.strokeStyle = isHover ? text : r.color;
+        ctx.strokeStyle = isCurrent ? accentColor : (isHover ? text : r.color);
         ctx.fillStyle = bg;
-        ctx.lineWidth = isHover ? 2.5 : 1.5;
+        ctx.lineWidth = isCurrent ? 3 : (isHover ? 2.5 : 1.5);
         ctx.beginPath();
-        ctx.arc(r.wx, r.y, isHover ? 5 : 3.5, 0, Math.PI*2);
+        ctx.arc(r.wx, r.y, isCurrent ? 6 : (isHover ? 5 : 3.5), 0, Math.PI*2);
         ctx.fill();
         ctx.stroke();
+      }
+      // Current-position indicator (chapter pin) for the current book
+      if (isCurrent && r.x2 > r.x1) {
+        const totalCh = BOOKS[r.bookIdx].chapters;
+        const frac = (state.chapter - 1) / Math.max(1, totalCh - 1);
+        const px = r.x1 + frac * (r.x2 - r.x1);
+        ctx.fillStyle = accentColor;
+        ctx.beginPath();
+        ctx.moveTo(px, r.y - r.rowH/2 - 4);
+        ctx.lineTo(px - 4, r.y - r.rowH/2);
+        ctx.lineTo(px + 4, r.y - r.rowH/2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.font = 'bold 10px -apple-system, system-ui, sans-serif';
+        ctx.fillStyle = accentColor;
+        ctx.textAlign = 'center';
+        ctx.fillText('Ch ' + state.chapter, px, r.y - r.rowH/2 - 6);
       }
     });
     ctx.textAlign = 'left';
