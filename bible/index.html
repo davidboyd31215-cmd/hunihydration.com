@@ -616,11 +616,11 @@ body.mode-inline .ref-dot::after {
   .ref-dots, .ws-strip, .blb-section, .end-of-chapter, .page-footer,
   .book-bg-card { display: none !important; }
   .bible-text { max-width: 100%; padding: 0 !important; margin: 0 !important; }
-  .book-title { font-family: Georgia, serif; font-size: 24pt; color: #000 !important; margin-bottom: 4pt; }
-  .chapter-title { font-family: Georgia, serif; font-size: 14pt; color: #000 !important; margin-bottom: 18pt; }
-  .verse { display: block; padding: 0; margin-bottom: 6pt; border: none !important; background: none !important; page-break-inside: avoid; }
+  .book-title { font-family: Georgia, serif; font-size: 24pt; color: #000 !important; margin-bottom: 4pt; page-break-after: avoid; break-after: avoid; }
+  .chapter-title { font-family: Georgia, serif; font-size: 14pt; color: #000 !important; margin-bottom: 18pt; page-break-after: avoid; break-after: avoid; }
+  .verse { display: block; padding: 0; margin-bottom: 6pt; border: none !important; background: none !important; page-break-inside: avoid; orphans: 3; widows: 3; }
   .verse-num { display: inline; font-weight: 700; font-size: 9pt; vertical-align: super; color: #555 !important; margin-right: 4pt; }
-  .verse-text { display: inline; font-family: Georgia, serif; font-size: 11pt; line-height: 1.55; color: #000 !important; }
+  .verse-text { display: inline; font-family: Georgia, serif; font-size: 11pt; line-height: 1.55; color: #000 !important; orphans: 3; widows: 3; }
   .verse.red-letter .verse-text { color: #800 !important; }
   /* Footer ref */
   .bible-text::after { content: 'hunihydration.com/bible'; display: block; margin-top: 24pt; padding-top: 8pt; border-top: 1pt solid #aaa; font-family: -apple-system, sans-serif; font-size: 8pt; color: #888; text-align: right; }
@@ -1640,7 +1640,7 @@ body.mode-timeline .timeline-help { display: block; }
   --bg-alt: #EFE5C9;
   --text: #2A1F0F;
   --text-muted: #5C4B2F;
-  --text-dim: #6B5A40;
+  --text-dim: #4F4128;
   --border: #D9CDB0;
   --border-strong: #B8A37A;
   --accent: #5A3F1A;
@@ -3578,7 +3578,8 @@ function showBookmarksModal() {
       <div style="padding:20px;text-align:center">
         <div style="font-size:48px;line-height:1;margin-bottom:10px;color:var(--text-dim)">☆</div>
         <div style="font-family:var(--serif);font-size:16px;color:var(--text);margin-bottom:6px">No bookmarks yet</div>
-        <div style="font-family:var(--sans);font-size:13px;color:var(--text-muted);line-height:1.5">Tap the <strong>☆ Save</strong> button on any verse's sidebar to save it here.</div>
+        <div style="font-family:var(--sans);font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Tap the <strong>☆ Save</strong> button on any verse's sidebar to save it here.</div>
+        <button onclick="startClozePractice()" style="background:var(--accent);border:none;color:white;padding:8px 16px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer">✎ Try Practice with 6 famous verses</button>
       </div>
     `;
   } else {
@@ -3626,11 +3627,26 @@ window.shareBookmark = async function(idx) {
 
 // ===== Cloze Practice (verse memorization) =====
 let _clozeState = { idx: 0, hard: false, verses: [] };
+// Starter pack used when the user has no saved verses yet — well-loved
+// passages with widely-memorized text. Snippets are just text; the actual
+// fetch happens lazily via existing render path.
+const _CLOZE_STARTER = [
+  { ref: 'John.3.16', snippet: 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.' },
+  { ref: 'Ps.23.1', snippet: 'The LORD is my shepherd; I shall not want.' },
+  { ref: 'Phil.4.13', snippet: 'I can do all things through Christ which strengtheneth me.' },
+  { ref: 'Prov.3.5', snippet: 'Trust in the LORD with all thine heart; and lean not unto thine own understanding.' },
+  { ref: 'Jer.29.11', snippet: 'For I know the thoughts that I think toward you, saith the LORD, thoughts of peace, and not of evil, to give you an expected end.' },
+  { ref: 'Rom.8.28', snippet: 'And we know that all things work together for good to them that love God, to them who are the called according to his purpose.' },
+];
 function startClozePractice(startIdx) {
   const list = getBookmarks();
-  if (!list.length) return;
-  _clozeState.verses = list;
-  _clozeState.idx = (typeof startIdx === 'number' && startIdx >= 0 && startIdx < list.length) ? startIdx : 0;
+  if (list.length) {
+    _clozeState.verses = list;
+  } else {
+    _clozeState.verses = _CLOZE_STARTER;
+    showToast('No saved verses yet — practicing 6 famous starter verses');
+  }
+  _clozeState.idx = (typeof startIdx === 'number' && startIdx >= 0 && startIdx < _clozeState.verses.length) ? startIdx : 0;
   _clozeState.hard = false;
   renderCloze();
 }
