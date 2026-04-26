@@ -56,10 +56,20 @@ body {
 
 .logo {
   font-family: var(--serif);
-  font-weight: 600;
-  font-size: 15px;
   color: var(--text);
   white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.logo-name { font-weight: 600; font-size: 15px; }
+.logo-tag {
+  font-family: var(--sans);
+  font-size: 10px;
+  color: var(--text-dim);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  margin-top: 1px;
 }
 
 .header-controls {
@@ -1547,7 +1557,10 @@ body.mode-timeline .timeline-help { display: block; }
 <body class="mode-sidebar">
 
 <header class="header">
-  <div class="logo">Scripture Link</div>
+  <div class="logo">
+    <div class="logo-name">Scripture Link</div>
+    <div class="logo-tag">Bible · Cross-refs · Hebrew &amp; Greek · Sermons</div>
+  </div>
   <div class="header-controls">
     <span class="ctrl-label">Book</span>
     <select id="book-select"></select>
@@ -2715,11 +2728,35 @@ async function loadTheologyQuestions() {
 }
 
 // ── Deep-link routing (#Book.Chapter[.Verse]) ──────────────
+function showToast(msg, kind) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:24px;font-family:var(--sans);font-size:13px;font-weight:500;z-index:1000;opacity:0;transition:opacity 0.2s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.18)';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  if (kind === 'error') { t.style.background = '#9B2828'; t.style.color = 'white'; }
+  else { t.style.background = ''; t.style.color = ''; }
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2400);
+}
+
 function parseHash() {
-  const m = (location.hash || '').match(/^#([1-3]?[A-Za-z]+)\.(\d+)(?:\.(\d+))?$/);
-  if (!m) return false;
+  const hash = (location.hash || '').replace(/^#/, '');
+  if (!hash) return false;
+  const m = hash.match(/^([1-3]?[A-Za-z]+)\.(\d+)(?:\.(\d+))?$/);
+  if (!m) {
+    if (location.hash.length > 1) showToast(`Couldn't read "${location.hash}" — try #John.3.16`, 'error');
+    return false;
+  }
   const idx = IDX_BY_OSIS[m[1]];
-  if (idx == null) return false;
+  if (idx == null) {
+    showToast(`Unknown book "${m[1]}" — try Gen, Matt, John, Ps, Rom…`, 'error');
+    return false;
+  }
   state.bookIdx = idx;
   state.chapter = Math.max(1, Math.min(BOOKS[idx].chapters, +m[2]));
   state.activeVerse = m[3] ? +m[3] : null;
@@ -3128,11 +3165,22 @@ function renderChapter(book, verses) {
   let welcomeHTML = '';
   if (!seenWelcome) {
     welcomeHTML = `
-      <div id="welcome-card" style="background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:6px;padding:10px 14px;margin:0 0 20px 0;font-family:var(--sans);position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px">
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.4;flex:1">
-          <strong style="color:var(--text)">Tap any verse</strong> for refs, commentary &amp; sermons. <strong style="color:var(--text)">Menu</strong> for Hebrew/Greek, notes, red-letter.
+      <div id="welcome-card" style="background:linear-gradient(135deg,var(--accent-soft),transparent);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:18px 20px;margin:0 0 24px 0;font-family:var(--sans);position:relative">
+        <button onclick="localStorage.setItem('scripture-welcome-seen','1'); document.getElementById('welcome-card').remove();" style="position:absolute;top:8px;right:10px;background:none;border:none;font-size:18px;color:var(--text-dim);cursor:pointer;padding:4px 8px;line-height:1" aria-label="Dismiss welcome">&times;</button>
+        <div style="font-family:var(--serif);font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px">Welcome to Scripture Link</div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">
+          Read the Bible with 344K cross-references, Hebrew &amp; Greek word study, MacArthur-style commentary, and sermons from 5 ministries.
         </div>
-        <button onclick="localStorage.setItem('scripture-welcome-seen','1'); document.getElementById('welcome-card').remove();" style="background:none;border:1px solid var(--border-strong);font-size:11px;color:var(--text-muted);cursor:pointer;padding:4px 10px;border-radius:4px;flex-shrink:0;font-weight:500" aria-label="Dismiss">Got it</button>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Try one of these</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <a href="#John.3.16" style="background:var(--accent);color:white;text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:600">John 3:16</a>
+          <a href="#Ps.23.1" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid var(--border)">Psalm 23</a>
+          <a href="#Rom.8.28" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid var(--border)">Romans 8:28</a>
+          <a href="#Matt.5.3" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid var(--border)">Beatitudes</a>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:14px;line-height:1.5">
+          Or <strong style="color:var(--text-muted)">tap any verse</strong> below to see its connections, or open the <strong style="color:var(--text-muted)">Menu</strong> for Hebrew/Greek, commentary, and red-letter Jesus's words.
+        </div>
       </div>
     `;
   }
