@@ -2686,11 +2686,13 @@ function scrollToActiveVerse() {
   if (!state.activeVerse) return;
   const el = document.getElementById('v-' + state.activeVerse);
   if (!el) return;
-  // Scroll FIRST so the verse is in view, then open sidebar (which may push content slightly)
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  if (state.mode === 'sidebar' || state.mode === 'inline') {
-    setTimeout(() => el.click(), 100);
-  }
+  // Open sidebar first, then scroll AFTER layout settles
+  if (state.mode === 'sidebar' || state.mode === 'inline') el.click();
+  // Use instant scroll — smooth gets canceled by competing layout events
+  setTimeout(() => {
+    const cur = document.getElementById('v-' + state.activeVerse);
+    if (cur) cur.scrollIntoView({ behavior: 'auto', block: 'center' });
+  }, 80);
 }
 
 async function loadCrossRefs() {
