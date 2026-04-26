@@ -3254,6 +3254,28 @@ function init() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+  // iOS Add-to-Home-Screen hint — one-time, dismissible. iOS Safari has no
+  // beforeinstallprompt event; without an in-app hint, install rate is ~0.
+  try {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+    if (isIOS && !isStandalone && !localStorage.getItem('scripture-ios-install-seen')) {
+      setTimeout(() => {
+        const b = document.createElement('div');
+        b.id = 'ios-install-banner';
+        b.style.cssText = 'position:fixed;bottom:calc(var(--bottom-nav-height,70px) + 16px);left:14px;right:14px;background:var(--bg-alt);border:1px solid var(--border-strong);border-left:3px solid var(--accent);border-radius:10px;padding:14px 18px 14px 16px;font-family:var(--sans);font-size:13px;color:var(--text);z-index:300;box-shadow:0 8px 28px rgba(0,0,0,0.18);display:flex;align-items:center;gap:12px;line-height:1.4';
+        b.innerHTML = `
+          <div style="flex:1">Install Scripture Link: tap <strong>Share</strong> ⎙, then <strong>Add to Home Screen</strong>.</div>
+          <button aria-label="Dismiss" style="background:none;border:none;font-size:22px;color:var(--text-dim);cursor:pointer;padding:0 4px;line-height:1">&times;</button>
+        `;
+        b.querySelector('button').onclick = () => {
+          localStorage.setItem('scripture-ios-install-seen', '1');
+          b.remove();
+        };
+        document.body.appendChild(b);
+      }, 4000); // delay so it doesn't compete with the welcome card
+    }
+  } catch (e) {}
   loadSermons();
 }
 
@@ -5005,6 +5027,24 @@ function renderChapter(book, verses) {
     `;
   }
 
+  // Inline streak pill — surfaces at the top of every chapter once the user
+  // has shown up >=2 days in a row. The streak counter was previously hidden
+  // inside Settings (only visible after they opened the menu).
+  let streakHTML = '';
+  try {
+    const streakDays = (window._getReadingStreak && window._getReadingStreak()) || 0;
+    const dismissedToday = localStorage.getItem('scripture-streak-dismissed-' + new Date().toISOString().slice(0, 10));
+    if (streakDays >= 2 && !dismissedToday) {
+      const msg = streakDays >= 7
+        ? `${streakDays} days in a row 🔥 — keep it up!`
+        : `Day ${streakDays} 🔥 — keep going`;
+      streakHTML = `<div id="streak-banner" style="background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid #B43232;border-radius:6px;padding:8px 12px;margin:0 0 14px 0;font-family:var(--sans);font-size:12px;color:var(--text);display:flex;align-items:center;gap:10px">
+        <span style="flex:1">${msg}</span>
+        <button onclick="localStorage.setItem('scripture-streak-dismissed-${new Date().toISOString().slice(0,10)}','1');document.getElementById('streak-banner').remove()" aria-label="Dismiss" style="background:none;border:none;color:var(--text-dim);font-size:18px;line-height:1;padding:0 4px;cursor:pointer">&times;</button>
+      </div>`;
+    }
+  } catch (e) {}
+
   // Verse of the Day — deterministic, date-seeded, only on book 0 ch 1 (home)
   let votdHTML = '';
   const dayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -5031,7 +5071,7 @@ function renderChapter(book, verses) {
     }
   }
 
-  let html = welcomeHTML + votdHTML + `
+  let html = welcomeHTML + streakHTML + votdHTML + `
     <div class="book-title">${book.name}</div>
     <div class="chapter-title">Chapter ${state.chapter}</div>
   `;
@@ -5312,15 +5352,22 @@ function showSidebar(key, verseNum, refs) {
         <span class="ob-attribution">OpenBible.info · CC-BY</span>
       </div>
       <div class="filter-chips">${chipsHTML}</div>`;
+    // Cap each type-group at 15 cards initially; expose a "Show more" button
+    // on overflow. Romans 8:28 has 200+ THEMATIC refs and used to dump them
+    // all at once.
+    const PER_TYPE_CAP = 15;
     obTypeOrder.forEach(type => {
       if (!obByType[type]) return;
       const tlow = type.toLowerCase();
-      obHTML += `<div class="ref-type-section" data-type="${type}" style="margin-top:10px"><div style="font-size:10px;letter-spacing:0.08em;color:var(--text-dim);text-transform:uppercase;margin:6px 0 4px 0">${type}</div>`;
-      obByType[type].forEach(r => {
+      const all = obByType[type];
+      const initial = all.slice(0, PER_TYPE_CAP);
+      const hidden = all.length - initial.length;
+      obHTML += `<div class="ref-type-section" data-type="${type}" style="margin-top:10px"><div style="font-size:10px;letter-spacing:0.08em;color:var(--text-dim);text-transform:uppercase;margin:6px 0 4px 0">${type}${hidden ? ` <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">· showing ${initial.length} of ${all.length}</span>` : ''}</div>`;
+      const renderCard = r => {
         const safeRef = r.r.replace(/[^A-Za-z0-9.\-]/g, '');
         const human = osisToHuman(r.r);
         const note = generateRefNote(key, r);
-        obHTML += `<div class="ref-card ob ${tlow}" onclick="onObCardClick(this, '${safeRef}')">
+        return `<div class="ref-card ob ${tlow}" onclick="onObCardClick(this, '${safeRef}')">
           <div class="ref-card-header">
             <span class="ref-card-address" onclick="event.stopPropagation(); navigateToOsis('${safeRef}')" title="Jump to ${human}">${human}</span>
             <span class="ref-type-badge ${tlow}" style="font-size:9px">${type}</span>
@@ -5329,7 +5376,16 @@ function showSidebar(key, verseNum, refs) {
           <div class="ref-card-note" style="font-family:var(--sans);font-size:12.5px;color:var(--text);opacity:0.78;font-style:italic;margin-top:6px;line-height:1.5">${note}</div>
           <div class="ref-card-text"></div>
         </div>`;
-      });
+      };
+      obHTML += initial.map(renderCard).join('');
+      if (hidden > 0) {
+        // The "Show more" button replaces itself + companion <template> with
+        // the rest of the cards. Using a <template> avoids escaping the card
+        // HTML inside the onclick attribute.
+        const moreId = `more-${type}-${Math.random().toString(36).slice(2, 8)}`;
+        obHTML += `<button id="${moreId}" onclick="(function(b){const tpl=document.getElementById(b.id+'-tpl');if(tpl){b.insertAdjacentHTML('afterend',tpl.innerHTML);tpl.remove();}b.remove();})(this)" style="display:block;width:100%;background:var(--bg-alt);border:1px solid var(--border);color:var(--text-muted);padding:8px 12px;margin:6px 0;border-radius:4px;font-family:var(--sans);font-size:12px;cursor:pointer">+ Show ${hidden} more ${type.toLowerCase()} ${hidden === 1 ? 'reference' : 'references'}</button>`;
+        obHTML += `<template id="${moreId}-tpl">${all.slice(PER_TYPE_CAP).map(renderCard).join('')}</template>`;
+      }
       obHTML += `</div>`;
     });
     if (obHidden > 0) {
