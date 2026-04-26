@@ -1914,7 +1914,29 @@ body.mode-timeline .timeline-help { display: block; }
     <div class="settings-group-title">Find a verse</div>
     <div class="settings-section">
       <div class="settings-search">
-        <input type="text" id="settings-jump-input" placeholder="Type a verse, like John 3:16" autocapitalize="words" autocorrect="off" autocomplete="off" spellcheck="false" />
+        <input type="text" id="settings-jump-input" placeholder="Type a verse, like John 3:16" autocapitalize="words" autocorrect="off" autocomplete="off" spellcheck="false" list="verse-suggestions" />
+        <datalist id="verse-suggestions">
+          <option value="Genesis 1:1">Creation</option>
+          <option value="John 3:16">For God so loved the world</option>
+          <option value="Psalm 23">The LORD is my shepherd</option>
+          <option value="Romans 8:28">All things work together for good</option>
+          <option value="Philippians 4:13">I can do all things</option>
+          <option value="Jeremiah 29:11">Plans to prosper you</option>
+          <option value="Matthew 5:3">Beatitudes</option>
+          <option value="Matthew 6:9">The Lord's Prayer</option>
+          <option value="1 Corinthians 13">Love chapter</option>
+          <option value="Isaiah 53">Suffering Servant</option>
+          <option value="Hebrews 11">Hall of Faith</option>
+          <option value="Revelation 21:4">No more tears</option>
+          <option value="Romans 12:1">Living sacrifice</option>
+          <option value="Ephesians 2:8">Saved by grace through faith</option>
+          <option value="Proverbs 3:5">Trust in the LORD</option>
+          <option value="Galatians 5:22">Fruit of the Spirit</option>
+          <option value="Joshua 1:9">Be strong and of good courage</option>
+          <option value="Isaiah 40:31">They that wait upon the LORD</option>
+          <option value="2 Timothy 3:16">All scripture is given by inspiration</option>
+          <option value="Psalm 119:105">Thy word is a lamp</option>
+        </datalist>
         <button id="settings-jump-btn">Go</button>
       </div>
       <div class="settings-row" data-action="random">
@@ -2993,7 +3015,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'p' || e.key === 'k') { document.getElementById('prev-ch')?.click(); return; }
 });
 
-function exportVerseImage(verseText, reference, gradName) {
+function exportVerseImage(verseText, reference, gradName, format) {
   const gradients = {
     sunset:  ['#FFB088', '#7E445B'],
     ocean:   ['#3D5A6E', '#1B3247'],
@@ -3002,59 +3024,79 @@ function exportVerseImage(verseText, reference, gradName) {
     night:   ['#2A2E38', '#0A0B0D'],
   };
   const palette = gradients[gradName] || gradients.ocean;
+  const isStory = format === 'story';
   const c = document.createElement('canvas');
-  c.width = 1080; c.height = 1080;
+  if (isStory) { c.width = 1080; c.height = 1920; }
+  else { c.width = 1080; c.height = 1080; }
   const ctx = c.getContext('2d');
   // Background
-  const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
+  const W = c.width, H = c.height;
+  const cx = W / 2, cy = H / 2;
+  const grad = ctx.createLinearGradient(0, 0, W, H);
   grad.addColorStop(0, palette[0]);
   grad.addColorStop(1, palette[1]);
   ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 1080, 1080);
+  ctx.fillRect(0, 0, W, H);
   // Subtle vignette
-  const vign = ctx.createRadialGradient(540, 540, 200, 540, 540, 700);
+  const vign = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.18, cx, cy, Math.max(W, H) * 0.65);
   vign.addColorStop(0, 'rgba(0,0,0,0)');
   vign.addColorStop(1, 'rgba(0,0,0,0.25)');
-  ctx.fillStyle = vign; ctx.fillRect(0, 0, 1080, 1080);
+  ctx.fillStyle = vign; ctx.fillRect(0, 0, W, H);
   // Verse text — Source Serif 4 if available, fallback to Georgia
   ctx.fillStyle = '#FFFFFF';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const text = verseText.replace(/\s+/g, ' ').trim();
+  let text = verseText.replace(/\s+/g, ' ').trim();
   // Pick font size based on length
   const len = text.length;
-  const fontSize = len < 80 ? 56 : (len < 160 ? 46 : (len < 260 ? 38 : 32));
+  const baseFont = len < 80 ? 56 : (len < 160 ? 46 : (len < 260 ? 38 : 32));
+  const fontSize = isStory ? Math.round(baseFont * 1.1) : baseFont;
   ctx.font = `500 ${fontSize}px "Source Serif 4", Georgia, serif`;
+  const maxW = isStory ? 920 : 880;
   // Word wrap
-  const words = text.split(' ');
-  const maxW = 880;
-  const lines = []; let line = '';
-  words.forEach(w => {
-    const test = line ? line + ' ' + w : w;
-    if (ctx.measureText(test).width > maxW) { lines.push(line); line = w; }
-    else line = test;
-  });
-  if (line) lines.push(line);
+  function wrap(t) {
+    const words = t.split(' ');
+    const out = []; let line = '';
+    words.forEach(w => {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW) { out.push(line); line = w; }
+      else line = test;
+    });
+    if (line) out.push(line);
+    return out;
+  }
+  let lines = wrap(text);
+  // Truncate if more than 8 lines (square) or 14 (story)
+  const maxLines = isStory ? 14 : 8;
+  if (lines.length > maxLines) {
+    lines = lines.slice(0, maxLines);
+    const last = lines[maxLines - 1];
+    while (lines[maxLines - 1] && ctx.measureText(lines[maxLines - 1] + '…').width > maxW && lines[maxLines - 1].length > 2) {
+      lines[maxLines - 1] = lines[maxLines - 1].replace(/\s+\S+$/, '');
+    }
+    lines[maxLines - 1] = lines[maxLines - 1].trimEnd() + '…';
+  }
   const lineH = fontSize * 1.35;
   const blockH = lines.length * lineH;
-  const startY = 540 - blockH / 2 + lineH / 2;
+  const startY = cy - blockH / 2 + lineH / 2;
   // Open quote
-  ctx.font = `400 100px Georgia, serif`;
+  ctx.font = `400 ${isStory ? 130 : 100}px Georgia, serif`;
   ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.fillText('"', 540, startY - lineH * 1.2);
+  ctx.fillText('"', cx, startY - lineH * 1.2);
   // Verse text
   ctx.fillStyle = '#FFFFFF';
   ctx.font = `500 ${fontSize}px "Source Serif 4", Georgia, serif`;
-  lines.forEach((l, i) => ctx.fillText(l, 540, startY + i * lineH));
+  lines.forEach((l, i) => ctx.fillText(l, cx, startY + i * lineH));
   // Reference
-  ctx.font = `600 30px -apple-system, system-ui, sans-serif`;
-  ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  const refY = startY + blockH + 30;
-  ctx.fillText('— ' + reference, 540, refY);
-  // Watermark
-  ctx.font = `500 18px -apple-system, system-ui, sans-serif`;
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  ctx.fillText('hunihydration.com/bible', 540, 1020);
+  const transl = (state.translation || 'kjv').toUpperCase();
+  ctx.font = `600 ${isStory ? 36 : 30}px -apple-system, system-ui, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  const refY = startY + blockH + 36;
+  ctx.fillText('— ' + reference + ' (' + transl + ')', cx, refY);
+  // Watermark — bigger, more readable
+  ctx.font = `600 22px -apple-system, system-ui, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.fillText('hunihydration.com/bible', cx, H - 50);
   // Trigger download
   c.toBlob(blob => {
     const url = URL.createObjectURL(blob);
@@ -3098,13 +3140,32 @@ function showImagePickerModal(verseText, reference) {
         <div style="font-family:var(--serif);font-size:18px;font-weight:600;color:var(--text)">Save as image</div>
         <button onclick="document.getElementById('img-picker').remove()" style="background:none;border:none;font-size:22px;color:var(--text-dim);cursor:pointer">&times;</button>
       </div>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Pick a background for ${reference}. The image saves to your downloads.</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Pick a format and background for ${reference}.</div>
+      <div style="display:flex;gap:6px;margin-bottom:14px;background:var(--bg-alt);padding:3px;border-radius:8px;border:1px solid var(--border)">
+        <button id="img-fmt-square" data-fmt="square" class="img-fmt active" style="flex:1;background:var(--bg);color:var(--text);border:none;padding:8px 12px;border-radius:6px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer">▢ Square (Instagram)</button>
+        <button id="img-fmt-story" data-fmt="story" class="img-fmt" style="flex:1;background:transparent;color:var(--text-muted);border:none;padding:8px 12px;border-radius:6px;font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer">▭ Story (9:16)</button>
+      </div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">
-        ${previews.map(([n, g]) => `<button onclick="exportVerseImage('${safeText}','${reference}','${n}'); document.getElementById('img-picker').remove()" style="background:${g};border:none;border-radius:8px;height:80px;cursor:pointer;color:white;font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px" title="${n}">${n}</button>`).join('')}
+        ${previews.map(([n, g]) => `<button onclick="exportVerseImage('${safeText}','${reference}','${n}',document.querySelector('.img-fmt.active').dataset.fmt); document.getElementById('img-picker').remove()" style="background:${g};border:none;border-radius:8px;height:80px;cursor:pointer;color:white;font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px" title="${n}">${n}</button>`).join('')}
       </div>
     </div>`;
   m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
   document.body.appendChild(m);
+  // Format toggle behavior
+  m.querySelectorAll('.img-fmt').forEach(b => {
+    b.addEventListener('click', () => {
+      m.querySelectorAll('.img-fmt').forEach(x => {
+        x.classList.remove('active');
+        x.style.background = 'transparent';
+        x.style.color = 'var(--text-muted)';
+        x.style.fontWeight = '500';
+      });
+      b.classList.add('active');
+      b.style.background = 'var(--bg)';
+      b.style.color = 'var(--text)';
+      b.style.fontWeight = '600';
+    });
+  });
 }
 
 function applyTextSize(size) {
