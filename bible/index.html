@@ -2190,6 +2190,13 @@ body.mode-timeline .timeline-help { display: block; }
         </div>
         <div class="settings-row-value" id="settings-plan-value">Day 1</div>
       </div>
+      <div class="settings-row" data-action="planjohn">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Gospel of John in 21 days</div>
+          <div class="settings-row-sub" id="settings-planjohn-sub">One chapter of John per day, ch 1 → 21</div>
+        </div>
+        <div class="settings-row-value" id="settings-planjohn-value">Day 1</div>
+      </div>
       <div class="settings-row" data-action="random">
         <div class="settings-row-main">
           <div class="settings-row-label">Surprise me with a verse</div>
@@ -2804,6 +2811,8 @@ function init() {
     try {
       const planDay = parseInt(localStorage.getItem('scripture-plan-day') || '0', 10);
       setVal('settings-plan-value', `Day ${(planDay % 30) + 1}`, 'action');
+      const johnDay = parseInt(localStorage.getItem('scripture-plan-john-day') || '0', 10);
+      setVal('settings-planjohn-value', `Day ${(johnDay % 21) + 1}`, 'action');
     } catch(e) {}
     setVal('settings-viewmode-value', ({sidebar:'Read',inline:'Read',arc:'Arc',graph:'Graph',timeline:'Timeline'})[state.mode] || 'Read', 'action');
     const ds = document.getElementById('settings-depth-sub');
@@ -3009,6 +3018,15 @@ function init() {
         const nextDay = (day + 1) % PLAN_30.length;
         localStorage.setItem('scripture-plan-day', String(nextDay));
         showToast(`Day ${day + 1} of 30 — ${osisToHuman(ref)}`);
+        closeSettings();
+      }
+      else if (action === 'planjohn') {
+        // Read the Gospel of John, one chapter per day for 21 days.
+        const day = parseInt(localStorage.getItem('scripture-plan-john-day') || '0', 10);
+        const ch = (day % 21) + 1;
+        navigateToOsis(`John.${ch}`);
+        localStorage.setItem('scripture-plan-john-day', String((day + 1) % 21));
+        showToast(`Day ${day + 1} of 21 — John ${ch}`);
         closeSettings();
       }
       else if (action === 'bookmarks') {
@@ -3744,7 +3762,7 @@ function showBookmarksModal() {
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:10px;flex-wrap:wrap">
         <div class="ws-modal-orig" style="font-size:24px;margin:0">Bookmarks</div>
-        <button onclick="startClozePractice()" style="background:var(--accent);border:none;color:white;padding:7px 14px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Practice memorizing all saved verses">✎ Practice all</button>
+        <button onclick="startClozePractice()" style="background:var(--accent);border:none;color:white;padding:7px 14px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Practice memorizing all saved verses">✎ Practice all${(window._getClozeDueCount && window._getClozeDueCount() > 0) ? ` · ${window._getClozeDueCount()} due` : ''}</button>
       </div>
       <div class="ws-modal-meta">${list.length} verse${list.length === 1 ? '' : 's'} saved · tap a verse to open it, or Practice to memorize</div>
       ${list.map((b, i) => `
@@ -3763,6 +3781,44 @@ function showBookmarksModal() {
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
+// ===== Cloze SRS — simple Leitner box system =====
+// Storage: scripture-cloze-srs = { [osisRef]: { box: 0..4, due: ms } }
+// Box intervals: 0:10m, 1:1d, 2:3d, 3:7d, 4:21d, 5:60d
+window._clozeGrade = function(ref, grade) {
+  const INTERVALS_MS = [10*60*1000, 1*86400000, 3*86400000, 7*86400000, 21*86400000, 60*86400000];
+  let srs = {};
+  try { srs = JSON.parse(localStorage.getItem('scripture-cloze-srs') || '{}'); } catch (e) {}
+  const cur = srs[ref] || { box: 0, due: Date.now() };
+  if (grade === 'good') {
+    cur.box = Math.min(5, (cur.box || 0) + 1);
+  } else {
+    cur.box = 0;
+  }
+  cur.due = Date.now() + INTERVALS_MS[cur.box];
+  srs[ref] = cur;
+  try { localStorage.setItem('scripture-cloze-srs', JSON.stringify(srs)); } catch (e) {}
+  haptic(grade === 'good' ? [8, 30, 8] : 6);
+  const dueLabel = cur.box === 0 ? '10 min' : cur.box === 1 ? '1 day' : cur.box === 2 ? '3 days' : cur.box === 3 ? '1 week' : cur.box === 4 ? '3 weeks' : '2 months';
+  showToast(grade === 'good' ? `Got it! Next in ${dueLabel}` : `Try again in ${dueLabel}`);
+  window._clozeNext();
+};
+window._clozeNext = function() {
+  if (_clozeState.idx < _clozeState.verses.length - 1) {
+    _clozeState.idx++;
+    renderCloze();
+  } else {
+    showToast(`You've practiced all ${_clozeState.verses.length} verses`);
+    showBookmarksModal();
+  }
+};
+window._getClozeDueCount = function() {
+  try {
+    const srs = JSON.parse(localStorage.getItem('scripture-cloze-srs') || '{}');
+    const now = Date.now();
+    return Object.values(srs).filter(s => s && s.due <= now).length;
+  } catch (e) { return 0; }
+};
 
 // One-tap share for a saved bookmark — uses native share sheet when available
 window.shareBookmark = async function(idx) {
@@ -3860,9 +3916,16 @@ function renderCloze() {
         <input type="checkbox" ${_clozeState.hard ? 'checked' : ''} onchange="_clozeState.hard=this.checked; renderCloze()" style="margin:0">Harder (60%)
       </label>
     </div>
+    <!-- Spaced-repetition row: simple Leitner-lite. 'Got it' advances the
+         box (next due in 1d/3d/7d/21d/60d); 'Try later' resets to box 0
+         (10 min). Stored in scripture-cloze-srs by ref. -->
     <div style="display:flex;gap:8px;margin-top:14px;justify-content:space-between">
-      <button onclick="if(_clozeState.idx>0){_clozeState.idx--;renderCloze()}" ${_clozeState.idx === 0 ? 'disabled' : ''} style="flex:1;background:transparent;border:1px solid var(--border-strong);color:${_clozeState.idx === 0 ? 'var(--text-dim)' : 'var(--text)'};padding:10px;border-radius:14px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:${_clozeState.idx === 0 ? 'default' : 'pointer'}">← Previous</button>
-      <button onclick="if(_clozeState.idx<_clozeState.verses.length-1){_clozeState.idx++;renderCloze()}else{showToast('You\\'ve practiced all '+_clozeState.verses.length+' verses');showBookmarksModal()}" style="flex:1;background:var(--accent);border:none;color:white;padding:10px;border-radius:14px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer">${_clozeState.idx < _clozeState.verses.length - 1 ? 'Next →' : 'Done'}</button>
+      <button onclick="_clozeGrade('${v.ref}', 'again')" style="flex:1;background:transparent;border:1px solid #B43232;color:#B43232;padding:10px;border-radius:14px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer">Try later</button>
+      <button onclick="_clozeGrade('${v.ref}', 'good')" style="flex:1;background:#5A8E6F;border:none;color:white;padding:10px;border-radius:14px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer">Got it ✓</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;justify-content:space-between">
+      <button onclick="if(_clozeState.idx>0){_clozeState.idx--;renderCloze()}" ${_clozeState.idx === 0 ? 'disabled' : ''} style="flex:1;background:transparent;border:1px solid var(--border-strong);color:${_clozeState.idx === 0 ? 'var(--text-dim)' : 'var(--text)'};padding:8px;border-radius:14px;font-family:var(--sans);font-size:12px;cursor:${_clozeState.idx === 0 ? 'default' : 'pointer'}">← Previous</button>
+      <button onclick="_clozeNext()" style="flex:1;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:8px;border-radius:14px;font-family:var(--sans);font-size:12px;cursor:pointer">Skip →</button>
     </div>
   `;
   modal.classList.add('open');
