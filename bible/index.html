@@ -476,7 +476,16 @@ body.mode-inline .ref-dot::after {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.settings-section { padding: 4px 0; }
+.settings-section { padding: 4px 0 12px; }
+.settings-group-title {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 14px 18px 6px;
+}
 .settings-search {
   display: flex;
   gap: 8px;
@@ -1159,6 +1168,28 @@ body.mode-timeline .timeline-help { display: block; }
 [data-theme="dark"] .ref-card { background: var(--bg-alt); }
 [data-theme="dark"] .ref-card:hover { background: #262A33; }
 
+/* Focus theme — sepia, distraction-free reading */
+[data-theme="focus"] {
+  --bg: #F4ECD8;
+  --bg-alt: #EFE5C9;
+  --text: #3A2E1A;
+  --text-muted: #6B5A40;
+  --text-dim: #8C7A5C;
+  --border: #D9CDB0;
+  --border-strong: #B8A37A;
+  --accent: #6B4D24;
+  --accent-soft: rgba(107, 77, 36, 0.08);
+}
+[data-theme="focus"] .verse.red-letter .verse-text { color: #8B3A2E; }
+[data-theme="focus"] .ref-card { background: var(--bg-alt); }
+[data-theme="focus"] body { font-family: 'Source Serif 4', Georgia, serif; }
+/* Focus mode dims everything except verse text for distraction-free reading */
+[data-theme="focus"] .ref-dots,
+[data-theme="focus"] .ws-strip,
+[data-theme="focus"] .legend { display: none !important; }
+[data-theme="focus"] .verse-text { font-size: 19px; line-height: 1.85; }
+[data-theme="focus"] .header { background: var(--bg); border-bottom: 1px solid var(--border); }
+
 /* Mobile */
 @media (max-width: 1100px) {
   :root { --header-height: 56px; }
@@ -1225,18 +1256,12 @@ body.mode-timeline .timeline-help { display: block; }
     justify-content: center;
   }
   #settings-toggle svg { display: block; }
-  /* Chapter prev/next — bigger tap targets */
-  #prev-ch, #next-ch {
-    width: 38px;
-    height: 38px;
-    padding: 0;
-    font-size: 18px;
-    border-radius: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-  #chapter-display { font-size: 13px; min-width: auto; padding: 0 4px; font-weight: 600; }
+  /* Hide top-bar chapter prev/next on mobile — they're in the bottom-nav now */
+  #prev-ch, #next-ch, #chapter-display { display: none !important; }
+  /* Auto-hide top bar on scroll-down (mobile only) */
+  .header { transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1); will-change: transform; }
+  .header.hidden-on-scroll { transform: translateY(-100%); }
+  body.sidebar-open .header { transform: translateY(0) !important; }
   /* Status pill ("29.4k linked") hidden — surface in settings instead */
   .status-pill { display: none; }
   #chapter-display { font-size: 13px; min-width: auto; padding: 0 6px; }
@@ -1561,101 +1586,115 @@ body.mode-timeline .timeline-help { display: block; }
 </div>
 <div class="graph-help">Drag to pan · scroll to zoom · click a node to read it</div>
 
-<div id="settings-drawer" role="dialog" aria-modal="true" aria-label="Display settings">
+<div id="settings-drawer" role="dialog" aria-modal="true" aria-label="Menu">
   <div class="settings-backdrop" onclick="closeSettings()"></div>
   <div class="settings-panel">
     <div class="settings-header">
-      <div class="settings-title">Display settings</div>
+      <div class="settings-title">Menu</div>
       <button class="settings-close-btn" onclick="closeSettings()" aria-label="Close">Done</button>
     </div>
+
+    <div class="settings-group-title">Find a verse</div>
     <div class="settings-section">
       <div class="settings-search">
-        <input type="text" id="settings-jump-input" placeholder="Jump to verse  (e.g. John 3:16)" autocapitalize="words" autocorrect="off" autocomplete="off" spellcheck="false" />
+        <input type="text" id="settings-jump-input" placeholder="Type a verse, like John 3:16" autocapitalize="words" autocorrect="off" autocomplete="off" spellcheck="false" />
         <button id="settings-jump-btn">Go</button>
       </div>
       <div class="settings-row" data-action="random">
         <div class="settings-row-main">
-          <div class="settings-row-label">Random verse</div>
-          <div class="settings-row-sub">Surprise me — jump to any of the top-cited verses</div>
+          <div class="settings-row-label">Surprise me with a verse</div>
+          <div class="settings-row-sub">Jump to a famous verse at random</div>
         </div>
-        <div class="settings-row-value">Go</div>
+        <div class="settings-row-value">Pick</div>
       </div>
       <div class="settings-row" data-action="bookmarks">
         <div class="settings-row-main">
-          <div class="settings-row-label">Bookmarks</div>
+          <div class="settings-row-label">My saved verses</div>
           <div class="settings-row-sub" id="settings-bookmarks-sub">No verses saved yet</div>
         </div>
         <div class="settings-row-value" id="settings-bookmarks-value">0</div>
       </div>
-      <div class="settings-row" data-action="listen">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Listen</div>
-          <div class="settings-row-sub">Read this chapter aloud</div>
-        </div>
-        <div class="settings-row-value" id="settings-listen-value">Play</div>
-      </div>
-      <div class="settings-row" data-action="share">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Share</div>
-          <div class="settings-row-sub">Copy direct link to this verse</div>
-        </div>
-        <div class="settings-row-value">Copy</div>
-      </div>
+    </div>
+
+    <div class="settings-group-title">While I'm reading, show…</div>
+    <div class="settings-section">
       <div class="settings-row" data-action="translation">
         <div class="settings-row-main">
-          <div class="settings-row-label">Translation</div>
-          <div class="settings-row-sub">KJV, ESV, or BSB</div>
+          <div class="settings-row-label">Bible version</div>
+          <div class="settings-row-sub">King James, ESV, or Berean Standard</div>
         </div>
         <div class="settings-row-value" id="settings-translation-value">KJV</div>
       </div>
+      <div class="settings-row" data-action="commentary">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Verse explanations</div>
+          <div class="settings-row-sub">Short notes that explain each verse</div>
+        </div>
+        <div class="settings-row-value" id="settings-commentary-value">Off</div>
+      </div>
+      <div class="settings-row" data-action="redletter">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Jesus's words in red</div>
+          <div class="settings-row-sub">Color what Jesus said in red</div>
+        </div>
+        <div class="settings-row-value" id="settings-rl-value">On</div>
+      </div>
+      <div class="settings-row" data-action="wordstudy">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Original Hebrew &amp; Greek</div>
+          <div class="settings-row-sub">Show the original language under each verse</div>
+        </div>
+        <div class="settings-row-value" id="settings-ws-value">Off</div>
+      </div>
+      <div class="settings-row" data-action="depth">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Related verses</div>
+          <div class="settings-row-sub" id="settings-depth-sub">Showing the strongest connections</div>
+        </div>
+        <div class="settings-row-value" id="settings-depth-value">Best</div>
+      </div>
+    </div>
+
+    <div class="settings-group-title">How it looks</div>
+    <div class="settings-section">
+      <div class="settings-row" data-action="theme">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Background color</div>
+          <div class="settings-row-sub">Light, Dark, or Focus (sepia)</div>
+        </div>
+        <div class="settings-row-value" id="settings-theme-value">Dark</div>
+      </div>
       <div class="settings-row" data-action="readmode">
         <div class="settings-row-main">
-          <div class="settings-row-label">Reading mode</div>
-          <div class="settings-row-sub">Where cross-references appear</div>
+          <div class="settings-row-label">Where related verses appear</div>
+          <div class="settings-row-sub">In a side panel, or right under the verse</div>
         </div>
         <div class="settings-row-value" id="settings-readmode-value">Sidebar</div>
       </div>
       <div class="settings-row" data-action="viewmode">
         <div class="settings-row-main">
-          <div class="settings-row-label">View</div>
-          <div class="settings-row-sub">Read · Arc · Graph · Timeline</div>
+          <div class="settings-row-label">Special views</div>
+          <div class="settings-row-sub">See the Bible as a chart, graph, or timeline</div>
         </div>
         <div class="settings-row-value" id="settings-viewmode-value">Read</div>
       </div>
-      <div class="settings-row" data-action="depth">
+    </div>
+
+    <div class="settings-group-title">This chapter</div>
+    <div class="settings-section">
+      <div class="settings-row" data-action="listen">
         <div class="settings-row-main">
-          <div class="settings-row-label">Cross-references</div>
-          <div class="settings-row-sub" id="settings-depth-sub">Showing top references only</div>
+          <div class="settings-row-label">Read it aloud to me</div>
+          <div class="settings-row-sub">Have your phone read this chapter out loud</div>
         </div>
-        <div class="settings-row-value" id="settings-depth-value">Best</div>
+        <div class="settings-row-value" id="settings-listen-value">Play</div>
       </div>
-      <div class="settings-row" data-action="commentary">
+      <div class="settings-row" data-action="share">
         <div class="settings-row-main">
-          <div class="settings-row-label">Commentary notes</div>
-          <div class="settings-row-sub">Reformed/expositional verse-by-verse</div>
+          <div class="settings-row-label">Send a link to this verse</div>
+          <div class="settings-row-sub">Copy a link you can text or email</div>
         </div>
-        <div class="settings-row-value" id="settings-commentary-value">Off</div>
-      </div>
-      <div class="settings-row" data-action="wordstudy">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Hebrew & Greek</div>
-          <div class="settings-row-sub">Original-language interlinear with Strong's</div>
-        </div>
-        <div class="settings-row-value" id="settings-ws-value">Off</div>
-      </div>
-      <div class="settings-row" data-action="redletter">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Red-letter words</div>
-          <div class="settings-row-sub">Highlight Jesus' direct speech in NT</div>
-        </div>
-        <div class="settings-row-value" id="settings-rl-value">On</div>
-      </div>
-      <div class="settings-row" data-action="theme">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Theme</div>
-          <div class="settings-row-sub">Light or dark appearance</div>
-        </div>
-        <div class="settings-row-value" id="settings-theme-value">Auto</div>
+        <div class="settings-row-value">Copy</div>
       </div>
     </div>
   </div>
@@ -2071,8 +2110,9 @@ function init() {
     setVal('settings-commentary-value', state.commentaryOn ? 'On' : 'Off', state.commentaryOn ? 'on' : 'off');
     setVal('settings-ws-value', state.wordStudyOn ? 'On' : 'Off', state.wordStudyOn ? 'on' : 'off');
     setVal('settings-rl-value', state.redLetterOn ? 'On' : 'Off', state.redLetterOn ? 'on' : 'off');
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    setVal('settings-theme-value', isDark ? 'Dark' : 'Light', 'action');
+    const themeNow = document.documentElement.getAttribute('data-theme') || 'light';
+    const themeLabel = themeNow === 'dark' ? 'Dark' : (themeNow === 'focus' ? 'Focus' : 'Light');
+    setVal('settings-theme-value', themeLabel, 'action');
     setVal('settings-translation-value', state.translation.toUpperCase(), 'action');
     setVal('settings-readmode-value', state.mode === 'inline' ? 'Inline' : 'Sidebar', 'action');
     setVal('settings-viewmode-value', ({sidebar:'Read',inline:'Read',arc:'Arc',graph:'Graph',timeline:'Timeline'})[state.mode] || 'Read', 'action');
@@ -2230,8 +2270,29 @@ function init() {
   applyTheme(savedTheme || (sysDark ? 'dark' : 'light'));
   document.getElementById('theme-toggle').addEventListener('click', () => {
     const cur = document.documentElement.getAttribute('data-theme');
-    applyTheme(cur === 'dark' ? 'light' : 'dark');
+    const next = cur === 'dark' ? 'light' : (cur === 'light' ? 'focus' : 'dark');
+    applyTheme(next);
   });
+
+  // Auto-hide top bar on scroll-down (mobile only)
+  let _lastScroll = 0;
+  let _scrollRaf = null;
+  window.addEventListener('scroll', () => {
+    if (_scrollRaf) return;
+    _scrollRaf = requestAnimationFrame(() => {
+      _scrollRaf = null;
+      if (window.innerWidth > 1100) return;
+      const cur = window.scrollY;
+      const header = document.querySelector('.header');
+      if (!header) return;
+      if (cur > _lastScroll && cur > 80) {
+        header.classList.add('hidden-on-scroll');
+      } else if (cur < _lastScroll - 4) {
+        header.classList.remove('hidden-on-scroll');
+      }
+      _lastScroll = cur;
+    });
+  }, { passive: true });
 
   loadChapter();
   loadCrossRefs();
@@ -2246,7 +2307,7 @@ function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('scripture-theme', theme);
   const btn = document.getElementById('theme-toggle');
-  if (btn) btn.textContent = theme === 'dark' ? 'Light' : 'Dark';
+  if (btn) btn.textContent = theme === 'dark' ? 'Light' : (theme === 'light' ? 'Focus' : 'Dark');
 }
 
 function setMode(mode) {
