@@ -348,6 +348,15 @@ body.sidebar-open .bible-text {
   /* Apple HIG minimum tap target: 44pt */
   .icon-btn, .theme-toggle { min-width: 44px; min-height: 44px; }
 }
+/* Honor user's reduced-motion preference (vestibular disorder accessibility) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 /* Avoid scroll snags when swipe-to-change-chapter is wired on bible-text */
 .bible-text {
   touch-action: pan-y;
@@ -2805,6 +2814,7 @@ function init() {
       const u = new SpeechSynthesisUtterance(v.text.replace(/\s+/g, ' ').trim());
       const rate = parseFloat(localStorage.getItem('scripture-read-rate')) || 1.0;
       u.rate = rate; u.pitch = 1.0; u.lang = 'en-US';
+      u.volume = 1.0; // explicit — iOS Safari can otherwise default below 1.0
       u.onend = () => { readingVerseIdx++; speakNextVerse(); };
       u.onerror = () => { readingActive = false; clearReadingHighlight(); syncReadBtn(); };
       speechSynthesis.speak(u);
@@ -2827,13 +2837,26 @@ function init() {
       const ref = book ? (state.activeVerse
         ? `${book.name} ${state.chapter}:${state.activeVerse}`
         : `${book.name} ${state.chapter}`) : 'Scripture';
-      // Prefer the native share sheet — group leaders can text the
-      // passage to attendees in one tap.
-      if (navigator.share) {
+      // Build the share text — include the actual verse content if a single
+      // verse is active, so a chaplain can text comforting words that read
+      // in the SMS preview without the recipient needing to follow a link.
+      let shareText = ref;
+      if (state.activeVerse && state.verses && state.verses.length) {
+        const v = state.verses.find(x => x.verse === state.activeVerse);
+        if (v && v.text) shareText = `"${v.text.replace(/\s+/g, ' ').trim()}"\n— ${ref}`;
+      }
+      // Prefer the native share sheet on platforms that support it
+      const sharePayload = { title: ref, text: shareText, url };
+      const canDoShare = navigator.share && (!navigator.canShare || navigator.canShare(sharePayload));
+      if (canDoShare) {
         try {
-          await navigator.share({ title: ref, text: ref, url });
+          await navigator.share(sharePayload);
           return;
-        } catch (_) { /* user cancelled — fall through to clipboard */ }
+        } catch (_) { /* user cancelled or share rejected — fall through to clipboard */ }
+      }
+      if (!navigator.clipboard) {
+        prompt('Copy link:', url);
+        return;
       }
       try {
         await navigator.clipboard.writeText(url);
@@ -2848,11 +2871,34 @@ function init() {
   const savedTheme = localStorage.getItem('scripture-theme');
   const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   applyTheme(savedTheme || (sysDark ? 'dark' : 'light'));
-  document.getElementById('theme-toggle').addEventListener('click', () => {
-    const cur = document.documentElement.getAttribute('data-theme');
-    const next = cur === 'dark' ? 'light' : (cur === 'light' ? 'focus' : 'dark');
-    applyTheme(next);
-  });
+  // Theme toggle: tap = cycle (dark→light→focus); long-press = jump straight
+  // to focus mode (chaplain "bedside mode" shortcut). Skips the cycle.
+  const themeBtn = document.getElementById('theme-toggle');
+  if (themeBtn) {
+    let _lpTimer = null, _wasLong = false;
+    const startLP = () => {
+      _wasLong = false;
+      _lpTimer = setTimeout(() => {
+        _wasLong = true;
+        applyTheme('focus');
+        haptic([8, 30, 8]);
+        showToast('Focus mode — long-press again to leave');
+      }, 550);
+    };
+    const cancelLP = () => { if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; } };
+    themeBtn.addEventListener('mousedown', startLP);
+    themeBtn.addEventListener('touchstart', startLP, { passive: true });
+    themeBtn.addEventListener('mouseup', cancelLP);
+    themeBtn.addEventListener('mouseleave', cancelLP);
+    themeBtn.addEventListener('touchend', cancelLP);
+    themeBtn.addEventListener('touchcancel', cancelLP);
+    themeBtn.addEventListener('click', (e) => {
+      if (_wasLong) { _wasLong = false; e.preventDefault(); return; }
+      const cur = document.documentElement.getAttribute('data-theme');
+      const next = cur === 'dark' ? 'light' : (cur === 'light' ? 'focus' : 'dark');
+      applyTheme(next);
+    });
+  }
 
   // Auto-hide top bar on scroll-down (mobile only)
   let _lastScroll = 0;
@@ -3077,6 +3123,7 @@ function speakWord(word, isHebrew) {
     const utter = new SpeechSynthesisUtterance(word);
     utter.lang = isHebrew ? 'he-IL' : 'el-GR';
     utter.rate = 0.7;
+    utter.volume = 1.0;
     speechSynthesis.cancel();
     speechSynthesis.speak(utter);
   } catch(e) {}
@@ -3680,8 +3727,14 @@ async function copyPassageForSermon() {
     }
     lines.push(`— Source: hunihydration.com/bible · ${new Date().toISOString().slice(0,10)}`);
     const text = lines.join('\n');
-    await navigator.clipboard.writeText(text);
-    showToast(`Copied ${ref} for sermon prep`);
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(`Copied ${ref} for sermon prep`);
+    } catch (clipErr) {
+      // Fallback for insecure-context / older browsers — show in a prompt
+      // so the user can still grab the text manually rather than losing it.
+      prompt('Copy sermon notes:', text);
+    }
     haptic(8);
   } catch (e) {
     showToast('Copy failed — try again');
@@ -5084,6 +5137,10 @@ function renderCompareHTML(kjv, esv, bsb, bookName, ch, v) {
 
 // Haptic feedback helper (no-op where unsupported)
 function haptic(pattern = 8) {
+  // Respect prefers-reduced-motion — vibrations are motion too
+  try {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  } catch (e) {}
   if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} }
 }
 
