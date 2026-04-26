@@ -1932,6 +1932,7 @@ body.mode-timeline .timeline-help { display: block; }
       <button class="active" data-t="kjv" title="King James Version (1611) — classical English with thee/thou/begat" aria-label="King James Version">KJV</button>
       <button data-t="esv" title="English Standard Version — modern, readable, literal" aria-label="English Standard Version">ESV</button>
       <button data-t="bsb" title="Berean Standard Bible — modern, free to copy, literal" aria-label="Berean Standard Bible">BSB</button>
+      <button data-t="rvr" title="Reina-Valera 1960 — la Biblia clásica en español" aria-label="Reina-Valera 1960 — Spanish">RVR</button>
     </div>
 
     <div class="pill-group" id="mode-group">
@@ -1964,7 +1965,7 @@ body.mode-timeline .timeline-help { display: block; }
 <div class="layout">
   <a href="#bible-text" class="skip-link">Skip to scripture text</a>
   <div id="a11y-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
-  <main class="bible-text" id="bible-text" role="main">
+  <main class="bible-text" id="bible-text" role="main" tabindex="-1" style="outline:none">
     <div class="loading">Loading…</div>
   </div>
 
@@ -2502,6 +2503,9 @@ function init() {
       document.querySelectorAll('#translation-group button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       state.translation = btn.dataset.t;
+      // Update <html lang> so screen readers and Chrome's translate hint
+      // know whether to read the verses as English or Spanish.
+      document.documentElement.lang = (state.translation === 'rvr') ? 'es' : 'en';
       loadChapter();
     });
   });
@@ -2732,7 +2736,7 @@ function init() {
         applyTextSize(next);
       }
       else if (action === 'translation') {
-        state.translation = _cycle(['kjv','esv','bsb'], state.translation);
+        state.translation = _cycle(['kjv','esv','bsb','rvr'], state.translation);
         document.querySelectorAll('#translation-group button').forEach(b => b.classList.toggle('active', b.dataset.t === state.translation));
         loadChapter();
       }
@@ -4519,6 +4523,15 @@ async function fetchBSB(bookIdx, chapter) {
   return data.map(v => ({ verse: v.verse, text: (v.text || '').replace(/<[^>]+>/g, '').trim() }));
 }
 
+// Spanish — Reina-Valera 1960 via bolls.life (same provider as BSB)
+async function fetchRVR(bookIdx, chapter) {
+  const bookNum = bookIdx + 1;
+  const res = await fetch(`https://bolls.life/get-text/RVR60/${bookNum}/${chapter}/`);
+  if (!res.ok) throw new Error(`RVR HTTP ${res.status}`);
+  const data = await res.json();
+  return data.map(v => ({ verse: v.verse, text: (v.text || '').replace(/<[^>]+>/g, '').trim() }));
+}
+
 // Monotonically increasing load token so concurrent loadChapter() calls
 // (rapid arrow-key presses) don't let a slow stale fetch overwrite a newer one.
 window._chapterLoadId = window._chapterLoadId || 0;
@@ -4553,6 +4566,7 @@ async function loadChapter() {
     if (state.translation === 'kjv') verses = await fetchKJV(book, state.chapter);
     else if (state.translation === 'esv') verses = await fetchESV(book, state.chapter);
     else if (state.translation === 'bsb') verses = await fetchBSB(state.bookIdx, state.chapter);
+    else if (state.translation === 'rvr') verses = await fetchRVR(state.bookIdx, state.chapter);
 
     if (!verses || !verses.length) {
       textEl.innerHTML = '<div class="loading" style="padding:60px 30px;text-align:center;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:10px;opacity:0.5">📖</div><div>That chapter isn\'t available right now.</div><div style="font-size:13px;margin-top:8px;opacity:0.7">Try another book or chapter from the dropdown above.</div></div>';
@@ -4929,7 +4943,16 @@ function showSidebar(key, verseNum, refs) {
 
   let refHTML = '';
   if (refs.length === 0 && obList.length === 0) {
-    refHTML = `<div class="sidebar-section"><p style="color:var(--text-muted);font-style:italic;font-size:13px">No cross-references for this verse.</p></div>`;
+    const bk = BOOKS[state.bookIdx]?.name || 'this passage';
+    const ch = state.chapter;
+    refHTML = `<div class="sidebar-section">
+      <p style="color:var(--text-muted);font-size:13px;line-height:1.55;margin-bottom:10px">No direct cross-references mapped to this verse yet — but you can still explore:</p>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <a href="javascript:void(0)" onclick="state.mode='graph';document.body.classList.remove('mode-arc','mode-timeline');document.body.classList.add('mode-graph');startGraph()" style="background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:4px;padding:9px 11px;text-decoration:none;color:var(--text);font-family:var(--sans);font-size:12.5px">See ${bk} ${ch} as a graph →</a>
+        <a href="https://www.gty.org/search?q=${encodeURIComponent(bk + ' ' + ch)}" target="_blank" rel="noopener" style="background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid #6B4D00;border-radius:4px;padding:9px 11px;text-decoration:none;color:var(--text);font-family:var(--sans);font-size:12.5px">MacArthur sermons on ${bk} ${ch} ↗</a>
+        <button onclick="document.getElementById('settings-toggle')?.click();setTimeout(()=>document.querySelector('[data-action=themes]')?.click(),200)" style="background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid #5A8E6F;border-radius:4px;padding:9px 11px;text-align:left;color:var(--text);font-family:var(--sans);font-size:12.5px;cursor:pointer">Browse verses by theme →</button>
+      </div>
+    </div>`;
   } else if (refs.length > 0) {
     const typeOrder = ['PROPHECY','FULFILLMENT','QUOTE','PARALLEL','THEMATIC'];
     typeOrder.forEach(type => {
