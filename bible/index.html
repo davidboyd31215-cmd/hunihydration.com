@@ -3068,6 +3068,16 @@ function init() {
       }, 550);
     };
     const cancelLP = () => { if (_lpRead) { clearTimeout(_lpRead); _lpRead = null; } };
+    // Right-click is the desktop-discoverable equivalent of long-press
+    readBtn.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const SPEEDS = [0.75, 1.0, 1.25, 1.5, 2.0];
+      const cur = parseFloat(localStorage.getItem('scripture-read-rate')) || 1.0;
+      const i = SPEEDS.findIndex(s => Math.abs(s - cur) < 0.01);
+      const next = SPEEDS[(i + 1) % SPEEDS.length];
+      localStorage.setItem('scripture-read-rate', String(next));
+      showToast(`Reading speed: ${next}× — restart Listen to apply`);
+    });
     readBtn.addEventListener('mousedown', startLP);
     readBtn.addEventListener('touchstart', startLP, { passive: true });
     readBtn.addEventListener('mouseup', cancelLP);
@@ -3207,6 +3217,13 @@ function init() {
       }, 550);
     };
     const cancelLP = () => { if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; } };
+    // Right-click toggles in/out of focus (desktop equivalent of long-press)
+    themeBtn.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const cur = document.documentElement.getAttribute('data-theme');
+      applyTheme(cur === 'focus' ? 'light' : 'focus');
+      showToast(cur === 'focus' ? 'Focus mode off' : 'Focus mode on');
+    });
     themeBtn.addEventListener('mousedown', startLP);
     themeBtn.addEventListener('touchstart', startLP, { passive: true });
     themeBtn.addEventListener('mouseup', cancelLP);
@@ -5727,7 +5744,7 @@ async function compareTranslations(osisKey, btn) {
   // Use session cache if available
   if (_compareCache[osisKey]) {
     const c = _compareCache[osisKey];
-    container.innerHTML = renderCompareHTML(c.kjv, c.esv, c.bsb, book.name, ch, v);
+    container.innerHTML = renderCompareHTML(c.kjv, c.esv, c.bsb, c.rvr, book.name, ch, v);
     return;
   }
   container.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-style:italic;font-size:12px">Loading translations...</div>';
@@ -5760,15 +5777,22 @@ async function compareTranslations(osisKey, btn) {
           const v2 = d.find(x => x.verse === v);
           return v2 ? (v2.text || '').replace(/<[^>]+>/g, '').trim() : '';
         }
+      } else if (translation === 'rvr') {
+        const r = await fetch(`https://bolls.life/get-text/RVR60/${bookIdx + 1}/${ch}/`);
+        if (r.ok) {
+          const d = await r.json();
+          const v2 = d.find(x => x.verse === v);
+          return v2 ? (v2.text || '').replace(/<[^>]+>/g, '').trim() : '';
+        }
       }
     } catch (e) { return ''; }
     return '';
   }
 
-  const [kjv, esv, bsb] = await Promise.all([fetchVerse('kjv'), fetchVerse('esv'), fetchVerse('bsb')]);
-  _compareCache[osisKey] = { kjv, esv, bsb, ts: Date.now() };
+  const [kjv, esv, bsb, rvr] = await Promise.all([fetchVerse('kjv'), fetchVerse('esv'), fetchVerse('bsb'), fetchVerse('rvr')]);
+  _compareCache[osisKey] = { kjv, esv, bsb, rvr, ts: Date.now() };
   _saveCompareCache();
-  container.innerHTML = renderCompareHTML(kjv, esv, bsb, book.name, ch, v);
+  container.innerHTML = renderCompareHTML(kjv, esv, bsb, rvr, book.name, ch, v);
 }
 
 function _diffHighlight(kjv, esv, bsb) {
@@ -5794,16 +5818,19 @@ function _diffHighlight(kjv, esv, bsb) {
   };
 }
 
-function renderCompareHTML(kjv, esv, bsb, bookName, ch, v) {
+function renderCompareHTML(kjv, esv, bsb, rvr, bookName, ch, v) {
   const h = _diffHighlight(kjv, esv, bsb);
+  // RVR is in a different language so the diff doesn't apply — render plainly.
+  const rows = [['KJV', h.kjv, '#3D5A6E'], ['ESV', h.esv, '#3D6E36'], ['BSB', h.bsb, '#7B5C3F']];
+  if (rvr) rows.push(['RVR', rvr, '#7A5D1F']);
   return `<div style="padding:0;display:flex;flex-direction:column;gap:10px">
-    ${[['KJV', h.kjv, '#3D5A6E'], ['ESV', h.esv, '#3D6E36'], ['BSB', h.bsb, '#7B5C3F']].map(([label, text, color]) => `
+    ${rows.map(([label, text, color]) => `
       <div style="background:var(--bg-alt);border-left:3px solid ${color};border-radius:4px;padding:10px 12px">
         <div style="font-size:10px;font-weight:700;color:${color};letter-spacing:0.1em;margin-bottom:4px">${label}</div>
         <div style="font-family:var(--serif);font-size:13.5px;line-height:1.55;color:var(--text)">${text || '<em style="color:var(--text-dim)">(unavailable)</em>'}</div>
       </div>
     `).join('')}
-    <div style="font-size:10px;color:var(--text-dim);font-style:italic;margin-top:2px">Highlighted words appear in only one translation.</div>
+    <div style="font-size:10px;color:var(--text-dim);font-style:italic;margin-top:2px">English-translation highlights mark words appearing in only one of KJV/ESV/BSB.</div>
   </div>`;
 }
 
