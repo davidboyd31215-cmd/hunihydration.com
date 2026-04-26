@@ -2125,6 +2125,13 @@ body.mode-timeline .timeline-help { display: block; }
         </div>
         <div class="settings-row-value">Open</div>
       </div>
+      <div class="settings-row" data-action="plan">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Today's verse (30-day starter)</div>
+          <div class="settings-row-sub" id="settings-plan-sub">A different famous verse each day for 30 days</div>
+        </div>
+        <div class="settings-row-value" id="settings-plan-value">Day 1</div>
+      </div>
       <div class="settings-row" data-action="random">
         <div class="settings-row-main">
           <div class="settings-row-label">Surprise me with a verse</div>
@@ -2735,6 +2742,11 @@ function init() {
     setVal('settings-readmode-value', state.mode === 'inline' ? 'Inline' : 'Sidebar', 'action');
     const readerOn = document.body.classList.contains('reader-mode');
     setVal('settings-readermode-value', readerOn ? 'On' : 'Off', readerOn ? 'on' : 'off');
+    // Today's verse plan day counter
+    try {
+      const planDay = parseInt(localStorage.getItem('scripture-plan-day') || '0', 10);
+      setVal('settings-plan-value', `Day ${(planDay % 30) + 1}`, 'action');
+    } catch(e) {}
     setVal('settings-viewmode-value', ({sidebar:'Read',inline:'Read',arc:'Arc',graph:'Graph',timeline:'Timeline'})[state.mode] || 'Read', 'action');
     const ds = document.getElementById('settings-depth-sub');
     if (ds) ds.textContent = state.depthMode === 'top' ? 'Showing top references only' : 'Showing all references';
@@ -2846,6 +2858,17 @@ function init() {
       else if (action === 'themes') {
         closeSettings();
         showThemesModal();
+      }
+      else if (action === 'plan') {
+        // Verse-a-Day 30-day starter — advances by one each tap, modulo loop.
+        const PLAN_30 = ['John.3.16','Ps.23.1','Rom.8.28','Phil.4.13','Jer.29.11','Prov.3.5','Gen.1.1','Matt.6.33','Eph.2.8','Isa.40.31','Rev.21.4','Ps.1.1','1Cor.13.4','Heb.11.1','2Tim.3.16','Josh.1.9','Isa.41.10','John.14.6','Matt.11.28','Rom.12.2','Ps.46.1','Mic.6.8','Isa.53.5','Phil.4.6','Lam.3.22','Matt.5.3','John.1.1','Rev.3.20','Prov.16.9','Deut.6.5'];
+        const day = parseInt(localStorage.getItem('scripture-plan-day') || '0', 10);
+        const ref = PLAN_30[day % PLAN_30.length];
+        navigateToOsis(ref);
+        const nextDay = (day + 1) % PLAN_30.length;
+        localStorage.setItem('scripture-plan-day', String(nextDay));
+        showToast(`Day ${day + 1} of 30 — ${osisToHuman(ref)}`);
+        closeSettings();
       }
       else if (action === 'bookmarks') {
         showBookmarksModal();
@@ -3082,7 +3105,7 @@ function init() {
               banner.innerHTML = `
                 <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:var(--accent);text-transform:uppercase;flex-shrink:0">Pick up where you left off</div>
                 <div style="flex:1;min-width:0">
-                  <a href="#${OSIS_BY_IDX[last.bookIdx]}.${last.chapter}" style="color:var(--text);font-family:var(--serif);font-size:14px;font-weight:600;text-decoration:none">${lastBook.name} ${last.chapter}</a>
+                  <a href="#${OSIS_BY_IDX[last.bookIdx]}.${last.chapter}${last.verse ? '.' + last.verse : ''}" style="color:var(--text);font-family:var(--serif);font-size:14px;font-weight:600;text-decoration:none">${lastBook.name} ${last.chapter}${last.verse ? ':' + last.verse : ''}</a>
                 </div>
                 <button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:18px;padding:4px 8px" aria-label="Dismiss">&times;</button>`;
               const text = document.getElementById('bible-text');
@@ -3097,7 +3120,11 @@ function init() {
   window._saveReadingPosition = () => {
     try {
       localStorage.setItem('scripture-last-position', JSON.stringify({
-        bookIdx: state.bookIdx, chapter: state.chapter, ts: Date.now()
+        bookIdx: state.bookIdx,
+        chapter: state.chapter,
+        verse: state.activeVerse || null,
+        scrollY: window.scrollY || 0,
+        ts: Date.now(),
       }));
       // Record today as a reading day for streak tracking
       const today = new Date().toISOString().slice(0, 10);
@@ -4561,9 +4588,21 @@ async function fetchVerseText(osisRef) {
         text = parts.join(' ');
       } else {
         const range = endVerse > verse ? `${book.abbr}+${chapter}:${verse}-${endVerse}` : `${book.abbr}+${chapter}:${verse}`;
-        const r = await fetch(`https://bible-api.com/${range}?translation=kjv`);
-        const d = await r.json();
-        text = (d.verses || []).map(v => v.text.trim()).join(' ');
+        try {
+          const r = await fetch(`https://bible-api.com/${range}?translation=kjv`);
+          if (!r.ok) throw new Error('bible-api ' + r.status);
+          const d = await r.json();
+          text = (d.verses || []).map(v => v.text.trim()).join(' ');
+        } catch (e) {
+          // Fallback to bolls.life if bible-api.com is down or rate-limited
+          const r2 = await fetch(`https://bolls.life/get-text/KJV/${bookIdx + 1}/${chapter}/`);
+          if (r2.ok) {
+            const d2 = await r2.json();
+            text = d2.filter(v => v.verse >= verse && v.verse <= endVerse)
+                     .map(v => (v.text || '').replace(/<[^>]+>/g, '').trim())
+                     .join(' ');
+          }
+        }
       }
     } else if (state.translation === 'esv') {
       const ref = endVerse > verse ? `${BOOKS[bookIdx].name} ${chapter}:${verse}-${endVerse}` : `${BOOKS[bookIdx].name} ${chapter}:${verse}`;
