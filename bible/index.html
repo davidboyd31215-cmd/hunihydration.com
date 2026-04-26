@@ -3040,7 +3040,17 @@ function init() {
       else if (action === 'random') {
         // Use a curated list of top-cited / famous passages so it's always meaningful
         const FAMOUS = ['John.3.16','Rom.8.28','Ps.23.1','Phil.4.13','Jer.29.11','Prov.3.5','Gen.1.1','Matt.6.33','Eph.2.8','Isa.40.31','Rev.21.4','Ps.1.1','1Cor.13.4','Heb.11.1','2Tim.3.16','Josh.1.9','Isa.41.10','John.14.6','Matt.11.28','Rom.12.2','Ps.46.1','Mic.6.8','Isa.53.5','Phil.4.6','Lam.3.22','Eccl.3.1','Acts.2.38','Hab.3.17','Hos.6.6','Mal.3.10','Zech.4.6','Matt.5.3','Luke.10.27','John.1.1','1John.4.19','Rev.3.20','Ps.139.23','Prov.16.9','Gen.1.27','Gen.50.20','Ex.14.14','Ex.20.3','Deut.6.5','Ps.19.1','Ps.51.10','Ps.91.1','Ps.121.1','Ps.139.14','Prov.22.6','Isa.9.6','Isa.55.8','Jer.17.9','Ezek.36.26','Matt.28.19','Luke.2.11','John.11.25','John.13.34','Acts.1.8','Gal.5.22','Heb.12.1','Heb.13.8','Jas.1.2','1Pet.3.15'];
-        const pick = FAMOUS[Math.floor(Math.random() * FAMOUS.length)];
+        // Avoid repeating the last 5 picks so the user gets variety.
+        let recent = [];
+        try { recent = JSON.parse(localStorage.getItem('scripture-random-recent') || '[]'); } catch(e) {}
+        let pick, attempts = 0;
+        do {
+          pick = FAMOUS[Math.floor(Math.random() * FAMOUS.length)];
+          attempts++;
+        } while (recent.includes(pick) && attempts < 20);
+        recent.push(pick);
+        while (recent.length > 5) recent.shift();
+        try { localStorage.setItem('scripture-random-recent', JSON.stringify(recent)); } catch(e) {}
         navigateToOsis(pick);
         closeSettings();
       }
@@ -4404,6 +4414,43 @@ function exportBookmarksJSON() {
   showToast('Bookmarks exported');
 }
 
+// Plain-text export — printable, pastable, readable as-is. Mirrors the JSON
+// export pattern but with a friendly text format.
+function exportBookmarksTXT() {
+  const today = new Date().toISOString().slice(0, 10);
+  const bms = getBookmarks();
+  const hls = Object.entries(getHighlights() || {});
+  const lines = [
+    `Scripture Link — bookmarks & highlights`,
+    `Exported ${today} from hunihydration.com/bible`,
+    '='.repeat(60),
+    '',
+  ];
+  if (bms.length) {
+    lines.push(`Saved verses (${bms.length}):`);
+    lines.push('');
+    bms.forEach(b => {
+      lines.push(`  ${osisToHuman(b.ref)}`);
+      if (b.snippet) lines.push(`    "${b.snippet.replace(/\s+/g, ' ').trim()}"`);
+      lines.push('');
+    });
+  }
+  if (hls.length) {
+    lines.push('');
+    lines.push(`Highlighted verses (${hls.length}):`);
+    lines.push('');
+    hls.forEach(([ref, color]) => lines.push(`  ${osisToHuman(ref)} [${color}]`));
+  }
+  if (!bms.length && !hls.length) lines.push('(no bookmarks or highlights yet)');
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `scripture-link-${today}.txt`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('Plain-text export downloaded');
+}
+
 function importBookmarksJSON() {
   const inp = document.createElement('input');
   inp.type = 'file'; inp.accept = 'application/json,.json';
@@ -4490,8 +4537,9 @@ function showHighlightsModal() {
       </div>
       ${body}
       <div style="display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
-        <button onclick="exportBookmarksJSON()" style="flex:1;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:8px 12px;border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:12px">Export bookmarks &amp; highlights</button>
-        <button onclick="importBookmarksJSON()" style="flex:1;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:8px 12px;border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:12px">Import from file</button>
+        <button onclick="exportBookmarksJSON()" style="flex:1;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:8px 12px;border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:12px" title="JSON for backup or import">Export JSON</button>
+        <button onclick="exportBookmarksTXT()" style="flex:1;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:8px 12px;border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:12px" title="Plain-text — printable, pastable">Export text</button>
+        <button onclick="importBookmarksJSON()" style="flex:1;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:8px 12px;border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:12px">Import</button>
       </div>
     </div>`;
   m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
@@ -5504,14 +5552,15 @@ function renderChapter(book, verses) {
       html += `<span></span>`;
     }
     if (hasNext) {
+      const totalCh = book.chapters;
       html += `<a class="end-of-chapter-link next" href="#${osisBook}.${state.chapter + 1}" onclick="event.preventDefault(); document.getElementById('next-ch').click()">
-        <span class="end-label"><span class="end-meta">Continue reading</span><span class="end-name">${book.name} ${state.chapter + 1}</span></span>
+        <span class="end-label"><span class="end-meta">Continue reading · ${state.chapter + 1} of ${totalCh}</span><span class="end-name">${book.name} ${state.chapter + 1}</span></span>
         <span class="end-arrow">›</span>
       </a>`;
     } else if (state.bookIdx < BOOKS.length - 1) {
       const nextBook = BOOKS[state.bookIdx + 1];
       html += `<a class="end-of-chapter-link next" href="#${OSIS_BY_IDX[state.bookIdx + 1]}.1" onclick="event.preventDefault(); state.bookIdx++; state.chapter = 1; state.activeVerse = null; loadChapter()">
-        <span class="end-label"><span class="end-meta">Continue to next book</span><span class="end-name">${nextBook.name} 1</span></span>
+        <span class="end-label"><span class="end-meta">Next book · ${nextBook.name}</span><span class="end-name">${nextBook.name} 1</span></span>
         <span class="end-arrow">›</span>
       </a>`;
     }
