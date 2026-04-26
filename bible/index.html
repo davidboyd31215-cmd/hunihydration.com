@@ -71,6 +71,10 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body { background: var(--bg); }
+/* Smooth color/background transition when toggling themes (gated below by
+   prefers-reduced-motion: reduce). Avoids the jarring 1-frame flip from
+   dark to light to focus. */
+body { transition: background-color 0.25s ease, color 0.25s ease; }
 
 body {
   color: var(--text);
@@ -297,8 +301,9 @@ body.sidebar-open .bible-text {
 }
 .verse.active {
   background: var(--accent-soft);
-  border-left-color: var(--accent);
-  padding-left: 8px;
+  border-left: 4px solid var(--accent);
+  padding-left: 6px;
+  box-shadow: inset 2px 0 0 0 var(--accent);
 }
 
 .verse-num {
@@ -3283,7 +3288,28 @@ function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('scripture-theme', theme);
   const btn = document.getElementById('theme-toggle');
-  if (btn) btn.textContent = theme === 'dark' ? 'Light' : (theme === 'light' ? 'Focus' : 'Dark');
+  if (btn) {
+    // Show CURRENT theme as an icon, not the next-in-cycle theme word.
+    // Was confusing: in dark mode the button said "Light" (the action),
+    // making users think Light was active.
+    const icons = { dark: '☾', light: '☀', focus: '✦' };
+    const labels = { dark: 'Dark', light: 'Light', focus: 'Focus' };
+    btn.textContent = icons[theme] || '';
+    const al = `Theme: ${labels[theme]} (tap to cycle, hold for Focus)`;
+    btn.setAttribute('aria-label', al);
+    btn.setAttribute('title', al);
+  }
+  // Keep iOS Safari status-bar / PWA chrome in sync with the active theme.
+  try {
+    const colors = { dark: '#15171C', light: '#2A4D6E', focus: '#F4ECD8' };
+    let m = document.querySelector('meta[name="theme-color"]:not([media])');
+    if (!m) {
+      m = document.createElement('meta');
+      m.setAttribute('name', 'theme-color');
+      document.head.appendChild(m);
+    }
+    m.setAttribute('content', colors[theme] || colors.light);
+  } catch (e) {}
 }
 
 function setMode(mode) {
@@ -5244,12 +5270,14 @@ function renderChapter(book, verses) {
   </section>`;
 
   html += `<footer class="page-footer">
-    <div class="footer-line">Scripture Link · Independent open-source Bible reader · No tracking · Works offline</div>
+    <div class="footer-line">Scripture Link · Independent open-source Bible reader · No tracking · Works offline <span style="opacity:0.6;font-size:0.85em">· v${(window._SL_BUILD || '2026-04-26')}</span></div>
     <div class="footer-line" style="font-size:12px;color:var(--text-muted);margin-top:4px">Commentary and sermon picks reflect a <strong style="color:var(--text)">Reformed/expositional</strong> tradition. Verse text and cross-references are tradition-neutral.</div>
     <div class="footer-credits">
       <a href="javascript:showAboutModal()">About &amp; sources</a>
       <span class="footer-sep">·</span>
       <a href="javascript:showKeyboardHelp()">Keyboard shortcuts</a>
+      <span class="footer-sep">·</span>
+      <a href="mailto:davidboyd31215@gmail.com?subject=${encodeURIComponent('Scripture Link feedback')}&amp;body=${encodeURIComponent('Page: ' + location.href + '\n\nWhat happened or what would help:\n')}">Feedback</a>
       <span class="footer-sep">·</span>
       <a href="https://github.com/davidboyd31215-cmd/hunihydration.com" target="_blank" rel="noopener">GitHub</a>
     </div>
