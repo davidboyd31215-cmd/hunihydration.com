@@ -259,6 +259,10 @@ body.mode-inline .ref-dot::after {
 }
 .inline-refs.open { display: block; animation: fade 0.18s ease; }
 
+/* Red-letter Jesus' words */
+.verse.red-letter .verse-text { color: #B43232; }
+[data-theme="dark"] .verse.red-letter .verse-text { color: #E47373; }
+
 /* Word Study (Hebrew/Greek interlinear) */
 .ws-strip {
   margin: 6px 0 12px 36px;
@@ -940,6 +944,7 @@ body.mode-arc .arc-help { display: block; }
     <button id="depth-toggle" class="theme-toggle" aria-label="Toggle depth" title="Top references vs all">⭐ Top</button>
     <button id="commentary-toggle" class="theme-toggle" aria-label="Toggle commentary" title="Show/hide verse commentary">📖 Commentary</button>
     <button id="wordstudy-toggle" class="theme-toggle" aria-label="Toggle word study" title="Show/hide Hebrew & Greek with Strong's numbers">🔠 Original</button>
+    <button id="redletter-toggle" class="theme-toggle" aria-label="Toggle red-letter NT" title="Show Jesus' words in red (NT only)">✝️ Red Letter</button>
     <button id="share-link" class="theme-toggle" aria-label="Copy share link" title="Copy direct link to this verse/chapter">🔗 Share</button>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">☾</button>
     <button id="prev-ch" aria-label="Previous chapter">&#8592;</button>
@@ -1154,6 +1159,7 @@ let state = {
   depthMode: localStorage.getItem('scripture-depth') || 'top', // 'top' or 'all'
   commentaryOn: localStorage.getItem('scripture-commentary') === 'on',
   wordStudyOn: localStorage.getItem('scripture-wordstudy') === 'on',
+  redLetterOn: localStorage.getItem('scripture-redletter') !== 'off', // ON by default
 };
 
 const INTERLINEAR_CACHE = {};
@@ -1284,6 +1290,26 @@ function init() {
     if (state.verses && state.verses.length) renderChapter(BOOKS[state.bookIdx], state.verses);
   });
 
+  // Red-letter toggle (Jesus' speech in NT)
+  const rlBtn = document.getElementById('redletter-toggle');
+  function syncRlBtn() {
+    if (!rlBtn) return;
+    rlBtn.textContent = state.redLetterOn ? '✝️ Red: ON' : '✝️ Red: OFF';
+    rlBtn.style.background = state.redLetterOn ? 'rgba(180,50,50,0.12)' : '';
+    rlBtn.style.borderColor = state.redLetterOn ? '#B43232' : '';
+    rlBtn.style.color = state.redLetterOn ? '#B43232' : '';
+    rlBtn.title = state.redLetterOn
+      ? "Words of Jesus shown in red (Gospels, Acts, Revelation) — click to disable"
+      : "Click to highlight Jesus' direct speech in red across the NT";
+  }
+  syncRlBtn();
+  if (rlBtn) rlBtn.addEventListener('click', () => {
+    state.redLetterOn = !state.redLetterOn;
+    localStorage.setItem('scripture-redletter', state.redLetterOn ? 'on' : 'off');
+    syncRlBtn();
+    if (state.verses && state.verses.length) renderChapter(BOOKS[state.bookIdx], state.verses);
+  });
+
   // Word Study toggle (Hebrew/Greek + Strong's)
   const wsBtn = document.getElementById('wordstudy-toggle');
   function syncWsBtn() {
@@ -1338,6 +1364,7 @@ function init() {
   loadChapter();
   loadCrossRefs();
   loadTheologyQuestions();
+  loadRedLetter();
 }
 
 function applyTheme(theme) {
@@ -1372,7 +1399,21 @@ OSIS_BY_IDX.forEach((osis, i) => IDX_BY_OSIS[osis] = i);
 let OB_REFS = null;
 let THEOLOGY_Q = null;
 let THEOLOGY_A = null;
+let RED_LETTER = null;
 const verseTextCache = new Map();
+
+async function loadRedLetter() {
+  try {
+    const r = await fetch('red_letter.json?v=1', { cache: 'no-cache' });
+    if (r.ok) RED_LETTER = await r.json();
+  } catch(e) {}
+}
+
+function isRedLetter(bookOsis, chapter, verse) {
+  if (!RED_LETTER || !state.redLetterOn) return false;
+  const ch = (RED_LETTER[bookOsis] || {})[String(chapter)];
+  return Array.isArray(ch) && ch.includes(verse);
+}
 
 // ── Client-side note generator for OpenBible cross-references ──
 const _NT_OSIS = new Set(['Matt','Mark','Luke','John','Acts','Rom','1Cor','2Cor','Gal','Eph','Phil','Col','1Thess','2Thess','1Tim','2Tim','Titus','Phlm','Heb','Jas','1Pet','2Pet','1John','2John','3John','Jude','Rev']);
@@ -1933,8 +1974,9 @@ function renderChapter(book, verses) {
       dotsHtml += '</span>';
     }
 
+    const isRed = isRedLetter(bookOsis, state.chapter, v.verse);
     html += `
-      <div class="verse ${hasRefs?'has-refs':''}" id="v-${v.verse}" data-verse="${v.verse}" data-key="${key}" onclick="onVerseClick(this)">
+      <div class="verse ${hasRefs?'has-refs':''}${isRed?' red-letter':''}" id="v-${v.verse}" data-verse="${v.verse}" data-key="${key}" onclick="onVerseClick(this)">
         <span class="verse-num">${v.verse}</span>
         <span class="verse-text">${v.text.trim()}${dotsHtml}</span>
       </div>
