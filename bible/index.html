@@ -512,7 +512,9 @@ body.mode-inline .ref-dot::after {
   display: none;
   margin: 8px 0 14px 36px;
   padding-left: 14px;
+  padding-right: 32px; /* room for the close button */
   border-left: 2px solid var(--border-strong);
+  position: relative;
 }
 .inline-refs.open { display: block; animation: fade 0.18s ease; }
 
@@ -5332,7 +5334,7 @@ function renderChapter(book, verses) {
     }
 
     if (hasRefs) {
-      html += `<div class="inline-refs" id="inline-${v.verse}">`;
+      html += `<div class="inline-refs" id="inline-${v.verse}"><button class="inline-close" aria-label="Close" onclick="event.stopPropagation();this.parentElement.classList.remove('open')" style="position:absolute;top:6px;right:8px;background:transparent;border:none;color:var(--text-dim);font-size:18px;line-height:1;padding:4px 8px;cursor:pointer;-webkit-tap-highlight-color:transparent">&times;</button>`;
       refs.forEach(r => {
         html += `
           <div class="inline-ref-item">
@@ -5999,6 +6001,34 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // Horizontal swipe gestures on bible-text → chapter prev/next (mobile only)
+// Copy interceptor — when the user uses iOS native menu (or Cmd+C / Ctrl+C)
+// to copy text from inside a verse, append the citation so the recipient
+// always sees the reference. The native menu is a more familiar gesture
+// than the in-app 'Copy text' button for most users.
+(function attachCopyCitation() {
+  document.addEventListener('copy', (e) => {
+    try {
+      const sel = window.getSelection();
+      if (!sel || !sel.toString().trim()) return;
+      const text = sel.toString();
+      // Only intercept if the selection lives inside a verse element
+      let node = sel.anchorNode;
+      while (node && node.nodeType !== 1) node = node.parentNode;
+      const verse = node && node.closest && node.closest('.verse[data-key]');
+      if (!verse) return;
+      const osisKey = verse.dataset.key;
+      // OSIS like John.3.16 → John 3:16
+      let humanRef = '';
+      try { humanRef = osisToHuman(osisKey); } catch (_) {}
+      if (!humanRef) return;
+      const augmented = `"${text.trim()}" — ${humanRef}`;
+      e.clipboardData.setData('text/plain', augmented);
+      e.preventDefault();
+      try { showToast('Copied with reference'); } catch (_) {}
+    } catch (err) { /* fall through to native copy */ }
+  });
+})();
+
 (function attachChapterSwipe() {
   if (!('ontouchstart' in window)) return;
   const text = document.getElementById('bible-text');
