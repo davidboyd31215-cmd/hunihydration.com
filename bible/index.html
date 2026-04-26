@@ -304,8 +304,8 @@ body.sidebar-open .bible-text {
 }
 
 .verse-text {
-  font-size: 19px;
-  line-height: 1.78;
+  font-size: var(--verse-font-size, 19px);
+  line-height: var(--verse-line-height, 1.78);
   color: var(--text);
   flex: 1;
   letter-spacing: -0.005em;
@@ -1988,6 +1988,13 @@ body.mode-timeline .timeline-help { display: block; }
         </div>
         <div class="settings-row-value" id="settings-theme-value">Dark</div>
       </div>
+      <div class="settings-row" data-action="textsize">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Text size</div>
+          <div class="settings-row-sub">Smaller for more on screen, larger for easier reading</div>
+        </div>
+        <div class="settings-row-value" id="settings-textsize-value">Medium</div>
+      </div>
       <div class="settings-row" data-action="readmode">
         <div class="settings-row-main">
           <div class="settings-row-label">Where related verses appear</div>
@@ -2466,6 +2473,8 @@ function init() {
     const themeLabel = themeNow === 'dark' ? 'Dark' : (themeNow === 'focus' ? 'Focus' : 'Light');
     setVal('settings-theme-value', themeLabel, 'action');
     setVal('settings-translation-value', state.translation.toUpperCase(), 'action');
+    const tsLabel = { S:'Small', M:'Medium', L:'Large', XL:'X-Large' };
+    setVal('settings-textsize-value', tsLabel[localStorage.getItem('scripture-textsize') || 'M'], 'action');
     setVal('settings-readmode-value', state.mode === 'inline' ? 'Inline' : 'Sidebar', 'action');
     setVal('settings-viewmode-value', ({sidebar:'Read',inline:'Read',arc:'Arc',graph:'Graph',timeline:'Timeline'})[state.mode] || 'Read', 'action');
     const ds = document.getElementById('settings-depth-sub');
@@ -2528,6 +2537,13 @@ function init() {
       else if (action === 'wordstudy') document.getElementById('wordstudy-toggle').click();
       else if (action === 'redletter') document.getElementById('redletter-toggle').click();
       else if (action === 'theme') document.getElementById('theme-toggle').click();
+      else if (action === 'textsize') {
+        const sizes = ['S','M','L','XL'];
+        const cur = localStorage.getItem('scripture-textsize') || 'M';
+        const next = sizes[(sizes.indexOf(cur) + 1) % sizes.length];
+        localStorage.setItem('scripture-textsize', next);
+        applyTextSize(next);
+      }
       else if (action === 'translation') {
         state.translation = _cycle(['kjv','esv','bsb'], state.translation);
         document.querySelectorAll('#translation-group button').forEach(b => b.classList.toggle('active', b.dataset.t === state.translation));
@@ -2686,6 +2702,9 @@ function init() {
   loadRedLetter();
   loadBookBackgrounds();
   loadCommentary();
+
+  // Apply persisted text size
+  applyTextSize(localStorage.getItem('scripture-textsize') || 'M');
 
   // Register service worker for offline caching of JSON data
   if ('serviceWorker' in navigator) {
@@ -2973,6 +2992,116 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'n' || e.key === 'j') { document.getElementById('next-ch')?.click(); return; }
   if (e.key === 'p' || e.key === 'k') { document.getElementById('prev-ch')?.click(); return; }
 });
+
+function exportVerseImage(verseText, reference, gradName) {
+  const gradients = {
+    sunset:  ['#FFB088', '#7E445B'],
+    ocean:   ['#3D5A6E', '#1B3247'],
+    sage:    ['#A8B79A', '#3F5238'],
+    paper:   ['#F4ECD8', '#D4B870'],
+    night:   ['#2A2E38', '#0A0B0D'],
+  };
+  const palette = gradients[gradName] || gradients.ocean;
+  const c = document.createElement('canvas');
+  c.width = 1080; c.height = 1080;
+  const ctx = c.getContext('2d');
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
+  grad.addColorStop(0, palette[0]);
+  grad.addColorStop(1, palette[1]);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1080, 1080);
+  // Subtle vignette
+  const vign = ctx.createRadialGradient(540, 540, 200, 540, 540, 700);
+  vign.addColorStop(0, 'rgba(0,0,0,0)');
+  vign.addColorStop(1, 'rgba(0,0,0,0.25)');
+  ctx.fillStyle = vign; ctx.fillRect(0, 0, 1080, 1080);
+  // Verse text — Source Serif 4 if available, fallback to Georgia
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const text = verseText.replace(/\s+/g, ' ').trim();
+  // Pick font size based on length
+  const len = text.length;
+  const fontSize = len < 80 ? 56 : (len < 160 ? 46 : (len < 260 ? 38 : 32));
+  ctx.font = `500 ${fontSize}px "Source Serif 4", Georgia, serif`;
+  // Word wrap
+  const words = text.split(' ');
+  const maxW = 880;
+  const lines = []; let line = '';
+  words.forEach(w => {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW) { lines.push(line); line = w; }
+    else line = test;
+  });
+  if (line) lines.push(line);
+  const lineH = fontSize * 1.35;
+  const blockH = lines.length * lineH;
+  const startY = 540 - blockH / 2 + lineH / 2;
+  // Open quote
+  ctx.font = `400 100px Georgia, serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillText('"', 540, startY - lineH * 1.2);
+  // Verse text
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `500 ${fontSize}px "Source Serif 4", Georgia, serif`;
+  lines.forEach((l, i) => ctx.fillText(l, 540, startY + i * lineH));
+  // Reference
+  ctx.font = `600 30px -apple-system, system-ui, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  const refY = startY + blockH + 30;
+  ctx.fillText('— ' + reference, 540, refY);
+  // Watermark
+  ctx.font = `500 18px -apple-system, system-ui, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText('hunihydration.com/bible', 540, 1020);
+  // Trigger download
+  c.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${reference.replace(/[^A-Za-z0-9]/g, '-')}.png`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, 'image/png');
+  haptic(8);
+  showToast(`Verse image saved`);
+}
+
+function showImagePickerModal(verseText, reference) {
+  const existing = document.getElementById('img-picker');
+  if (existing) { existing.remove(); return; }
+  const m = document.createElement('div');
+  m.id = 'img-picker';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:600;display:flex;align-items:center;justify-content:center;padding:24px;font-family:var(--sans)';
+  const previews = [
+    ['ocean', 'linear-gradient(135deg,#3D5A6E,#1B3247)'],
+    ['sunset', 'linear-gradient(135deg,#FFB088,#7E445B)'],
+    ['sage', 'linear-gradient(135deg,#A8B79A,#3F5238)'],
+    ['paper', 'linear-gradient(135deg,#F4ECD8,#D4B870)'],
+    ['night', 'linear-gradient(135deg,#2A2E38,#0A0B0D)'],
+  ];
+  const safeText = verseText.replace(/'/g, "\\'");
+  m.innerHTML = `
+    <div style="background:var(--bg);border:1px solid var(--border-strong);border-radius:10px;padding:22px 24px 20px;max-width:480px;width:100%;box-shadow:0 12px 36px rgba(0,0,0,0.3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-family:var(--serif);font-size:18px;font-weight:600;color:var(--text)">Save as image</div>
+        <button onclick="document.getElementById('img-picker').remove()" style="background:none;border:none;font-size:22px;color:var(--text-dim);cursor:pointer">&times;</button>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Pick a background for ${reference}. The image saves to your downloads.</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">
+        ${previews.map(([n, g]) => `<button onclick="exportVerseImage('${safeText}','${reference}','${n}'); document.getElementById('img-picker').remove()" style="background:${g};border:none;border-radius:8px;height:80px;cursor:pointer;color:white;font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px" title="${n}">${n}</button>`).join('')}
+      </div>
+    </div>`;
+  m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
+  document.body.appendChild(m);
+}
+
+function applyTextSize(size) {
+  const map = { S: '17px', M: '19px', L: '21px', XL: '24px' };
+  const lh = { S: '1.7', M: '1.78', L: '1.85', XL: '1.9' };
+  document.documentElement.style.setProperty('--verse-font-size', map[size] || '19px');
+  document.documentElement.style.setProperty('--verse-line-height', lh[size] || '1.78');
+}
 
 function showHighlightsModal() {
   const existing = document.getElementById('hl-modal');
@@ -4054,7 +4183,10 @@ function showSidebar(key, verseNum, refs) {
         </div>
         <button class="bookmark-btn ${isBkmk ? 'active' : ''}" onclick="onBookmarkClick('${key}', this)" aria-label="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" title="${isBkmk ? 'Remove from bookmarks' : 'Save to bookmarks'}">${isBkmk ? '★ Saved' : '☆ Save'}</button>
       </div>
-      <button id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this)" style="margin-top:10px;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent">Compare KJV / ESV / BSB</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent">Compare KJV / ESV / BSB</button>
+        <button onclick="showImagePickerModal(${JSON.stringify(verseText).replace(/"/g, '&quot;')}, '${book.name} ${state.chapter}:${verseNum}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent">Save as image</button>
+      </div>
       <div id="${cmpId}" style="margin-top:10px"></div>
     </div>
     ${tqHTML}
