@@ -1897,27 +1897,35 @@ async function loadCommentary() {
   } catch(e) {}
 }
 
-let SERMONS_WATERMARK = null;
+let SERMONS = null;
 async function loadSermons() {
   try {
-    const r = await fetch('sermons_watermark.json');
-    if (r.ok) SERMONS_WATERMARK = await r.json();
+    const r = await fetch('sermons.json');
+    if (r.ok) SERMONS = await r.json();
   } catch(e) {}
 }
 
+const PASTOR_COLORS = {
+  'MacArthur': '#2A4D6E',
+  'Joby Martin': '#5C3A8C',
+  'Jonny Ardavanis': '#7B5C3F',
+  'JP / Harris Creek': '#A8531F',
+  'Watermark': '#1F8A53',
+};
+
 function getSermonsForVerse(osisBook, chapter, verse) {
   const out = [];
-  if (SERMONS_WATERMARK) {
+  if (SERMONS) {
     const verseKey = `${osisBook}.${chapter}.${verse}`;
     const chKey = `${osisBook}.${chapter}`;
-    const direct = SERMONS_WATERMARK[verseKey] || [];
-    const chapterMatch = SERMONS_WATERMARK[chKey] || [];
+    const direct = SERMONS[verseKey] || [];
+    const chapterMatch = SERMONS[chKey] || [];
     const seen = new Set();
     direct.concat(chapterMatch).forEach(s => {
       if (!seen.has(s.url)) { seen.add(s.url); out.push(s); }
     });
   }
-  return out.slice(0, 6);
+  return out.slice(0, 8);
 }
 
 // Hebrew/Greek transliteration (pronunciation guide)
@@ -2808,25 +2816,29 @@ function showSidebar(key, verseNum, refs) {
       </div>
     </div>
     ${(() => {
-      const refStr = encodeURIComponent(book.name + ' ' + state.chapter + ':' + verseNum);
-      const watermarkSermons = getSermonsForVerse(OSIS_BY_IDX[state.bookIdx], state.chapter, verseNum);
-      const wmHTML = watermarkSermons.length ? `
+      const sermons = getSermonsForVerse(OSIS_BY_IDX[state.bookIdx], state.chapter, verseNum);
+      const sermonsHTML = sermons.length ? `
         <div class="blb-section" style="margin-top:14px">
           <div class="blb-title">Sermons on this passage</div>
-          ${watermarkSermons.map(s => `
-            <a href="${s.url}" target="_blank" rel="noopener" style="display:block;padding:10px 12px;margin:4px 0;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid #1F8A53;border-radius:4px;text-decoration:none;color:var(--text);font-family:var(--sans)">
-              <div style="font-size:13px;font-weight:600;line-height:1.35">${s.title}</div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${s.speaker || ''}${s.speaker && s.date ? ' · ' : ''}${s.date || ''} · Watermark</div>
-            </a>
-          `).join('')}
+          ${sermons.map(s => {
+            const color = PASTOR_COLORS[s.pastor] || '#888';
+            return `<a href="${s.url}" target="_blank" rel="noopener" style="display:block;padding:11px 13px;margin:6px 0;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid ${color};border-radius:4px;text-decoration:none;color:var(--text);font-family:var(--sans);transition:background 0.15s">
+              <div style="font-size:13px;font-weight:600;line-height:1.35;color:var(--text)">${s.title}</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px;display:flex;align-items:center;gap:6px">
+                <span style="display:inline-block;padding:1px 6px;background:${color};color:white;border-radius:3px;font-size:9.5px;font-weight:600;letter-spacing:0.03em">${s.pastor || ''}</span>
+                ${s.feed ? `<span style="font-style:italic">${s.feed}</span>` : ''}
+                ${s.date ? `<span>· ${s.date}</span>` : ''}
+              </div>
+            </a>`;
+          }).join('')}
         </div>` : '';
-      return wmHTML + `
-      <div class="blb-section" style="margin-top:${watermarkSermons.length ? '6px' : '14px'}">
-        <div class="blb-title">Search other ministries</div>
+      return sermonsHTML + `
+      <div class="blb-section" style="margin-top:${sermons.length ? '6px' : '14px'}">
+        <div class="blb-title">${sermons.length ? 'Browse more' : 'Search ministries'}</div>
         <div class="blb-links">
-          <a class="blb-btn" href="https://www.gty.org/search?q=${refStr}" target="_blank" rel="noopener" title="John MacArthur — Grace to You">MacArthur</a>
-          <a class="blb-btn" href="https://stonebridgebible.org/sermons" target="_blank" rel="noopener" title="Jonny Ardavanis — Stonebridge Bible">Ardavanis</a>
-          ${watermarkSermons.length === 0 ? `<a class="blb-btn" href="https://www.watermark.org/messages" target="_blank" rel="noopener" title="Watermark Community Church">Watermark</a>` : ''}
+          <a class="blb-btn" href="https://www.gty.org/search?q=${encodeURIComponent(book.name + ' ' + state.chapter + ':' + verseNum)}" target="_blank" rel="noopener" title="John MacArthur — Grace to You">MacArthur</a>
+          <a class="blb-btn" href="https://stonebridgebible.org/sermons" target="_blank" rel="noopener" title="Jonny Ardavanis — Stonebridge / Dial In">Ardavanis</a>
+          <a class="blb-btn" href="https://www.watermark.org/messages" target="_blank" rel="noopener" title="Watermark Community Church">Watermark</a>
           <a class="blb-btn" href="https://www.harriscreek.org/sermons" target="_blank" rel="noopener" title="Harris Creek — Jonathan Pokluda">Harris Creek</a>
           <a class="blb-btn" href="https://www.coe22.com/sermons" target="_blank" rel="noopener" title="Joby Martin — The Church of Eleven22">Joby Martin</a>
         </div>
