@@ -3042,6 +3042,20 @@ function init() {
     } catch(e) { return 0; }
   };
 
+  // Populate the verse-suggestions datalist with all 66 book names + common
+  // abbreviations so typing a partial book name autocompletes natively.
+  try {
+    const dl = document.getElementById('verse-suggestions');
+    if (dl) {
+      BOOKS.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.name + ' 1';
+        opt.label = b.name;
+        dl.appendChild(opt);
+      });
+    }
+  } catch (e) {}
+
   // Apply persisted text size
   applyTextSize(localStorage.getItem('scripture-textsize') || 'M');
 
@@ -3532,6 +3546,13 @@ function exportVerseImage(verseText, reference, gradName, format) {
     midnight: ['#1A2942', '#000814'],
   };
   const palette = gradients[gradName] || gradients.ocean;
+  // Light gradients (paper, gold) need dark foreground text for legibility.
+  const lightGrads = new Set(['paper', 'gold']);
+  const isLight = lightGrads.has(gradName);
+  const fg = isLight ? '#1A1A1A' : '#FFFFFF';
+  const fgSoft = isLight ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.7)';
+  const fgRef = isLight ? 'rgba(0,0,0,0.78)' : 'rgba(255,255,255,0.92)';
+  const fgQuote = isLight ? 'rgba(0,0,0,0.30)' : 'rgba(255,255,255,0.4)';
   const isStory = format === 'story';
   const c = document.createElement('canvas');
   if (isStory) { c.width = 1080; c.height = 1920; }
@@ -3551,7 +3572,7 @@ function exportVerseImage(verseText, reference, gradName, format) {
   vign.addColorStop(1, 'rgba(0,0,0,0.25)');
   ctx.fillStyle = vign; ctx.fillRect(0, 0, W, H);
   // Verse text — Source Serif 4 if available, fallback to Georgia
-  ctx.fillStyle = '#FFFFFF';
+  ctx.fillStyle = fg;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   let text = verseText.replace(/\s+/g, ' ').trim();
@@ -3589,21 +3610,21 @@ function exportVerseImage(verseText, reference, gradName, format) {
   const startY = cy - blockH / 2 + lineH / 2;
   // Open quote
   ctx.font = `400 ${isStory ? 130 : 100}px Georgia, serif`;
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillStyle = fgQuote;
   ctx.fillText('"', cx, startY - lineH * 1.2);
   // Verse text
-  ctx.fillStyle = '#FFFFFF';
+  ctx.fillStyle = fg;
   ctx.font = `500 ${fontSize}px "Source Serif 4", Georgia, serif`;
   lines.forEach((l, i) => ctx.fillText(l, cx, startY + i * lineH));
   // Reference
   const transl = (state.translation || 'kjv').toUpperCase();
   ctx.font = `600 ${isStory ? 36 : 30}px -apple-system, system-ui, sans-serif`;
-  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.fillStyle = fgRef;
   const refY = startY + blockH + 36;
   ctx.fillText('— ' + reference + ' (' + transl + ')', cx, refY);
   // Watermark — bigger, more readable
   ctx.font = `600 22px -apple-system, system-ui, sans-serif`;
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.fillStyle = fgSoft;
   ctx.fillText('hunihydration.com/bible', cx, H - 50);
   // Trigger download
   c.toBlob(blob => {
@@ -3641,10 +3662,12 @@ function _renderImagePreview(canvasEl, verseText, reference, gradName, format) {
     gold:['#E8C770','#7A5D1F'], midnight:['#1A2942','#000814'],
   };
   const palette = gradients[gradName] || gradients.ocean;
+  const isLight = gradName === 'paper' || gradName === 'gold';
+  const fg = isLight ? '#1A1A1A' : '#FFFFFF';
   const grad = ctx.createLinearGradient(0, 0, W, H);
   grad.addColorStop(0, palette[0]); grad.addColorStop(1, palette[1]);
   ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#FFFFFF';
+  ctx.fillStyle = fg;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const text = verseText.replace(/\s+/g, ' ').trim();
   const len = text.length;
@@ -3664,10 +3687,10 @@ function _renderImagePreview(canvasEl, verseText, reference, gradName, format) {
   const startY = H/2 - (lines.length * lineH)/2 + lineH/2;
   lines.forEach((l, i) => ctx.fillText(l, W/2, startY + i * lineH));
   ctx.font = `600 11px -apple-system, sans-serif`;
-  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillStyle = isLight ? 'rgba(0,0,0,0.78)' : 'rgba(255,255,255,0.85)';
   ctx.fillText('— ' + reference, W/2, startY + lines.length * lineH + 14);
   ctx.font = `500 8px sans-serif`;
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillStyle = isLight ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.55)';
   ctx.fillText('hunihydration.com/bible', W/2, H - 14);
 }
 
@@ -5130,6 +5153,10 @@ function showSidebar(key, verseNum, refs) {
     })()}
   `;
 
+  // Reset scroll on every re-open so a new verse starts at the top
+  // (was leaving the panel scrolled to wherever the previous verse left off,
+  // which often hid the verse text under sermons / commentary).
+  sidebar.scrollTop = 0;
   sidebar.classList.add('open');
   document.body.classList.add('sidebar-open');
   // Lazy-trigger cross-refs load on first sidebar interaction
