@@ -282,6 +282,33 @@ body.mode-inline .ref-dot::after {
 .verse.red-letter .verse-text { color: #B43232; }
 [data-theme="dark"] .verse.red-letter .verse-text { color: #E47373; }
 
+/* Filter chips for reference types */
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 8px 0;
+}
+.filter-chip {
+  border: none;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 12px;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: opacity 0.15s, transform 0.05s;
+  -webkit-tap-highlight-color: transparent;
+}
+.filter-chip:active { transform: scale(0.96); }
+.filter-chip.filter-off { opacity: 0.35; text-decoration: line-through; }
+.filter-chip.prophecy { background: var(--prophecy); color: white; }
+.filter-chip.fulfillment { background: var(--fulfillment); color: white; }
+.filter-chip.quote { background: var(--quote); color: white; }
+.filter-chip.parallel { background: var(--parallel); color: white; }
+.filter-chip.thematic { background: var(--thematic); color: white; }
+
 /* Bookmark button */
 .bookmark-btn {
   background: var(--bg-alt);
@@ -3051,15 +3078,22 @@ function showSidebar(key, verseNum, refs) {
       (obByType[t] = obByType[t] || []).push(r);
     });
     const obTypeOrder = ['PROPHECY','FULFILLMENT','QUOTE','PARALLEL','THEMATIC'];
+    // Filter chips
+    const chipsHTML = obTypeOrder.filter(t => obByType[t]).map(type => {
+      const tlow = type.toLowerCase();
+      const n = obByType[type].length;
+      return `<button class="filter-chip type ${tlow}" data-type="${type}" onclick="toggleTypeFilter('${type}', this)">${type} <span style="opacity:0.7;font-weight:500;margin-left:4px">${n}</span></button>`;
+    }).join('');
     obHTML = `<div class="sidebar-section">
       <div class="sidebar-section-title" style="display:flex;justify-content:space-between;align-items:center">
         <span>More references</span>
         <span class="ob-attribution">OpenBible.info · CC-BY</span>
-      </div>`;
+      </div>
+      <div class="filter-chips">${chipsHTML}</div>`;
     obTypeOrder.forEach(type => {
       if (!obByType[type]) return;
       const tlow = type.toLowerCase();
-      obHTML += `<div style="margin-top:10px"><div style="font-size:10px;letter-spacing:0.08em;color:var(--text-dim);text-transform:uppercase;margin:6px 0 4px 0">${type}</div>`;
+      obHTML += `<div class="ref-type-section" data-type="${type}" style="margin-top:10px"><div style="font-size:10px;letter-spacing:0.08em;color:var(--text-dim);text-transform:uppercase;margin:6px 0 4px 0">${type}</div>`;
       obByType[type].forEach(r => {
         const safeRef = r.r.replace(/[^A-Za-z0-9.\-]/g, '');
         const human = osisToHuman(r.r);
@@ -3190,6 +3224,14 @@ function showSidebar(key, verseNum, refs) {
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.body.classList.remove('sidebar-open');
+}
+
+function toggleTypeFilter(type, btn) {
+  const sections = document.querySelectorAll('.ref-type-section[data-type="' + type + '"]');
+  const isHidden = btn.classList.contains('filter-off');
+  btn.classList.toggle('filter-off');
+  sections.forEach(s => { s.style.display = isHidden ? '' : 'none'; });
+  haptic(4);
 }
 
 function onBookmarkClick(key, btn) {
