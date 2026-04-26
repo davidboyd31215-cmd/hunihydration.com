@@ -348,6 +348,21 @@ body.sidebar-open .bible-text {
   /* Apple HIG minimum tap target: 44pt */
   .icon-btn, .theme-toggle { min-width: 44px; min-height: 44px; }
 }
+/* Reader mode — strips chrome for distraction-free skim reading.
+   Mirrors what the print stylesheet hides, but keeps the page interactive. */
+body.reader-mode .ref-dots,
+body.reader-mode .ws-strip,
+body.reader-mode .legend,
+body.reader-mode #bottom-nav,
+body.reader-mode .verse-actions,
+body.reader-mode .commentary-card,
+body.reader-mode .questions-card { display: none !important; }
+body.reader-mode .verse-num { opacity: 0.45; }
+body.reader-mode .verse { cursor: default; }
+body.reader-mode .verse:hover { background: none; border-left-color: transparent !important; }
+body.reader-mode .header { opacity: 0.4; transition: opacity 0.2s; }
+body.reader-mode .header:hover, body.reader-mode .header:focus-within { opacity: 1; }
+
 /* Honor user's reduced-motion preference (vestibular disorder accessibility) */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -1522,7 +1537,7 @@ body.mode-timeline .timeline-help { display: block; }
 [data-theme="dark"] .legend,
 [data-theme="dark"] .graph-help { background: rgba(30, 33, 40, 0.96); }
 [data-theme="dark"] .ref-card { background: var(--bg-alt); }
-[data-theme="dark"] .ref-card:hover { background: #262A33; }
+[data-theme="dark"] .ref-card:hover { background: var(--border); }
 
 /* Focus theme — sepia, distraction-free reading */
 [data-theme="focus"] {
@@ -2106,6 +2121,13 @@ body.mode-timeline .timeline-help { display: block; }
         </div>
         <div class="settings-row-value" id="settings-readmode-value">Sidebar</div>
       </div>
+      <div class="settings-row" data-action="readermode">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Reader mode</div>
+          <div class="settings-row-sub">Hide cross-ref dots, word study, header — pure reading flow</div>
+        </div>
+        <div class="settings-row-value" id="settings-readermode-value">Off</div>
+      </div>
       <div class="settings-row" data-action="viewmode">
         <div class="settings-row-main">
           <div class="settings-row-label">Special views</div>
@@ -2612,6 +2634,8 @@ function init() {
     const tsLabel = { S:'Small', M:'Medium', L:'Large', XL:'X-Large', XXL:'XX-Large', XXXL:'Huge' };
     setVal('settings-textsize-value', tsLabel[localStorage.getItem('scripture-textsize') || 'M'], 'action');
     setVal('settings-readmode-value', state.mode === 'inline' ? 'Inline' : 'Sidebar', 'action');
+    const readerOn = document.body.classList.contains('reader-mode');
+    setVal('settings-readermode-value', readerOn ? 'On' : 'Off', readerOn ? 'on' : 'off');
     setVal('settings-viewmode-value', ({sidebar:'Read',inline:'Read',arc:'Arc',graph:'Graph',timeline:'Timeline'})[state.mode] || 'Read', 'action');
     const ds = document.getElementById('settings-depth-sub');
     if (ds) ds.textContent = state.depthMode === 'top' ? 'Showing top references only' : 'Showing all references';
@@ -2706,6 +2730,12 @@ function init() {
       else if (action === 'viewmode') {
         const next = _cycle(['sidebar','arc','graph','timeline'], state.mode === 'inline' ? 'sidebar' : state.mode);
         _setReadMode(next);
+      }
+      else if (action === 'readermode') {
+        const on = !document.body.classList.contains('reader-mode');
+        document.body.classList.toggle('reader-mode', on);
+        try { localStorage.setItem('scripture-reader-mode', on ? '1' : '0'); } catch(e) {}
+        showToast(on ? 'Reader mode on — chrome hidden' : 'Reader mode off');
       }
       else if (action === 'random') {
         // Use a curated list of top-cited / famous passages so it's always meaningful
@@ -2997,6 +3027,11 @@ function init() {
 
   // Apply persisted text size
   applyTextSize(localStorage.getItem('scripture-textsize') || 'M');
+
+  // Restore reader-mode preference
+  if (localStorage.getItem('scripture-reader-mode') === '1') {
+    document.body.classList.add('reader-mode');
+  }
 
   // Register service worker for offline caching of JSON data
   if ('serviceWorker' in navigator) {
