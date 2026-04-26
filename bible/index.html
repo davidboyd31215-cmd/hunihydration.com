@@ -883,8 +883,30 @@ body.mode-arc .arc-help { display: block; }
   .header-controls { display: contents; }
   .chapter-nav { gap: 6px; flex-shrink: 0; }
   .ctrl-label { display: none; }
-  .pill-group { flex-shrink: 0; }
-  .pill-group button { font-size: 12px; padding: 6px 10px; }
+  .pill-group {
+    flex-shrink: 0;
+    background: var(--bg-alt);
+    border-radius: 8px;
+    padding: 2px;
+    display: inline-flex;
+    gap: 0;
+    border: 1px solid var(--border);
+  }
+  .pill-group button {
+    font-size: 12px;
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .pill-group button.active {
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .pill-group button .hint { display: none; }
   .theme-toggle, #share-link, #depth-toggle, #commentary-toggle, #wordstudy-toggle, #redletter-toggle {
     font-size: 11px;
     padding: 6px 8px;
@@ -1411,6 +1433,7 @@ function init() {
   // Mode (Read + View groups together, single-active across both)
   document.querySelectorAll('#mode-group button, #view-group button').forEach(btn => {
     btn.addEventListener('click', () => {
+      haptic(6);
       document.querySelectorAll('#mode-group button, #view-group button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       setMode(btn.dataset.m);
@@ -1443,6 +1466,7 @@ function init() {
   }
   syncDepthBtn();
   if (depthBtn) depthBtn.addEventListener('click', () => {
+    haptic(8);
     state.depthMode = state.depthMode === 'top' ? 'all' : 'top';
     localStorage.setItem('scripture-depth', state.depthMode);
     syncDepthBtn();
@@ -1466,6 +1490,7 @@ function init() {
   }
   syncCommentaryBtn();
   if (commentaryBtn) commentaryBtn.addEventListener('click', () => {
+    haptic(8);
     state.commentaryOn = !state.commentaryOn;
     localStorage.setItem('scripture-commentary', state.commentaryOn ? 'on' : 'off');
     syncCommentaryBtn();
@@ -1486,6 +1511,7 @@ function init() {
   }
   syncRlBtn();
   if (rlBtn) rlBtn.addEventListener('click', () => {
+    haptic(8);
     state.redLetterOn = !state.redLetterOn;
     localStorage.setItem('scripture-redletter', state.redLetterOn ? 'on' : 'off');
     syncRlBtn();
@@ -1505,6 +1531,7 @@ function init() {
   }
   syncWsBtn();
   if (wsBtn) wsBtn.addEventListener('click', async () => {
+    haptic(8);
     state.wordStudyOn = !state.wordStudyOn;
     localStorage.setItem('scripture-wordstudy', state.wordStudyOn ? 'on' : 'off');
     syncWsBtn();
@@ -2455,6 +2482,48 @@ function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.body.classList.remove('sidebar-open');
 }
+
+// Haptic feedback helper (no-op where unsupported)
+function haptic(pattern = 8) {
+  if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} }
+}
+
+// Swipe-down-to-dismiss for the bottom-sheet sidebar (mobile only)
+(function attachSidebarSwipe() {
+  if (!('ontouchstart' in window)) return;
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  let startY = 0, currentY = 0, dragging = false, startScrollTop = 0;
+  sidebar.addEventListener('touchstart', (e) => {
+    if (window.innerWidth > 820) return;
+    if (e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+    currentY = startY;
+    startScrollTop = sidebar.scrollTop;
+    dragging = true;
+    sidebar.style.transition = 'none';
+  }, { passive: true });
+  sidebar.addEventListener('touchmove', (e) => {
+    if (!dragging || window.innerWidth > 820) return;
+    currentY = e.touches[0].clientY;
+    const dy = currentY - startY;
+    // Only drag-down when the sheet is at the top of its scroll
+    if (sidebar.scrollTop <= 0 && startScrollTop <= 0 && dy > 0) {
+      sidebar.style.transform = `translateY(${dy}px)`;
+    }
+  }, { passive: true });
+  sidebar.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    const dy = currentY - startY;
+    sidebar.style.transition = '';
+    sidebar.style.transform = '';
+    if (dy > 90) {
+      haptic(12);
+      closeSidebar();
+    }
+  }, { passive: true });
+})();
 
 // ═══════════════════════════════════════════════════════
 // MODE 2: INLINE
