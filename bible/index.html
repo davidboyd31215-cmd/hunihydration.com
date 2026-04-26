@@ -348,6 +348,88 @@ body.sidebar-open .bible-text {
   /* Apple HIG minimum tap target: 44pt */
   .icon-btn, .theme-toggle { min-width: 44px; min-height: 44px; }
 }
+/* Welcome card — extracted from per-render inline styles. Cuts ~2KB
+   of HTML per chapter render. */
+#welcome-card {
+  background: linear-gradient(135deg, var(--accent-soft), transparent);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin: 0 0 24px 0;
+  font-family: var(--sans);
+  position: relative;
+}
+#welcome-card .wc-dismiss {
+  position: absolute; top: 8px; right: 10px;
+  background: none; border: none; font-size: 18px;
+  color: var(--text-dim); cursor: pointer; padding: 4px 8px; line-height: 1;
+}
+#welcome-card .wc-title {
+  font-family: var(--serif); font-size: 17px; font-weight: 600;
+  color: var(--text); margin-bottom: 6px;
+}
+#welcome-card .wc-body {
+  font-size: 13px; color: var(--text-muted);
+  line-height: 1.55; margin-bottom: 14px;
+}
+#welcome-card .wc-section-label {
+  font-size: 12px; color: var(--text-dim);
+  margin-bottom: 8px; text-transform: uppercase;
+  letter-spacing: 0.06em; font-weight: 600;
+}
+#welcome-card .wc-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+#welcome-card .wc-cta {
+  background: var(--accent); color: white; text-decoration: none;
+  padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600;
+}
+#welcome-card .wc-pill {
+  background: var(--bg-alt); color: var(--text); text-decoration: none;
+  padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--border);
+}
+#welcome-card .wc-chip {
+  background: var(--bg-alt); color: var(--text); text-decoration: none;
+  padding: 6px 11px; border-radius: 14px; font-size: 11.5px; font-weight: 500;
+  border: 1px solid var(--border); cursor: pointer;
+}
+#welcome-card .wc-tip {
+  font-size: 11px; color: var(--text-dim);
+  margin-top: 10px; line-height: 1.5;
+}
+
+/* Per-chapter journal block — extracted from inline styles */
+.journal-block {
+  margin: 32px 0 24px;
+  padding: 18px 18px 14px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  font-family: var(--sans);
+}
+.journal-block .jb-head {
+  display: flex; justify-content: space-between;
+  align-items: center; margin-bottom: 8px; gap: 10px;
+}
+.journal-block .jb-label {
+  font-size: 11px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+}
+.journal-block .jb-prompt {
+  font-size: 13px; color: var(--text-muted); margin-top: 2px;
+}
+.journal-block .jb-status {
+  font-size: 11px; color: var(--text-dim);
+}
+.journal-block textarea {
+  width: 100%; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 10px 12px; font-family: var(--serif);
+  font-size: 14px; line-height: 1.55; resize: vertical;
+  box-sizing: border-box; min-height: 60px;
+}
+
 /* Reader mode — strips chrome for distraction-free skim reading.
    Mirrors what the print stylesheet hides, but keeps the page interactive. */
 body.reader-mode .ref-dots,
@@ -3046,17 +3128,20 @@ function init() {
     } catch(e) { return 0; }
   };
 
-  // Populate the verse-suggestions datalist with all 66 book names + common
-  // abbreviations so typing a partial book name autocompletes natively.
+  // Populate the verse-suggestions datalist with all 66 book names so typing
+  // a partial book name autocompletes natively. Guard + fragment to avoid
+  // double-population if init is called twice and to batch the appends.
   try {
     const dl = document.getElementById('verse-suggestions');
-    if (dl) {
+    if (dl && !dl.dataset.populated) {
+      const frag = document.createDocumentFragment();
       BOOKS.forEach(b => {
         const opt = document.createElement('option');
         opt.value = b.name + ' 1';
-        opt.label = b.name;
-        dl.appendChild(opt);
+        frag.appendChild(opt);
       });
+      dl.appendChild(frag);
+      dl.dataset.populated = '1';
     }
   } catch (e) {}
 
@@ -4711,30 +4796,28 @@ function renderChapter(book, verses) {
   let welcomeHTML = '';
   if (!seenWelcome) {
     welcomeHTML = `
-      <div id="welcome-card" style="background:linear-gradient(135deg,var(--accent-soft),transparent);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:18px 20px;margin:0 0 24px 0;font-family:var(--sans);position:relative">
-        <button onclick="localStorage.setItem('scripture-welcome-seen','1'); document.getElementById('welcome-card').remove();" style="position:absolute;top:8px;right:10px;background:none;border:none;font-size:18px;color:var(--text-dim);cursor:pointer;padding:4px 8px;line-height:1" aria-label="Dismiss welcome">&times;</button>
-        <div style="font-family:var(--serif);font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px">Welcome to Scripture Link</div>
-        <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px">
-          A free Bible reader that connects every verse to the rest of Scripture. Tap any verse to see related passages, ancient-language meanings, and sermons that explain it.
+      <div id="welcome-card">
+        <button class="wc-dismiss" onclick="localStorage.setItem('scripture-welcome-seen','1'); document.getElementById('welcome-card').remove();" aria-label="Dismiss welcome">&times;</button>
+        <div class="wc-title">Welcome to Scripture Link</div>
+        <div class="wc-body">A free Bible reader that connects every verse to the rest of Scripture. Tap any verse to see related passages, ancient-language meanings, and sermons that explain it.</div>
+        <div class="wc-section-label">New to the Bible? Start here</div>
+        <div class="wc-row">
+          <a class="wc-cta" href="#John.1.1">Read the Gospel of John →</a>
         </div>
-        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600">New to the Bible? Start here</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-          <a href="#John.1.1" style="background:var(--accent);color:white;text-decoration:none;padding:8px 14px;border-radius:6px;font-size:13px;font-weight:600">Read the Gospel of John →</a>
+        <div class="wc-section-label">Or jump to a famous verse</div>
+        <div class="wc-row">
+          <a class="wc-pill" href="#John.3.16">John 3:16</a>
+          <a class="wc-pill" href="#Ps.23.1">Psalm 23</a>
+          <a class="wc-pill" href="#Rom.8.28">Romans 8:28</a>
+          <a class="wc-pill" href="#Matt.5.3">Beatitudes</a>
         </div>
-        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Or jump to a famous verse</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px">
-          <a href="#John.3.16" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid var(--border)">John 3:16</a>
-          <a href="#Ps.23.1" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid var(--border)">Psalm 23</a>
-          <a href="#Rom.8.28" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid var(--border)">Romans 8:28</a>
-          <a href="#Matt.5.3" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid var(--border)">Beatitudes</a>
+        <div class="wc-section-label" style="margin-top:14px">Try a feature</div>
+        <div class="wc-row" style="gap:6px">
+          <a class="wc-chip" href="#John.3.16" onclick="setTimeout(()=>{const v=document.querySelector('[data-verse=\&quot;16\&quot;]');v&&v.click();},700)">See cross-references →</a>
+          <a class="wc-chip" href="javascript:void(0)" onclick="(function(){state.wordStudyOn=true;localStorage.setItem('scripture-ws-on','1');location.hash='#Gen.1.1';loadChapter();document.getElementById('welcome-card')?.remove();})()">Show Hebrew/Greek →</a>
+          <a class="wc-chip" href="javascript:void(0)" onclick="document.getElementById('settings-toggle')?.click();setTimeout(()=>document.querySelector('[data-action=themes]')?.click(),200)">Browse by theme →</a>
         </div>
-        <div style="font-size:12px;color:var(--text-dim);margin-top:14px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Try a feature</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
-          <a href="#John.3.16" onclick="setTimeout(()=>{const v=document.querySelector('[data-verse=\&quot;16\&quot;]');v&&v.click();},700)" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:6px 11px;border-radius:14px;font-size:11.5px;font-weight:500;border:1px solid var(--border)">See cross-references →</a>
-          <a href="javascript:void(0)" onclick="(function(){state.wordStudyOn=true;localStorage.setItem('scripture-ws-on','1');location.hash='#Gen.1.1';loadChapter();document.getElementById('welcome-card')?.remove();})()" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:6px 11px;border-radius:14px;font-size:11.5px;font-weight:500;border:1px solid var(--border)">Show Hebrew/Greek →</a>
-          <a href="javascript:void(0)" onclick="document.getElementById('settings-toggle')?.click();setTimeout(()=>document.querySelector('[data-action=themes]')?.click(),200)" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:6px 11px;border-radius:14px;font-size:11.5px;font-weight:500;border:1px solid var(--border)">Browse by theme →</a>
-        </div>
-        <div style="font-size:11px;color:var(--text-dim);margin-top:10px;line-height:1.5">
+        <div class="wc-tip">
           <strong style="color:var(--text-muted)">Tap any verse</strong> to see its connections. Open <strong style="color:var(--text-muted)">Menu</strong> for read-aloud, commentary, and more. On a keyboard, press <kbd style="background:var(--bg);border:1px solid var(--border-strong);border-radius:3px;padding:1px 5px;font-family:monospace;color:var(--text-muted)">?</kbd> for shortcuts.
         </div>
       </div>
@@ -4912,15 +4995,15 @@ function renderChapter(book, verses) {
   const _journalMap = (() => { try { return JSON.parse(localStorage.getItem('scripture-journal') || '{}'); } catch(e) { return {}; } })();
   const _journalEntry = _journalMap[_journalKey];
   const _journalText = _journalEntry ? (typeof _journalEntry === 'string' ? _journalEntry : (_journalEntry.text || '')) : '';
-  html += `<section class="journal-block" style="margin:32px 0 24px;padding:18px 18px 14px;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:6px;font-family:var(--sans)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px">
+  html += `<section class="journal-block">
+    <div class="jb-head">
       <div>
-        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Reflection</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-top:2px">What stood out to you in ${book.name} ${state.chapter}?</div>
+        <div class="jb-label">Reflection</div>
+        <div class="jb-prompt">What stood out to you in ${book.name} ${state.chapter}?</div>
       </div>
-      <span id="journal-status-${_journalKey}" style="font-size:11px;color:var(--text-dim)"></span>
+      <span class="jb-status" id="journal-status-${_journalKey}"></span>
     </div>
-    <textarea id="journal-${_journalKey}" placeholder="Write a few sentences — saved automatically, only on this device." rows="3" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-family:var(--serif);font-size:14px;line-height:1.55;resize:vertical;box-sizing:border-box;min-height:60px" oninput="_saveJournal('${_journalKey}', this.value)">${_journalText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}</textarea>
+    <textarea id="journal-${_journalKey}" placeholder="Write a few sentences — saved automatically, only on this device." rows="3" oninput="_saveJournal('${_journalKey}', this.value)">${_journalText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}</textarea>
   </section>`;
 
   html += `<footer class="page-footer">
