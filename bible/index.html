@@ -1047,6 +1047,13 @@ body.mode-inline .ref-dot::after {
 .ws-gloss { font-size: 9.5px; color: var(--text-muted); margin-top: 1px; letter-spacing: 0.2px; max-width: 100px; text-align: center; }
 .ws-strong { font-size: 8.5px; color: var(--text-dim); font-variant-numeric: tabular-nums; margin-top: 1px; }
 @media (max-width: 1100px) { .ws-strip { margin-left: 0; } }
+/* Bump interlinear font sizes on phones — 9.5px gloss / 8.5px Strong's
+   sat below the iOS legibility floor and were borderline unreadable. */
+@media (max-width: 600px) {
+  .ws-orig { font-size: 19px; }
+  .ws-gloss { font-size: 12px; max-width: 140px; }
+  .ws-strong { font-size: 11px; }
+}
 
 #ws-modal {
   display: none;
@@ -3385,8 +3392,9 @@ function getSermonsForVerse(osisBook, chapter, verse) {
   if (SERMONS) {
     const verseKey = `${osisBook}.${chapter}.${verse}`;
     const chKey = `${osisBook}.${chapter}`;
-    const direct = SERMONS[verseKey] || [];
-    const chapterMatch = SERMONS[chKey] || [];
+    // Defensive: skip the optional _meta entry if present.
+    const direct = (verseKey === '_meta' ? null : SERMONS[verseKey]) || [];
+    const chapterMatch = (chKey === '_meta' ? null : SERMONS[chKey]) || [];
     const seen = new Set();
     direct.concat(chapterMatch).forEach(s => {
       if (!seen.has(s.url)) { seen.add(s.url); out.push(s); }
@@ -5518,6 +5526,10 @@ function showSidebar(key, verseNum, refs) {
     </div>
     ${(() => {
       const sermons = getSermonsForVerse(OSIS_BY_IDX[state.bookIdx], state.chapter, verseNum);
+      // Optional sermon-index freshness stamp — picked up from sermons.json
+      // _meta.scraped if scrape_podcasts.py wrote it. Renders quietly under
+      // the sermon list so users know whether the index is stale.
+      const sermonScraped = (SERMONS && SERMONS._meta && SERMONS._meta.scraped) || '';
       const sermonsHTML = sermons.length ? `
         <div class="blb-section" style="margin-top:14px">
           <div class="blb-title">Sermons on this passage</div>
@@ -5533,6 +5545,7 @@ function showSidebar(key, verseNum, refs) {
               </div>
             </a>`;
           }).join('')}
+          ${sermonScraped ? `<div style="font-size:10px;color:var(--text-dim);margin-top:6px;font-style:italic;text-align:right">Sermon index scraped ${sermonScraped}</div>` : ''}
         </div>` : '';
       return sermonsHTML + `
       <div class="blb-section" style="margin-top:${sermons.length ? '6px' : '14px'}">
@@ -5582,7 +5595,8 @@ function onBookmarkClick(key, btn) {
     btn.classList.remove('just-saved'); void btn.offsetWidth; // restart animation
     if (nowBookmarked) {
       btn.classList.add('just-saved');
-      try { if (navigator.vibrate) navigator.vibrate(12); } catch(e) {}
+      // toggleBookmark() already fires haptic([8,30,8]); don't double-buzz
+      // and don't bypass prefers-reduced-motion the way raw vibrate would.
       showToast('Verse saved to your bookmarks');
     } else {
       showToast('Bookmark removed');
