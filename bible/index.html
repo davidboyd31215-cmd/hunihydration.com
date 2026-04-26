@@ -677,6 +677,77 @@ body.mode-graph .graph-help { display: block; }
   .legend-item span { display: none; }
   .legend { gap: 6px; padding: 6px; }
 }
+
+/* OpenBible.info "More references" tier */
+.ob-attribution {
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--text-dim);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 8px;
+  font-style: italic;
+}
+.ref-card.ob {
+  border-left-color: var(--border-strong);
+}
+.ref-card.ob .ref-card-header { gap: 6px; }
+.ref-card.ob .ref-card-address {
+  text-decoration: none;
+  color: var(--accent);
+  cursor: pointer;
+}
+.ref-card.ob .ref-card-address:hover { text-decoration: underline; }
+.ref-vote-badge {
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.ref-card.ob .ref-card-text {
+  display: none;
+  font-style: normal;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+}
+.ref-card.ob.expanded .ref-card-text { display: block; }
+
+.ref-marker-extra {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  margin-left: 2px;
+  line-height: 1;
+}
+
+/* Header status pill (loading / count) */
+.status-pill {
+  font-family: var(--sans);
+  font-size: 10px;
+  color: var(--text-dim);
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
 </style>
 </head>
 <body class="mode-sidebar">
@@ -703,6 +774,8 @@ body.mode-graph .graph-help { display: block; }
   </div>
 
   <div class="chapter-nav">
+    <span class="status-pill" id="xrefs-status" title="OpenBible.info cross-references">…</span>
+    <button id="share-link" class="theme-toggle" aria-label="Copy share link" title="Copy direct link to this verse/chapter">🔗 Share</button>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">☾</button>
     <button id="prev-ch" aria-label="Previous chapter">&#8592;</button>
     <span id="chapter-display">Genesis 1</span>
@@ -912,6 +985,7 @@ function init() {
   sel.addEventListener('change', () => {
     state.bookIdx = +sel.value;
     state.chapter = 1;
+    state.activeVerse = null;
     loadChapter();
   });
 
@@ -936,12 +1010,35 @@ function init() {
 
   // Chapter nav
   document.getElementById('prev-ch').addEventListener('click', () => {
-    if (state.chapter > 1) { state.chapter--; loadChapter(); }
+    if (state.chapter > 1) { state.chapter--; state.activeVerse = null; loadChapter(); }
   });
   document.getElementById('next-ch').addEventListener('click', () => {
     const max = BOOKS[state.bookIdx].chapters;
-    if (state.chapter < max) { state.chapter++; loadChapter(); }
+    if (state.chapter < max) { state.chapter++; state.activeVerse = null; loadChapter(); }
   });
+
+  // Deep-link routing: parse #Book.Chapter[.Verse] on load and on hashchange
+  parseHash();
+  window.addEventListener('hashchange', () => {
+    if (parseHash()) loadChapter();
+  });
+
+  // Share-link button
+  const shareBtn = document.getElementById('share-link');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', async () => {
+      updateHash();
+      const url = location.href;
+      try {
+        await navigator.clipboard.writeText(url);
+        const original = shareBtn.textContent;
+        shareBtn.textContent = 'Copied!';
+        setTimeout(() => { shareBtn.textContent = original; }, 1400);
+      } catch {
+        prompt('Copy link:', url);
+      }
+    });
+  }
 
   // Theme
   const savedTheme = localStorage.getItem('scripture-theme');
@@ -953,6 +1050,7 @@ function init() {
   });
 
   loadChapter();
+  loadCrossRefs();
 }
 
 function applyTheme(theme) {
@@ -981,6 +1079,169 @@ function setMode(mode) {
 // LOAD CHAPTER
 // ═══════════════════════════════════════════════════════
 const ESV_TOKEN = '822821257cf8b3b86be8a0f87dbeaacce03227d7';
+
+// OSIS book code <-> app book index mapping (matches OpenBible.info dataset)
+const OSIS_BY_IDX = ['Gen','Exod','Lev','Num','Deut','Josh','Judg','Ruth','1Sam','2Sam','1Kgs','2Kgs','1Chr','2Chr','Ezra','Neh','Esth','Job','Ps','Prov','Eccl','Song','Isa','Jer','Lam','Ezek','Dan','Hos','Joel','Amos','Obad','Jonah','Mic','Nah','Hab','Zeph','Hag','Zech','Mal','Matt','Mark','Luke','John','Acts','Rom','1Cor','2Cor','Gal','Eph','Phil','Col','1Thess','2Thess','1Tim','2Tim','Titus','Phlm','Heb','Jas','1Pet','2Pet','1John','2John','3John','Jude','Rev'];
+const IDX_BY_OSIS = {};
+OSIS_BY_IDX.forEach((osis, i) => IDX_BY_OSIS[osis] = i);
+
+let OB_REFS = null;
+const verseTextCache = new Map();
+
+// ── Deep-link routing (#Book.Chapter[.Verse]) ──────────────
+function parseHash() {
+  const m = (location.hash || '').match(/^#([1-3]?[A-Za-z]+)\.(\d+)(?:\.(\d+))?$/);
+  if (!m) return false;
+  const idx = IDX_BY_OSIS[m[1]];
+  if (idx == null) return false;
+  state.bookIdx = idx;
+  state.chapter = Math.max(1, Math.min(BOOKS[idx].chapters, +m[2]));
+  state.activeVerse = m[3] ? +m[3] : null;
+  return true;
+}
+
+function updateHash() {
+  const osis = OSIS_BY_IDX[state.bookIdx];
+  if (!osis) return;
+  const newHash = state.activeVerse
+    ? `#${osis}.${state.chapter}.${state.activeVerse}`
+    : `#${osis}.${state.chapter}`;
+  if (location.hash !== newHash) history.replaceState(null, '', newHash);
+}
+
+function scrollToActiveVerse() {
+  if (!state.activeVerse) return;
+  const el = document.getElementById('v-' + state.activeVerse);
+  if (!el) return;
+  if (state.mode === 'sidebar' || state.mode === 'inline') el.click();
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function loadCrossRefs() {
+  const status = document.getElementById('xrefs-status');
+  try {
+    if (status) status.textContent = 'loading refs…';
+    const res = await fetch('cross_refs.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    OB_REFS = await res.json();
+    const n = Object.keys(OB_REFS).length;
+    if (status) status.textContent = `${(n/1000).toFixed(1)}k verses linked`;
+    // Re-render current chapter so markers pick up OB refs
+    if (state.verses && state.verses.length) renderChapter(BOOKS[state.bookIdx], state.verses);
+  } catch(e) {
+    console.warn('cross_refs.json unavailable —', e.message);
+    if (status) status.textContent = 'curated only';
+  }
+}
+
+function osisToHuman(osisRef) {
+  const parseOne = (s) => s.match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)$/);
+  if (osisRef.includes('-')) {
+    const [a, b] = osisRef.split('-');
+    const ma = parseOne(a), mb = parseOne(b);
+    if (ma && mb) {
+      const idx = IDX_BY_OSIS[ma[1]];
+      const name = idx != null ? BOOKS[idx].name : ma[1];
+      if (ma[1] === mb[1] && ma[2] === mb[2]) return `${name} ${ma[2]}:${ma[3]}–${mb[3]}`;
+      if (ma[1] === mb[1]) return `${name} ${ma[2]}:${ma[3]}–${mb[2]}:${mb[3]}`;
+      const idx2 = IDX_BY_OSIS[mb[1]];
+      const name2 = idx2 != null ? BOOKS[idx2].name : mb[1];
+      return `${name} ${ma[2]}:${ma[3]} – ${name2} ${mb[2]}:${mb[3]}`;
+    }
+  }
+  const m = parseOne(osisRef);
+  if (!m) return osisRef;
+  const idx = IDX_BY_OSIS[m[1]];
+  const name = idx != null ? BOOKS[idx].name : m[1];
+  return `${name} ${m[2]}:${m[3]}`;
+}
+
+function navigateToOsis(osisRef) {
+  const m = osisRef.split('-')[0].match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)$/);
+  if (!m) return;
+  const idx = IDX_BY_OSIS[m[1]];
+  if (idx == null) return;
+  state.bookIdx = idx;
+  state.chapter = +m[2];
+  loadChapter().then(() => {
+    setTimeout(() => {
+      const verseEl = document.getElementById('v-' + m[3]);
+      if (verseEl) {
+        if (state.mode === 'sidebar') verseEl.click();
+        verseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 150);
+  });
+}
+
+async function fetchVerseText(osisRef) {
+  const cacheKey = `${state.translation}:${osisRef}`;
+  if (verseTextCache.has(cacheKey)) return verseTextCache.get(cacheKey);
+  const m = osisRef.split('-')[0].match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)$/);
+  if (!m) return null;
+  const bookOsis = m[1], chapter = +m[2], verse = +m[3];
+  const bookIdx = IDX_BY_OSIS[bookOsis];
+  if (bookIdx == null) return null;
+  let endVerse = verse;
+  if (osisRef.includes('-')) {
+    const em = osisRef.split('-')[1].match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)$/);
+    if (em && em[1] === bookOsis && +em[2] === chapter) endVerse = +em[3];
+  }
+  try {
+    let text = '';
+    if (state.translation === 'kjv') {
+      const book = BOOKS[bookIdx];
+      if (bookIdx === 0 && GENESIS_KJV[chapter]) {
+        const parts = [];
+        for (let i = verse; i <= endVerse; i++) {
+          if (GENESIS_KJV[chapter][i]) parts.push(GENESIS_KJV[chapter][i].trim());
+        }
+        text = parts.join(' ');
+      } else {
+        const range = endVerse > verse ? `${book.abbr}+${chapter}:${verse}-${endVerse}` : `${book.abbr}+${chapter}:${verse}`;
+        const r = await fetch(`https://bible-api.com/${range}?translation=kjv`);
+        const d = await r.json();
+        text = (d.verses || []).map(v => v.text.trim()).join(' ');
+      }
+    } else if (state.translation === 'esv') {
+      const ref = endVerse > verse ? `${BOOKS[bookIdx].name} ${chapter}:${verse}-${endVerse}` : `${BOOKS[bookIdx].name} ${chapter}:${verse}`;
+      const url = `https://api.esv.org/v3/passage/text/?q=${encodeURIComponent(ref)}` +
+        `&include-headings=false&include-footnotes=false&include-passage-references=false` +
+        `&include-short-copyright=false&include-verse-numbers=false&include-first-verse-numbers=false` +
+        `&include-selahs=false&indent-poetry=false&indent-paragraphs=0`;
+      const r = await fetch(url, { headers: { 'Authorization': `Token ${ESV_TOKEN}` } });
+      const d = await r.json();
+      text = (d.passages?.[0] || '').replace(/\s+/g, ' ').trim();
+    } else if (state.translation === 'bsb') {
+      const r = await fetch(`https://bolls.life/get-text/BSB/${bookIdx + 1}/${chapter}/`);
+      const d = await r.json();
+      text = d.filter(v => v.verse >= verse && v.verse <= endVerse)
+              .map(v => (v.text || '').replace(/<[^>]+>/g, '').trim())
+              .join(' ');
+    }
+    text = text.trim();
+    verseTextCache.set(cacheKey, text);
+    return text;
+  } catch(e) {
+    console.warn('verse fetch failed for', osisRef, e);
+    return null;
+  }
+}
+
+function onObCardClick(card, osisRef) {
+  if (card.classList.contains('expanded')) {
+    card.classList.remove('expanded');
+    return;
+  }
+  card.classList.add('expanded');
+  const textEl = card.querySelector('.ref-card-text');
+  if (textEl.dataset.loaded === '1') return;
+  textEl.textContent = 'Loading…';
+  fetchVerseText(osisRef).then(t => {
+    textEl.textContent = t || '(verse text unavailable for this translation)';
+    textEl.dataset.loaded = '1';
+  });
+}
 
 async function fetchKJV(book, chapter) {
   if (book.abbr === 'gen') {
@@ -1045,6 +1306,9 @@ async function loadChapter() {
 
     state.verses = verses;
     renderChapter(book, verses);
+    updateHash();
+    if (state.mode === 'graph') { stopGraph(); startGraph(); }
+    if (state.activeVerse) setTimeout(scrollToActiveVerse, 80);
   } catch(e) {
     textEl.innerHTML = `<div class="loading" style="padding:40px;line-height:1.8">
       <strong>Could not load chapter.</strong><br><br>
@@ -1100,12 +1364,15 @@ function renderChapter(book, verses) {
     <div class="chapter-title">Chapter ${state.chapter}</div>
   `;
 
-  const bookAbbr = getBookAbbr3(state.bookIdx);
+  const bookOsis = OSIS_BY_IDX[state.bookIdx];
 
   verses.forEach(v => {
-    const key = `${bookAbbr}.${state.chapter}.${v.verse}`;
-    const refs = REFS[key] || [];
-    const hasRefs = refs.length > 0;
+    const osisKey = `${bookOsis}.${state.chapter}.${v.verse}`;
+    const legacyKey = `${getBookAbbr3(state.bookIdx)}.${state.chapter}.${v.verse}`;
+    const refs = REFS[osisKey] || REFS[legacyKey] || [];
+    const obList = (OB_REFS && OB_REFS[osisKey]) || [];
+    const hasRefs = refs.length > 0 || obList.length > 0;
+    const key = osisKey;
 
     const typeCounts = {};
     refs.forEach(r => { typeCounts[r.type] = (typeCounts[r.type]||0)+1; });
@@ -1117,6 +1384,9 @@ function renderChapter(book, verses) {
         if (!typeCounts[type]) return;
         dotsHtml += `<span class="ref-dot ${type.toLowerCase()}" title="${type.toLowerCase()} (${typeCounts[type]})">${typeCounts[type]}</span>`;
       });
+      if (obList.length) {
+        dotsHtml += `<span class="ref-marker-extra" title="${obList.length} more cross-references (OpenBible.info)">+${obList.length}</span>`;
+      }
       dotsHtml += '</span>';
     }
 
@@ -1138,6 +1408,14 @@ function renderChapter(book, verses) {
           </div>
         `;
       });
+      if (obList.length) {
+        html += `<div class="inline-ref-item" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
+          <div class="inline-ref-address" style="color:var(--text-dim);font-weight:500">More references <span style="font-style:italic;font-weight:400;color:var(--text-dim)">openbible.info</span></div>`;
+        obList.forEach(r => {
+          html += `<div style="font-family:var(--sans);font-size:12px;margin:3px 0;display:flex;gap:8px;align-items:baseline"><a href="javascript:navigateToOsis('${r.r}')" style="color:var(--accent);text-decoration:none">${osisToHuman(r.r)}</a><span style="font-size:10px;color:var(--text-dim);font-variant-numeric:tabular-nums">${r.v}</span></div>`;
+        });
+        html += `</div>`;
+      }
       html += `</div>`;
     }
   });
@@ -1151,12 +1429,13 @@ function renderChapter(book, verses) {
 function onVerseClick(el) {
   const verseNum = +el.dataset.verse;
   const key = el.dataset.key;
-  const refs = REFS[key] || [];
+  const legacyKey = `${getBookAbbr3(state.bookIdx)}.${state.chapter}.${verseNum}`;
+  const refs = REFS[key] || REFS[legacyKey] || [];
 
-  // Deactivate previous
   document.querySelectorAll('.verse.active').forEach(v => v.classList.remove('active'));
   el.classList.add('active');
   state.activeVerse = verseNum;
+  updateHash();
 
   if (state.mode === 'sidebar') {
     showSidebar(key, verseNum, refs);
@@ -1174,9 +1453,8 @@ function showSidebar(key, verseNum, refs) {
 
   const verseText = state.verses.find(v => v.verse === verseNum)?.text?.trim() || '';
   const blbBook = book.abbr.toLowerCase();
-  const blbAddr = `${BOOKS[state.bookIdx].name.replace(' ','+')}+${state.chapter}:${verseNum}`;
-  const blbURL = `https://www.blueletterbible.org/${state.translation==='ylt'?'ylt':state.translation==='web'?'web':'kjv'}/${blbBook}/${state.chapter}/${verseNum}/`;
-  const blbInterlinear = `https://www.blueletterbible.org/${state.translation==='ylt'?'ylt':'kjv'}/${blbBook}/${state.chapter}/${verseNum}/t_conc_${10000 + verseNum}`;
+  const blbURL = `https://www.blueletterbible.org/kjv/${blbBook}/${state.chapter}/${verseNum}/`;
+  const obList = (OB_REFS && OB_REFS[key]) || [];
 
   let typeGroups = {};
   refs.forEach(r => {
@@ -1185,9 +1463,9 @@ function showSidebar(key, verseNum, refs) {
   });
 
   let refHTML = '';
-  if (refs.length === 0) {
-    refHTML = `<div class="sidebar-section"><p style="color:var(--ink-light);font-style:italic;font-size:14px">No cross-references indexed for this verse yet.</p></div>`;
-  } else {
+  if (refs.length === 0 && obList.length === 0) {
+    refHTML = `<div class="sidebar-section"><p style="color:var(--text-muted);font-style:italic;font-size:13px">No cross-references for this verse.</p></div>`;
+  } else if (refs.length > 0) {
     const typeOrder = ['PROPHECY','FULFILLMENT','QUOTE','PARALLEL','THEMATIC'];
     typeOrder.forEach(type => {
       if (!typeGroups[type]) return;
@@ -1208,12 +1486,31 @@ function showSidebar(key, verseNum, refs) {
     });
   }
 
+  let obHTML = '';
+  if (obList.length) {
+    obHTML = `<div class="sidebar-section">
+      <div class="sidebar-section-title">More references<span class="ob-attribution">OpenBible.info · CC-BY</span></div>`;
+    obList.forEach(r => {
+      const safeRef = r.r.replace(/[^A-Za-z0-9.\-]/g, '');
+      const human = osisToHuman(r.r);
+      obHTML += `<div class="ref-card ob" onclick="onObCardClick(this, '${safeRef}')">
+        <div class="ref-card-header">
+          <span class="ref-card-address" onclick="event.stopPropagation(); navigateToOsis('${safeRef}')" title="Jump to ${human}">${human}</span>
+          <span class="ref-vote-badge" title="${r.v} popularity votes">${r.v}</span>
+        </div>
+        <div class="ref-card-text"></div>
+      </div>`;
+    });
+    obHTML += `</div>`;
+  }
+
   document.getElementById('sidebar-content').innerHTML = `
     <div class="sidebar-header">
       <div class="sidebar-verse-address">${book.name} ${state.chapter}:${verseNum}</div>
       <div class="sidebar-verse-text">${verseText.substring(0,140)}${verseText.length>140?'...':''}</div>
     </div>
     ${refHTML}
+    ${obHTML}
     <div class="blb-section">
       <div class="blb-title">Blue Letter Bible</div>
       <div class="blb-links">
@@ -1256,6 +1553,7 @@ const TYPE_COLORS = {
   PARALLEL: '#3D6E36',
   THEMATIC: '#6B4080',
   QUOTE: '#8B6B1A',
+  OB: '#9A8C70',
 };
 let graphState = { running: false, raf: null, nodes: [], edges: [], scale: 1, ox: 0, oy: 0, drag: null, hover: null };
 
@@ -1277,13 +1575,22 @@ function startGraph() {
   graphState.resize = resize;
   window.addEventListener('resize', resize);
 
-  // Build nodes & edges from REFS
+  // Build nodes & edges scoped to current chapter (curated REFS + OpenBible OB_REFS)
   const nodeMap = {};
   const nodes = [];
   const edges = [];
   const cw = canvas.width / (window.devicePixelRatio || 1);
   const ch = canvas.height / (window.devicePixelRatio || 1);
+  const curBook = OSIS_BY_IDX[state.bookIdx];
+  const curCh = state.chapter;
+  const inCurChapter = (k) => {
+    const m = k.match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)$/);
+    return m && m[1] === curBook && +m[2] === curCh;
+  };
+
+  // Curated refs (with type/text/note)
   Object.entries(REFS).forEach(([sourceKey, refList]) => {
+    if (!inCurChapter(sourceKey)) return;
     if (!nodeMap[sourceKey]) {
       nodeMap[sourceKey] = makeNode(sourceKey, sourceKey.replace(/\./g,' '), true, cw, ch);
       nodes.push(nodeMap[sourceKey]);
@@ -1300,6 +1607,27 @@ function startGraph() {
       nodeMap[tk].deg = (nodeMap[tk].deg||0) + 1;
     });
   });
+
+  // OpenBible.info refs for the current chapter (typed as 'OB')
+  if (OB_REFS) {
+    Object.entries(OB_REFS).forEach(([sourceKey, refList]) => {
+      if (!inCurChapter(sourceKey)) return;
+      if (!nodeMap[sourceKey]) {
+        nodeMap[sourceKey] = makeNode(sourceKey, sourceKey.replace(/\./g,' '), true, cw, ch);
+        nodes.push(nodeMap[sourceKey]);
+      }
+      refList.forEach(r => {
+        const tk = 'T:' + r.r;
+        if (!nodeMap[tk]) {
+          nodeMap[tk] = makeNode(tk, osisToHuman(r.r), false, cw, ch);
+          nodes.push(nodeMap[tk]);
+        }
+        edges.push({ s: nodeMap[sourceKey], t: nodeMap[tk], type: 'OB' });
+        nodeMap[sourceKey].deg = (nodeMap[sourceKey].deg||0) + 1;
+        nodeMap[tk].deg = (nodeMap[tk].deg||0) + 1;
+      });
+    });
+  }
   graphState.nodes = nodes;
   graphState.edges = edges;
   graphState.scale = 1;
