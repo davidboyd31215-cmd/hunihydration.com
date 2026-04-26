@@ -708,7 +708,7 @@ body.mode-inline .ref-dot::after {
 .sidebar.open { right: 0; }
 
 .sidebar-header {
-  padding: 18px 22px 14px;
+  padding: 18px 56px 14px 22px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-alt);
   position: sticky;
@@ -840,8 +840,8 @@ body.mode-inline .ref-dot::after {
 
 .sidebar-close {
   position: absolute;
-  top: 10px;
-  right: 12px;
+  top: 8px;
+  right: 8px;
   background: var(--bg-alt);
   border: 1px solid var(--border);
   font-size: 22px;
@@ -1397,7 +1397,7 @@ body.mode-timeline .timeline-help { display: block; }
   BLB.Tagger.DarkTheme = true;
   BLB.Tagger.TargetNewWindow = true;
   BLB.Tagger.Style = 'par';
-  BLB.Tagger.NoSearchClassNames = 'noTag verse-text ref-card-address inline-ref-address ws-conc-link';
+  BLB.Tagger.NoSearchClassNames = 'noTag verse-text ref-card-address inline-ref-address ws-conc-link sidebar-verse-address sidebar-verse-text book-title chapter-title book-bg-summary book-bg-key book-bg-val book-bg-summary-text settings-row-label settings-row-sub';
   BLB.Tagger.NoSearchTagNames = 'a button input select textarea h1 h2 h3 h4 h5 h6 nav header';
 </script>
 <script src="https://www.blueletterbible.org/assets/scripts/blbToolTip/BLB_ScriptTagger-min.js" type="text/javascript" async></script>
@@ -1453,7 +1453,7 @@ body.mode-timeline .timeline-help { display: block; }
   <div id="sidebar-backdrop" onclick="closeSidebar()"></div>
   <aside class="sidebar" id="sidebar">
     <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close">&#215;</button>
-    <div id="sidebar-content">
+    <div id="sidebar-content" class="noTag">
       <div class="sidebar-empty">Select a verse to see its cross-references.</div>
     </div>
   </aside>
@@ -2933,15 +2933,11 @@ function renderChapter(book, verses) {
   let welcomeHTML = '';
   if (!seenWelcome) {
     welcomeHTML = `
-      <div id="welcome-card" style="background:linear-gradient(135deg,var(--accent-soft),transparent);border:1px solid var(--accent);border-radius:8px;padding:18px 20px;margin:0 0 28px 0;font-family:var(--sans);position:relative">
-        <button onclick="localStorage.setItem('scripture-welcome-seen','1'); document.getElementById('welcome-card').remove();" style="position:absolute;top:8px;right:10px;background:none;border:none;font-size:20px;color:var(--text-dim);cursor:pointer;line-height:1" aria-label="Dismiss">&times;</button>
-        <div style="font-size:13px;font-weight:700;color:var(--accent);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Welcome</div>
-        <div style="font-family:var(--serif);font-size:15px;line-height:1.55;color:var(--text);margin-bottom:10px">A Bible reader with 344K cross-references, MacArthur-style commentary on the top 1,000 verses, Hebrew/Greek word study with Strong's, sermon links from 5 ministries, and a chronological timeline of all 66 books.</div>
-        <div style="font-family:var(--sans);font-size:12px;color:var(--text-muted);line-height:1.55">
-          <strong>Tap any verse</strong> for cross-references, commentary, theological questions, and sermons.<br>
-          <strong>Settings</strong> turns on Hebrew/Greek, commentary notes, and red-letter NT.<br>
-          <strong>Arc</strong> and <strong>Timeline</strong> show the Bible's structure visually.
+      <div id="welcome-card" style="background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:6px;padding:10px 14px;margin:0 0 20px 0;font-family:var(--sans);position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.4;flex:1">
+          <strong style="color:var(--text)">Tap any verse</strong> for refs, commentary &amp; sermons. <strong style="color:var(--text)">Menu</strong> for Hebrew/Greek, notes, red-letter.
         </div>
+        <button onclick="localStorage.setItem('scripture-welcome-seen','1'); document.getElementById('welcome-card').remove();" style="background:none;border:1px solid var(--border-strong);font-size:11px;color:var(--text-muted);cursor:pointer;padding:4px 10px;border-radius:4px;flex-shrink:0;font-weight:500" aria-label="Dismiss">Got it</button>
       </div>
     `;
   }
