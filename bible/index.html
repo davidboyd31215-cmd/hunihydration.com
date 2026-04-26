@@ -595,7 +595,7 @@ body.mode-inline .ref-dot::after {
   top: var(--header-height);
   width: var(--sidebar-width);
   height: calc(100vh - var(--header-height));
-  background: var(--bg-alt);
+  background: var(--bg);
   border-left: 1px solid var(--border);
   overflow-y: auto;
   transition: right 0.25s ease;
@@ -766,7 +766,7 @@ body.mode-inline .ref-dot::after {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 0, 0, 0.32);
-  z-index: 90;
+  z-index: 45;
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
 }
@@ -1027,16 +1027,23 @@ body.mode-timeline .timeline-help { display: block; }
     height: var(--header-height);
     align-items: center;
     gap: 6px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    overflow: hidden;
   }
-  .header::-webkit-scrollbar { display: none; }
   .logo { display: none; }
   .header-controls { display: contents; }
-  .chapter-nav { gap: 6px; flex-shrink: 0; }
+  .chapter-nav { gap: 4px; flex-shrink: 0; margin-left: auto; }
   .ctrl-label { display: none; }
+  /* Hide everything except essentials in the header bar; rest goes to Settings */
+  #mode-group, #view-group, #translation-group, #depth-toggle, #commentary-toggle, #wordstudy-toggle, #redletter-toggle {
+    display: none !important;
+  }
+  /* Book select stays visible but compact */
+  #book-select { max-width: 130px; font-size: 13px; padding: 4px 6px; }
+  /* The settings button is the gateway to everything else */
+  #settings-toggle { font-weight: 600; }
+  /* Status pill ("29.4k linked") hidden — surface in settings instead */
+  .status-pill { display: none; }
+  #chapter-display { font-size: 13px; min-width: auto; padding: 0 6px; }
   .pill-group {
     flex-shrink: 0;
     background: var(--bg-alt);
@@ -1300,6 +1307,27 @@ body.mode-timeline .timeline-help { display: block; }
       <button class="settings-close-btn" onclick="closeSettings()" aria-label="Close">Done</button>
     </div>
     <div class="settings-section">
+      <div class="settings-row" data-action="translation">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Translation</div>
+          <div class="settings-row-sub">KJV, ESV, or BSB</div>
+        </div>
+        <div class="settings-row-value" id="settings-translation-value">KJV</div>
+      </div>
+      <div class="settings-row" data-action="readmode">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Reading mode</div>
+          <div class="settings-row-sub">Where cross-references appear</div>
+        </div>
+        <div class="settings-row-value" id="settings-readmode-value">Sidebar</div>
+      </div>
+      <div class="settings-row" data-action="viewmode">
+        <div class="settings-row-main">
+          <div class="settings-row-label">View</div>
+          <div class="settings-row-sub">Read · Arc · Graph · Timeline</div>
+        </div>
+        <div class="settings-row-value" id="settings-viewmode-value">Read</div>
+      </div>
       <div class="settings-row" data-action="depth">
         <div class="settings-row-main">
           <div class="settings-row-label">Cross-references</div>
@@ -1713,13 +1741,32 @@ function init() {
     const wv = document.getElementById('settings-ws-value');
     const rv = document.getElementById('settings-rl-value');
     const tv = document.getElementById('settings-theme-value');
+    const trv = document.getElementById('settings-translation-value');
+    const rmv = document.getElementById('settings-readmode-value');
+    const vmv = document.getElementById('settings-viewmode-value');
     if (dv) { dv.textContent = state.depthMode === 'top' ? 'Best' : 'All'; }
     if (cv) { cv.textContent = state.commentaryOn ? 'On' : 'Off'; }
     if (wv) { wv.textContent = state.wordStudyOn ? 'On' : 'Off'; }
     if (rv) { rv.textContent = state.redLetterOn ? 'On' : 'Off'; }
     if (tv) { tv.textContent = (document.documentElement.getAttribute('data-theme') === 'dark') ? 'Dark' : 'Light'; }
+    if (trv) { trv.textContent = state.translation.toUpperCase(); }
+    if (rmv) { rmv.textContent = state.mode === 'inline' ? 'Inline' : 'Sidebar'; }
+    if (vmv) {
+      vmv.textContent = ({sidebar:'Read',inline:'Read',arc:'Arc',graph:'Graph',timeline:'Timeline'})[state.mode] || 'Read';
+    }
     const ds = document.getElementById('settings-depth-sub');
     if (ds) ds.textContent = state.depthMode === 'top' ? 'Showing top references only' : 'Showing all references';
+  }
+  // Helper: cycle to next value in a list
+  function _cycle(list, current) { const i = list.indexOf(current); return list[(i+1) % list.length]; }
+  function _setReadMode(m) {
+    state.mode = m;
+    document.body.className = 'mode-' + m;
+    document.querySelectorAll('#mode-group button, #view-group button').forEach(b => b.classList.toggle('active', b.dataset.m === m));
+    if (m !== 'sidebar') document.getElementById('sidebar').classList.remove('open');
+    if (m !== 'graph') stopGraph(); else startGraph();
+    if (m !== 'arc') stopArc(); else startArc();
+    if (m !== 'timeline') stopTimeline(); else startTimeline();
   }
   if (settingsBtn) settingsBtn.addEventListener('click', () => {
     syncSettingsValues();
@@ -1733,11 +1780,25 @@ function init() {
   drawer && drawer.querySelectorAll('.settings-row').forEach(row => {
     row.addEventListener('click', () => {
       const action = row.dataset.action;
+      haptic(6);
       if (action === 'depth') document.getElementById('depth-toggle').click();
       else if (action === 'commentary') document.getElementById('commentary-toggle').click();
       else if (action === 'wordstudy') document.getElementById('wordstudy-toggle').click();
       else if (action === 'redletter') document.getElementById('redletter-toggle').click();
       else if (action === 'theme') document.getElementById('theme-toggle').click();
+      else if (action === 'translation') {
+        state.translation = _cycle(['kjv','esv','bsb'], state.translation);
+        document.querySelectorAll('#translation-group button').forEach(b => b.classList.toggle('active', b.dataset.t === state.translation));
+        loadChapter();
+      }
+      else if (action === 'readmode') {
+        const next = state.mode === 'sidebar' ? 'inline' : 'sidebar';
+        _setReadMode(next);
+      }
+      else if (action === 'viewmode') {
+        const next = _cycle(['sidebar','arc','graph','timeline'], state.mode === 'inline' ? 'sidebar' : state.mode);
+        _setReadMode(next);
+      }
       syncSettingsValues();
     });
   });
@@ -1774,6 +1835,7 @@ function init() {
   loadRedLetter();
   loadBookBackgrounds();
   loadCommentary();
+  loadSermons();
 }
 
 function applyTheme(theme) {
@@ -1833,6 +1895,29 @@ async function loadCommentary() {
     const r = await fetch('commentary.json');
     if (r.ok) COMMENTARY = await r.json();
   } catch(e) {}
+}
+
+let SERMONS_WATERMARK = null;
+async function loadSermons() {
+  try {
+    const r = await fetch('sermons_watermark.json');
+    if (r.ok) SERMONS_WATERMARK = await r.json();
+  } catch(e) {}
+}
+
+function getSermonsForVerse(osisBook, chapter, verse) {
+  const out = [];
+  if (SERMONS_WATERMARK) {
+    const verseKey = `${osisBook}.${chapter}.${verse}`;
+    const chKey = `${osisBook}.${chapter}`;
+    const direct = SERMONS_WATERMARK[verseKey] || [];
+    const chapterMatch = SERMONS_WATERMARK[chKey] || [];
+    const seen = new Set();
+    direct.concat(chapterMatch).forEach(s => {
+      if (!seen.has(s.url)) { seen.add(s.url); out.push(s); }
+    });
+  }
+  return out.slice(0, 6);
 }
 
 // Hebrew/Greek transliteration (pronunciation guide)
@@ -2722,25 +2807,31 @@ function showSidebar(key, verseNum, refs) {
         <a class="blb-btn" href="${gqURL}" target="_blank" rel="noopener" style="background:#FFF3D6;color:#6B4D00;border-color:#D4B870">GotQuestions ↗</a>
       </div>
     </div>
-    <div class="blb-section" style="margin-top:14px">
-      <div class="blb-title">Sermons on this passage</div>
-      <div class="blb-links">
-        ${(() => {
-          const refStr = encodeURIComponent(book.name + ' ' + state.chapter + ':' + verseNum);
-          const refOnly = encodeURIComponent(book.name + ' ' + state.chapter);
-          return `
-          <a class="blb-btn" href="https://www.gty.org/search?q=${refStr}" target="_blank" rel="noopener" style="background:#1E2933;color:#E8E8E6;border-color:#3D424F" title="John MacArthur — Grace to You">MacArthur ↗</a>
-          <a class="blb-btn" href="https://www.google.com/search?q=${encodeURIComponent('site:stonebridgebible.org sermon ' + book.name + ' ' + state.chapter)}" target="_blank" rel="noopener" style="background:#2C2A47;color:#E8E8E6;border-color:#3D424F" title="Jonny Ardavanis — Stonebridge Bible">Ardavanis ↗</a>
-          <a class="blb-btn" href="https://www.google.com/search?q=${encodeURIComponent('site:watermark.org ' + book.name + ' ' + state.chapter)}" target="_blank" rel="noopener" style="background:#1F3329;color:#E8E8E6;border-color:#3D424F" title="Watermark Community Church (Dallas)">Watermark ↗</a>
-          <a class="blb-btn" href="https://www.google.com/search?q=${encodeURIComponent('site:harriscreek.org sermon ' + book.name + ' ' + state.chapter)}" target="_blank" rel="noopener" style="background:#33291E;color:#E8E8E6;border-color:#3D424F" title="Harris Creek — Jonathan Pokluda">Harris Creek ↗</a>
-          <a class="blb-btn" href="https://www.google.com/search?q=${encodeURIComponent('site:coe22.com sermon ' + book.name + ' ' + state.chapter)}" target="_blank" rel="noopener" style="background:#2A1E33;color:#E8E8E6;border-color:#3D424F" title="Joby Martin — The Church of Eleven22">Joby Martin ↗</a>
-          `;
-        })()}
-      </div>
-      <div style="font-size:10px;color:var(--text-dim);font-family:var(--sans);margin-top:8px;font-style:italic">
-        Each link searches that ministry's sermon archive for ${book.name} ${state.chapter}.
-      </div>
-    </div>
+    ${(() => {
+      const refStr = encodeURIComponent(book.name + ' ' + state.chapter + ':' + verseNum);
+      const watermarkSermons = getSermonsForVerse(OSIS_BY_IDX[state.bookIdx], state.chapter, verseNum);
+      const wmHTML = watermarkSermons.length ? `
+        <div class="blb-section" style="margin-top:14px">
+          <div class="blb-title">Sermons on this passage</div>
+          ${watermarkSermons.map(s => `
+            <a href="${s.url}" target="_blank" rel="noopener" style="display:block;padding:10px 12px;margin:4px 0;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid #1F8A53;border-radius:4px;text-decoration:none;color:var(--text);font-family:var(--sans)">
+              <div style="font-size:13px;font-weight:600;line-height:1.35">${s.title}</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${s.speaker || ''}${s.speaker && s.date ? ' · ' : ''}${s.date || ''} · Watermark</div>
+            </a>
+          `).join('')}
+        </div>` : '';
+      return wmHTML + `
+      <div class="blb-section" style="margin-top:${watermarkSermons.length ? '6px' : '14px'}">
+        <div class="blb-title">Search other ministries</div>
+        <div class="blb-links">
+          <a class="blb-btn" href="https://www.gty.org/search?q=${refStr}" target="_blank" rel="noopener" title="John MacArthur — Grace to You">MacArthur</a>
+          <a class="blb-btn" href="https://stonebridgebible.org/sermons" target="_blank" rel="noopener" title="Jonny Ardavanis — Stonebridge Bible">Ardavanis</a>
+          ${watermarkSermons.length === 0 ? `<a class="blb-btn" href="https://www.watermark.org/messages" target="_blank" rel="noopener" title="Watermark Community Church">Watermark</a>` : ''}
+          <a class="blb-btn" href="https://www.harriscreek.org/sermons" target="_blank" rel="noopener" title="Harris Creek — Jonathan Pokluda">Harris Creek</a>
+          <a class="blb-btn" href="https://www.coe22.com/sermons" target="_blank" rel="noopener" title="Joby Martin — The Church of Eleven22">Joby Martin</a>
+        </div>
+      </div>`;
+    })()}
   `;
 
   sidebar.classList.add('open');
