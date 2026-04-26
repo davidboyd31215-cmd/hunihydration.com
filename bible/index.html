@@ -2686,16 +2686,11 @@ function scrollToActiveVerse() {
   if (!state.activeVerse) return;
   const el = document.getElementById('v-' + state.activeVerse);
   if (!el) return;
-  if (state.mode === 'sidebar' || state.mode === 'inline') el.click();
-  // Wait for sidebar to open and layout to settle, then scroll
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || 60;
-      const rect = el.getBoundingClientRect();
-      const targetY = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2);
-      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-    });
-  });
+  // Scroll FIRST so the verse is in view, then open sidebar (which may push content slightly)
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (state.mode === 'sidebar' || state.mode === 'inline') {
+    setTimeout(() => el.click(), 100);
+  }
 }
 
 async function loadCrossRefs() {
