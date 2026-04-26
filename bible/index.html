@@ -200,28 +200,54 @@ body.sidebar-open .bible-text {
   border-bottom: 1px solid var(--border);
 }
 
+/* Skip-to-content link (a11y) */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--accent);
+  color: white;
+  padding: 12px 20px;
+  z-index: 9999;
+  text-decoration: none;
+  font-family: var(--sans);
+  font-weight: 600;
+  border-radius: 0 0 6px 0;
+}
+.skip-link:focus { left: 0; }
+
 .verse {
   display: flex;
-  gap: 14px;
-  margin-bottom: 2px;
-  padding: 4px 8px 4px 4px;
-  border-radius: 3px;
+  gap: 12px;
+  margin-bottom: 4px;
+  padding: 6px 8px 6px 4px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background 0.12s ease, padding-left 0.12s ease;
   align-items: flex-start;
+  border-left: 2px solid transparent;
 }
-.verse:hover { background: var(--accent-soft); }
-.verse.active { background: var(--accent-soft); }
+.verse:hover {
+  background: var(--bg-alt);
+  border-left-color: var(--accent);
+  padding-left: 8px;
+}
+.verse.active {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+  padding-left: 8px;
+}
 
 .verse-num {
   font-family: var(--sans);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-dim);
   min-width: 22px;
-  margin-top: 7px;
+  margin-top: 8px;
   text-align: right;
   user-select: none;
   font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 .verse-text {
@@ -278,9 +304,10 @@ body.mode-inline .ref-dot::after {
 }
 .inline-refs.open { display: block; animation: fade 0.18s ease; }
 
-/* Red-letter Jesus' words */
-.verse.red-letter .verse-text { color: #B43232; }
-[data-theme="dark"] .verse.red-letter .verse-text { color: #E47373; }
+/* Red-letter Jesus' words (WCAG AA contrast) */
+.verse.red-letter .verse-text { color: #9B2828; }
+[data-theme="dark"] .verse.red-letter .verse-text { color: #F08585; }
+[data-theme="focus"] .verse.red-letter .verse-text { color: #8B3A2E; }
 
 /* Filter chips for reference types */
 .filter-chips {
@@ -766,20 +793,26 @@ body.mode-inline .ref-dot::after {
 
 .ref-card {
   margin-bottom: 8px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-left: 3px solid var(--border);
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: border-color 0.12s, background 0.12s;
+  transition: border-color 0.12s, background 0.12s, transform 0.1s;
 }
-.ref-card:hover { border-color: var(--border-strong); }
-.ref-card.prophecy { border-left-color: var(--prophecy); }
-.ref-card.fulfillment { border-left-color: var(--fulfillment); }
-.ref-card.parallel { border-left-color: var(--parallel); }
-.ref-card.thematic { border-left-color: var(--thematic); }
-.ref-card.quote { border-left-color: var(--quote); }
+.ref-card:hover { border-color: var(--border-strong); transform: translateX(1px); }
+.ref-card:active { transform: translateX(0); }
+.ref-card.prophecy { border-left-color: var(--prophecy); background: linear-gradient(90deg, rgba(139,58,58,0.05), transparent 60%); }
+.ref-card.fulfillment { border-left-color: var(--fulfillment); background: linear-gradient(90deg, rgba(42,86,128,0.05), transparent 60%); }
+.ref-card.parallel { border-left-color: var(--parallel); background: linear-gradient(90deg, rgba(61,110,54,0.05), transparent 60%); }
+.ref-card.thematic { border-left-color: var(--thematic); background: linear-gradient(90deg, rgba(107,64,128,0.04), transparent 60%); }
+.ref-card.quote { border-left-color: var(--quote); background: linear-gradient(90deg, rgba(139,107,26,0.05), transparent 60%); }
+[data-theme="dark"] .ref-card.prophecy { background: linear-gradient(90deg, rgba(194,96,96,0.08), transparent 60%); }
+[data-theme="dark"] .ref-card.fulfillment { background: linear-gradient(90deg, rgba(106,157,204,0.08), transparent 60%); }
+[data-theme="dark"] .ref-card.parallel { background: linear-gradient(90deg, rgba(124,175,108,0.08), transparent 60%); }
+[data-theme="dark"] .ref-card.thematic { background: linear-gradient(90deg, rgba(160,117,192,0.06), transparent 60%); }
+[data-theme="dark"] .ref-card.quote { background: linear-gradient(90deg, rgba(192,158,58,0.08), transparent 60%); }
 
 .ref-card-header {
   display: flex;
@@ -1183,12 +1216,13 @@ body.mode-timeline .timeline-help { display: block; }
 [data-theme="focus"] .verse.red-letter .verse-text { color: #8B3A2E; }
 [data-theme="focus"] .ref-card { background: var(--bg-alt); }
 [data-theme="focus"] body { font-family: 'Source Serif 4', Georgia, serif; }
-/* Focus mode dims everything except verse text for distraction-free reading */
-[data-theme="focus"] .ref-dots,
-[data-theme="focus"] .ws-strip,
-[data-theme="focus"] .legend { display: none !important; }
+/* Focus mode dims (not hides) cross-refs/legend; hides interlinear strip; bigger serif */
+[data-theme="focus"] .ref-dots { opacity: 0.45; }
+[data-theme="focus"] .ws-strip { display: none !important; }
+[data-theme="focus"] .legend { opacity: 0.6; }
 [data-theme="focus"] .verse-text { font-size: 19px; line-height: 1.85; }
 [data-theme="focus"] .header { background: var(--bg); border-bottom: 1px solid var(--border); }
+[data-theme="focus"] .book-bg-card { display: none; }
 
 /* Mobile */
 @media (max-width: 1100px) {
@@ -1554,7 +1588,8 @@ body.mode-timeline .timeline-help { display: block; }
 </header>
 
 <div class="layout">
-  <div class="bible-text" id="bible-text">
+  <a href="#bible-text" class="skip-link">Skip to scripture text</a>
+  <main class="bible-text" id="bible-text" role="main">
     <div class="loading">Loading…</div>
   </div>
 
@@ -1564,7 +1599,7 @@ body.mode-timeline .timeline-help { display: block; }
     <span class="bn-label" id="bn-label">Genesis 1</span>
     <button class="bn-arrow" onclick="document.getElementById('next-ch').click()" aria-label="Next chapter">›</button>
   </nav>
-  <aside class="sidebar" id="sidebar">
+  <aside class="sidebar" id="sidebar" role="dialog" aria-modal="false" aria-label="Verse details">
     <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close">&#215;</button>
     <div id="sidebar-content" class="noTag">
       <div class="sidebar-empty">Select a verse to see its cross-references.</div>
@@ -2341,7 +2376,7 @@ const verseTextCache = new Map();
 
 async function loadRedLetter() {
   try {
-    const r = await fetch('red_letter.json?v=1', { cache: 'no-cache' });
+    const r = await fetch('red_letter.json?v=1');
     if (r.ok) RED_LETTER = await r.json();
   } catch(e) {}
 }
@@ -2543,7 +2578,11 @@ function removeBookmark(ref) {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     const modal = document.getElementById('ws-modal');
-    if (modal && modal.classList.contains('open')) closeWordStudy();
+    if (modal && modal.classList.contains('open')) { closeWordStudy(); return; }
+    const drawer = document.getElementById('settings-drawer');
+    if (drawer && drawer.classList.contains('open')) { window.closeSettings && window.closeSettings(); return; }
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && sidebar.classList.contains('open')) { closeSidebar(); return; }
   }
 });
 
@@ -2663,8 +2702,8 @@ function generateRefNote(srcKey, refObj) {
 async function loadTheologyQuestions() {
   try {
     const [rq, ra] = await Promise.all([
-      fetch('theological_questions.json?v=1', { cache: 'no-cache' }),
-      fetch('theological_answers.json?v=1', { cache: 'no-cache' }),
+      fetch('theological_questions.json?v=1'),
+      fetch('theological_answers.json?v=1'),
     ]);
     if (rq.ok) THEOLOGY_Q = await rq.json();
     if (ra.ok) THEOLOGY_A = await ra.json();
@@ -2760,7 +2799,7 @@ async function loadCrossRefs() {
   const status = document.getElementById('xrefs-status');
   try {
     if (status) status.textContent = 'loading refs…';
-    const res = await fetch('cross_refs.json?v=3', { cache: 'no-cache' });
+    const res = await fetch('cross_refs.json?v=3');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     OB_REFS = await res.json();
     const n = Object.keys(OB_REFS).length;
