@@ -38,6 +38,10 @@
 }
 </script>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://bible-api.com" crossorigin>
+<link rel="preconnect" href="https://bolls.life" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -2781,7 +2785,13 @@ function init() {
   }, { passive: true });
 
   loadChapter();
-  loadCrossRefs();
+  // Defer the heavy 14MB cross-refs fetch — lazy on first sidebar open OR after idle.
+  // ensureCrossRefs() is called at every consumer site (sidebar, graph, arc, timeline).
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => ensureCrossRefs(), { timeout: 4000 });
+  } else {
+    setTimeout(() => ensureCrossRefs(), 2500);
+  }
   loadTheologyQuestions();
   loadRedLetter();
   loadBookBackgrounds();
@@ -3862,6 +3872,15 @@ async function loadCrossRefs() {
   }
 }
 
+// Memoize cross-refs load so consumers can call ensureCrossRefs() freely.
+let _crossRefsPromise = null;
+function ensureCrossRefs() {
+  if (OB_REFS) return Promise.resolve(OB_REFS);
+  if (_crossRefsPromise) return _crossRefsPromise;
+  _crossRefsPromise = loadCrossRefs();
+  return _crossRefsPromise;
+}
+
 function osisToHuman(osisRef) {
   const parseOne = (s) => s.match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)$/);
   if (osisRef.includes('-')) {
@@ -4265,7 +4284,7 @@ function renderChapter(book, verses) {
   if (state.chapter === 1 && BOOK_BG && BOOK_BG[osisBook]) {
     const bg = BOOK_BG[osisBook];
     html += `
-      <details class="book-bg-card" ${state.bookIdx === 0 ? 'open' : ''}>
+      <details class="book-bg-card">
         <summary class="book-bg-summary">
           <span class="book-bg-summary-label">About ${book.name}</span>
           <span class="book-bg-summary-hint">tap to expand</span>
@@ -4395,7 +4414,8 @@ function renderChapter(book, verses) {
   }
 
   html += `<footer class="page-footer">
-    <div class="footer-line">Scripture Link · Independent open-source Bible reader</div>
+    <div class="footer-line">Scripture Link · Independent open-source Bible reader · No tracking · Works offline</div>
+    <div class="footer-line" style="font-size:12px;color:var(--text-muted);margin-top:4px">Commentary and sermon picks reflect a <strong style="color:var(--text)">Reformed/expositional</strong> tradition. Verse text and cross-references are tradition-neutral.</div>
     <div class="footer-credits">
       <a href="javascript:showAboutModal()">About &amp; sources</a>
       <span class="footer-sep">·</span>
@@ -4647,6 +4667,8 @@ function showSidebar(key, verseNum, refs) {
 
   sidebar.classList.add('open');
   document.body.classList.add('sidebar-open');
+  // Lazy-trigger cross-refs load on first sidebar interaction
+  ensureCrossRefs();
 }
 
 function closeSidebar() {
@@ -4989,6 +5011,8 @@ const TYPE_COLORS = {
 let graphState = { running: false, raf: null, nodes: [], edges: [], scale: 1, ox: 0, oy: 0, drag: null, hover: null };
 
 function startGraph() {
+  // Cross-refs power the graph — make sure they're loading
+  ensureCrossRefs();
   const canvas = document.getElementById('graph-canvas');
   const tooltip = document.getElementById('graph-tooltip');
   const ctx = canvas.getContext('2d');
@@ -5232,6 +5256,8 @@ function arcColorFor(r, srcKey, tgtKey) {
 }
 
 function startArc() {
+  // Cross-refs power the arc — make sure they're loading
+  ensureCrossRefs();
   const canvas = document.getElementById('arc-canvas');
   if (!canvas) return;
   const tooltip = document.getElementById('arc-tooltip');

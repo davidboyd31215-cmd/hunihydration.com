@@ -2,7 +2,12 @@
 const CACHE_VERSION = 'scripture-v1';
 const DATA_CACHE = 'scripture-data-v1';
 
-const SHELL = ['/bible/', '/bible/index.html'];
+const SHELL = [
+  '/bible/',
+  '/bible/index.html',
+  '/bible/red_letter.json',
+  '/bible/book_backgrounds.json',
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_VERSION).then(c => c.addAll(SHELL).catch(() => {})));
