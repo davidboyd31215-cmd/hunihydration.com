@@ -272,7 +272,7 @@ body.sidebar-open .bible-text {
 .verse {
   display: flex;
   gap: 12px;
-  margin-bottom: 4px;
+  margin-bottom: 10px;
   padding: 6px 8px 6px 4px;
   border-radius: 4px;
   cursor: pointer;
@@ -3211,6 +3211,51 @@ function applyTextSize(size) {
   document.documentElement.style.setProperty('--verse-line-height', lh[size] || '1.78');
 }
 
+function exportBookmarksJSON() {
+  const data = {
+    exported: new Date().toISOString(),
+    source: 'hunihydration.com/bible',
+    bookmarks: getBookmarks(),
+    highlights: getHighlights(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `scripture-link-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('Bookmarks exported');
+}
+
+function importBookmarksJSON() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'application/json,.json';
+  inp.onchange = async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try {
+      const text = await f.text();
+      const data = JSON.parse(text);
+      let imported = 0;
+      if (Array.isArray(data.bookmarks)) {
+        const existing = getBookmarks();
+        const seen = new Set(existing.map(b => b.osis));
+        const merged = [...existing];
+        data.bookmarks.forEach(b => { if (b.osis && !seen.has(b.osis)) { merged.push(b); imported++; } });
+        localStorage.setItem('scripture-bookmarks', JSON.stringify(merged.slice(0, 500)));
+      }
+      let hlImported = 0;
+      if (data.highlights && typeof data.highlights === 'object') {
+        const cur = getHighlights();
+        Object.entries(data.highlights).forEach(([k, v]) => { if (!cur[k]) { cur[k] = v; hlImported++; } });
+        saveHighlights(cur);
+      }
+      showToast(`Imported ${imported} bookmark${imported===1?'':'s'} + ${hlImported} highlight${hlImported===1?'':'s'}`);
+    } catch (e) { showToast('Could not read that file', 'error'); }
+  };
+  inp.click();
+}
+
 function showHighlightsModal() {
   const existing = document.getElementById('hl-modal');
   if (existing) { existing.remove(); return; }
@@ -3245,6 +3290,10 @@ function showHighlightsModal() {
         <button onclick="document.getElementById('hl-modal').remove()" style="background:none;border:none;font-size:22px;color:var(--text-dim);cursor:pointer">&times;</button>
       </div>
       ${body}
+      <div style="display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <button onclick="exportBookmarksJSON()" style="flex:1;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:8px 12px;border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:12px">Export bookmarks &amp; highlights</button>
+        <button onclick="importBookmarksJSON()" style="flex:1;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:8px 12px;border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:12px">Import from file</button>
+      </div>
     </div>`;
   m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
   document.body.appendChild(m);
