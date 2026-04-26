@@ -321,6 +321,31 @@ body.mode-inline .ref-dot::after {
 }
 .inline-refs.open { display: block; animation: fade 0.18s ease; }
 
+/* Bookmark heart bounce */
+@keyframes bookmark-bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.25) rotate(-8deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.bookmark-btn.just-saved { animation: bookmark-bounce 0.42s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* Verse-tap ripple (mobile touch feedback) */
+.verse { position: relative; overflow: hidden; }
+.verse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--rx, 50%) var(--ry, 50%), var(--accent-soft) 0%, transparent 60%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.verse.tapped::after { opacity: 1; transition: opacity 0s; }
+
+/* Pill spring */
+.pill-group button { transition: background 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s, box-shadow 0.2s; }
+.pill-group button.active { transform: scale(1.02); }
+
 /* Currently-speaking verse highlight (read-aloud) */
 .verse.speaking {
   background: linear-gradient(90deg, var(--accent-soft), transparent 80%) !important;
@@ -2377,11 +2402,10 @@ function init() {
     shareBtn.addEventListener('click', async () => {
       updateHash();
       const url = location.href;
+      haptic(8);
       try {
         await navigator.clipboard.writeText(url);
-        const original = shareBtn.textContent;
-        shareBtn.textContent = 'Copied!';
-        setTimeout(() => { shareBtn.textContent = original; }, 1400);
+        showToast('Link copied to clipboard');
       } catch {
         prompt('Copy link:', url);
       }
@@ -3679,6 +3703,14 @@ function onBookmarkClick(key, btn) {
     btn.classList.toggle('active', nowBookmarked);
     btn.textContent = nowBookmarked ? '★ Saved' : '☆ Save';
     btn.setAttribute('aria-label', nowBookmarked ? 'Remove bookmark' : 'Add bookmark');
+    btn.classList.remove('just-saved'); void btn.offsetWidth; // restart animation
+    if (nowBookmarked) {
+      btn.classList.add('just-saved');
+      try { if (navigator.vibrate) navigator.vibrate(12); } catch(e) {}
+      showToast('Verse saved to your bookmarks');
+    } else {
+      showToast('Bookmark removed');
+    }
   }
 }
 
@@ -3744,6 +3776,17 @@ async function compareTranslations(osisKey, btn) {
 function haptic(pattern = 8) {
   if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} }
 }
+
+// Verse-tap ripple — set CSS var to tap point
+document.addEventListener('click', (e) => {
+  const v = e.target.closest('.verse');
+  if (!v) return;
+  const r = v.getBoundingClientRect();
+  v.style.setProperty('--rx', `${e.clientX - r.left}px`);
+  v.style.setProperty('--ry', `${e.clientY - r.top}px`);
+  v.classList.add('tapped');
+  setTimeout(() => v.classList.remove('tapped'), 380);
+}, true);
 
 // Horizontal swipe gestures on bible-text → chapter prev/next (mobile only)
 (function attachChapterSwipe() {
