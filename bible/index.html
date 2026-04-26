@@ -321,6 +321,27 @@ body.mode-inline .ref-dot::after {
 }
 .inline-refs.open { display: block; animation: fade 0.18s ease; }
 
+/* Currently-speaking verse highlight (read-aloud) */
+.verse.speaking {
+  background: linear-gradient(90deg, var(--accent-soft), transparent 80%) !important;
+  border-left-color: var(--accent) !important;
+  padding-left: 8px !important;
+  position: relative;
+}
+.verse.speaking::before {
+  content: '🔊';
+  position: absolute;
+  left: -28px;
+  top: 6px;
+  font-size: 14px;
+  opacity: 0.7;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
 /* Red-letter Jesus' words (WCAG AA contrast) */
 .verse.red-letter .verse-text { color: #9B2828; }
 [data-theme="dark"] .verse.red-letter .verse-text { color: #F08585; }
@@ -2292,43 +2313,62 @@ function init() {
     });
   });
 
-  // Read-aloud button — speech-synthesizes the current chapter
+  // Read-aloud button — speech-synthesizes the current chapter, verse by verse with highlighting
   const readBtn = document.getElementById('read-aloud-btn');
   let readingActive = false;
+  let readingPaused = false;
+  let readingVerseIdx = 0;
   function syncReadBtn() {
     if (!readBtn) return;
-    readBtn.textContent = readingActive ? 'Stop' : 'Listen';
+    readBtn.textContent = readingActive ? (readingPaused ? 'Resume' : 'Stop') : 'Listen';
+    readBtn.classList.toggle('is-on', readingActive);
+  }
+  function clearReadingHighlight() {
+    document.querySelectorAll('.verse.speaking').forEach(el => el.classList.remove('speaking'));
   }
   if (readBtn) readBtn.addEventListener('click', () => {
     haptic(8);
-    if (!('speechSynthesis' in window)) {
-      alert('Your browser does not support speech synthesis.');
-      return;
-    }
-    if (readingActive) {
+    if (!('speechSynthesis' in window)) { alert('Your browser does not support speech synthesis.'); return; }
+    if (readingActive && !readingPaused) {
+      // Pause first, then second click stops fully
       speechSynthesis.cancel();
-      readingActive = false;
+      readingActive = false; readingPaused = false;
+      clearReadingHighlight();
       syncReadBtn();
       return;
     }
     if (!state.verses || !state.verses.length) return;
-    const fullText = state.verses.map(v => `${v.verse}. ${v.text.trim()}`).join(' ');
-    // Chunk the text into sentences for nicer pacing & to allow stopping mid-chapter
-    const chunks = fullText.match(/[^.!?]+[.!?]+/g) || [fullText];
-    let i = 0;
-    function speakNext() {
-      if (!readingActive || i >= chunks.length) {
-        readingActive = false; syncReadBtn(); return;
+    readingVerseIdx = 0;
+    // Try to start at the active verse if one is selected
+    if (state.activeVerse) {
+      const idx = state.verses.findIndex(v => v.verse === state.activeVerse);
+      if (idx >= 0) readingVerseIdx = idx;
+    }
+    function speakNextVerse() {
+      if (!readingActive || readingVerseIdx >= state.verses.length) {
+        readingActive = false; clearReadingHighlight(); syncReadBtn(); return;
       }
-      const u = new SpeechSynthesisUtterance(chunks[i++]);
-      u.rate = 1.0; u.pitch = 1.0; u.lang = 'en-US';
-      u.onend = speakNext;
-      u.onerror = () => { readingActive = false; syncReadBtn(); };
+      const v = state.verses[readingVerseIdx];
+      clearReadingHighlight();
+      const el = document.getElementById('v-' + v.verse);
+      if (el) {
+        el.classList.add('speaking');
+        // Auto-scroll the speaking verse into view (smooth)
+        const r = el.getBoundingClientRect();
+        if (r.top < 80 || r.bottom > window.innerHeight - 80) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+      const u = new SpeechSynthesisUtterance(v.text.replace(/\s+/g, ' ').trim());
+      const rate = parseFloat(localStorage.getItem('scripture-read-rate')) || 1.0;
+      u.rate = rate; u.pitch = 1.0; u.lang = 'en-US';
+      u.onend = () => { readingVerseIdx++; speakNextVerse(); };
+      u.onerror = () => { readingActive = false; clearReadingHighlight(); syncReadBtn(); };
       speechSynthesis.speak(u);
     }
-    readingActive = true;
+    readingActive = true; readingPaused = false;
     syncReadBtn();
-    speakNext();
+    speakNextVerse();
   });
 
   // Share-link button
