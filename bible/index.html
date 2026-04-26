@@ -1830,6 +1830,7 @@ body.mode-timeline .timeline-help { display: block; }
   .settings-row { min-height: 56px; padding: 12px 16px; }
 
   /* Bottom nav bar — thumb-friendly chapter navigation on phones */
+  :root { --bottom-nav-height: calc(54px + env(safe-area-inset-bottom, 0px)); }
   #bottom-nav {
     position: fixed;
     bottom: 0; left: 0; right: 0;
@@ -1842,6 +1843,11 @@ body.mode-timeline .timeline-help { display: block; }
     -webkit-backdrop-filter: blur(20px);
     background: rgba(20, 20, 24, 0.88);
     border-top: 1px solid var(--border);
+  }
+  /* Toast and arc legend should clear the bottom-nav by default on mobile */
+  @media (max-width: 1100px) {
+    .toast { bottom: calc(var(--bottom-nav-height, 70px) + 16px) !important; }
+    #arc-legend { bottom: calc(var(--bottom-nav-height, 70px) + 8px) !important; }
   }
   [data-theme="light"] #bottom-nav { background: rgba(255, 255, 255, 0.92); }
   body.mode-arc #bottom-nav,
@@ -1871,7 +1877,14 @@ body.mode-timeline .timeline-help { display: block; }
     flex: 1;
     text-align: center;
     margin: 0 8px;
+    /* Reset button defaults so the label still looks like text */
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px 4px;
+    -webkit-tap-highlight-color: transparent;
   }
+  #bottom-nav .bn-label:active { opacity: 0.6; }
   /* Push verses up so the bottom nav doesn't cover them */
   body.mode-sidebar .bible-text,
   body.mode-inline .bible-text { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
@@ -2057,7 +2070,7 @@ body.mode-timeline .timeline-help { display: block; }
   <div id="sidebar-backdrop" onclick="closeSidebar()"></div>
   <nav id="bottom-nav" aria-label="Chapter navigation">
     <button class="bn-arrow" onclick="document.getElementById('prev-ch').click()" aria-label="Previous chapter">‹</button>
-    <span class="bn-label" id="bn-label">Genesis 1</span>
+    <button class="bn-label" id="bn-label" onclick="document.getElementById('settings-toggle').click()" aria-label="Open menu — jump to chapter, settings, more" title="Tap to open menu">Genesis 1</button>
     <button class="bn-arrow" onclick="document.getElementById('next-ch').click()" aria-label="Next chapter">›</button>
   </nav>
   <aside class="sidebar" id="sidebar" role="dialog" aria-modal="false" aria-label="Verse details">
@@ -3376,7 +3389,24 @@ async function openWordStudy(strong) {
   if (!strong) return;
   const modal = document.getElementById('ws-modal');
   const body = document.getElementById('ws-modal-body');
-  body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading…</div>';
+  // Render a skeleton echoing the final layout so the modal feels instant
+  // even while lexicon + concordance JSON load on first open.
+  body.innerHTML = `
+    <div class="ws-modal-orig" style="font-size:24px;color:var(--text-dim)">${strong.toUpperCase()}</div>
+    <div class="ws-modal-meta" style="opacity:0.6">Looking up…</div>
+    <div style="margin-top:18px;height:14px;width:60%;background:var(--bg-alt);border-radius:3px"></div>
+    <div style="margin-top:8px;height:14px;width:90%;background:var(--bg-alt);border-radius:3px"></div>
+    <div style="margin-top:8px;height:14px;width:80%;background:var(--bg-alt);border-radius:3px"></div>
+    <div style="margin-top:22px;height:11px;width:40%;background:var(--bg-alt);border-radius:3px;opacity:0.7"></div>
+    <div style="margin-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+      <div style="height:34px;background:var(--bg-alt);border-radius:4px"></div>
+      <div style="height:34px;background:var(--bg-alt);border-radius:4px"></div>
+      <div style="height:34px;background:var(--bg-alt);border-radius:4px"></div>
+      <div style="height:34px;background:var(--bg-alt);border-radius:4px"></div>
+      <div style="height:34px;background:var(--bg-alt);border-radius:4px"></div>
+      <div style="height:34px;background:var(--bg-alt);border-radius:4px"></div>
+    </div>
+  `;
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 
