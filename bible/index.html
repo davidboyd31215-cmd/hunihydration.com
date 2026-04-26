@@ -82,12 +82,14 @@ body {
 .header {
   position: fixed;
   top: 0; left: 0; right: 0;
-  height: var(--header-height);
+  height: calc(var(--header-height) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: calc(24px + env(safe-area-inset-left, 0px));
+  padding-right: calc(24px + env(safe-area-inset-right, 0px));
   background: var(--bg);
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 0 24px;
   z-index: 100;
   border-bottom: 1px solid var(--border);
 }
@@ -218,8 +220,8 @@ select:hover { border-color: var(--border-strong); }
 /* Layout */
 .layout {
   display: flex;
-  margin-top: var(--header-height);
-  min-height: calc(100vh - var(--header-height));
+  margin-top: calc(var(--header-height) + env(safe-area-inset-top, 0px));
+  min-height: calc(100vh - var(--header-height) - env(safe-area-inset-top, 0px));
 }
 
 .bible-text {
@@ -337,6 +339,14 @@ body.sidebar-open .bible-text {
   .ref-dot, .ref-vote-badge { padding: 8px 12px !important; }
   .ws-word { padding: 10px 8px !important; min-width: 44px; }
   .pill-group button { padding: 10px 14px !important; min-height: 40px; }
+  /* Apple HIG minimum tap target: 44pt */
+  .icon-btn, .theme-toggle { min-width: 44px; min-height: 44px; }
+}
+/* Avoid scroll snags when swipe-to-change-chapter is wired on bible-text */
+.bible-text {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 .ref-dots {
@@ -3287,6 +3297,33 @@ document.addEventListener('keydown', (e) => {
   // n / p as alternates for arrow keys (vim-ish)
   if (e.key === 'n' || e.key === 'j') { document.getElementById('next-ch')?.click(); return; }
   if (e.key === 'p' || e.key === 'k') { document.getElementById('prev-ch')?.click(); return; }
+  // gg = top of chapter, G = bottom of chapter (vim-style)
+  if (e.key === 'G' && !e.metaKey && !e.ctrlKey) {
+    e.preventDefault();
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    return;
+  }
+  if (e.key === 'g' && !e.metaKey && !e.ctrlKey) {
+    if (window._lastGTime && Date.now() - window._lastGTime < 600) {
+      window._lastGTime = 0;
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    window._lastGTime = Date.now();
+    return;
+  }
+  // [ / ] = previous / next book (chapter 1)
+  if (e.key === '[' && !e.metaKey && !e.ctrlKey) {
+    e.preventDefault();
+    if (state.bookIdx > 0) { state.bookIdx -= 1; state.chapter = 1; loadChapter(); }
+    return;
+  }
+  if (e.key === ']' && !e.metaKey && !e.ctrlKey) {
+    e.preventDefault();
+    if (state.bookIdx < BOOKS.length - 1) { state.bookIdx += 1; state.chapter = 1; loadChapter(); }
+    return;
+  }
 });
 
 function exportVerseImage(verseText, reference, gradName, format) {
@@ -3696,6 +3733,11 @@ function showKeyboardHelp() {
         <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">/</kbd><span>Jump to verse</span>
         <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">⌘K</kbd><span>Jump to verse</span>
         <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">←  →</kbd><span>Previous / next chapter</span>
+        <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">j  k</kbd><span>Next / previous chapter (vim)</span>
+        <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">n  p</kbd><span>Next / previous chapter</span>
+        <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">[  ]</kbd><span>Previous / next book</span>
+        <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">gg</kbd><span>Top of chapter</span>
+        <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">G</kbd><span>Bottom of chapter</span>
         <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">,</kbd><span>Open menu</span>
         <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">Esc</kbd><span>Close any panel</span>
         <kbd style="background:var(--bg-alt);border:1px solid var(--border-strong);padding:2px 8px;border-radius:4px;font-family:monospace;color:var(--text)">?</kbd><span>Show this help</span>
@@ -5026,6 +5068,14 @@ document.addEventListener('click', (e) => {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     swiping = true;
+  }, { passive: true });
+  // Bail early if first touchmove is mostly vertical — releases the gesture
+  // back to the browser for smooth momentum scrolling instead of waiting until touchend.
+  text.addEventListener('touchmove', (e) => {
+    if (!swiping || !e.touches[0]) return;
+    const dx = Math.abs(e.touches[0].clientX - startX);
+    const dy = Math.abs(e.touches[0].clientY - startY);
+    if (dy > 8 && dy > dx) swiping = false;
   }, { passive: true });
   text.addEventListener('touchend', (e) => {
     if (!swiping) return;
