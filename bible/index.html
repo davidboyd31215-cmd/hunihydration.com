@@ -1904,8 +1904,18 @@ body.mode-timeline .timeline-help { display: block; }
 
 /* Landscape phones — tighter header, smaller bottom-nav */
 @media (max-width: 1100px) and (orientation: landscape) and (max-height: 500px) {
-  :root { --header-height: 44px; }
-  .header { padding: 4px 10px; }
+  :root { --header-height: 36px; }
+  /* In landscape the notch is on the side, not the top — drop top safe-area
+     padding so the header doesn't waste 17%+ of vertical space. */
+  .header {
+    height: var(--header-height);
+    padding: 4px calc(10px + env(safe-area-inset-right, 0px)) 4px calc(10px + env(safe-area-inset-left, 0px));
+    padding-top: 0;
+  }
+  .layout {
+    margin-top: var(--header-height);
+    min-height: calc(100vh - var(--header-height));
+  }
   #bottom-nav { padding: 4px 14px; }
   #bottom-nav button.bn-arrow { height: 36px; }
   #bottom-nav .bn-label { font-size: 13px; }
@@ -4122,10 +4132,10 @@ function showHighlightsModal() {
     };
     const filterRow = `<div style="margin:8px 0 10px;display:flex;flex-wrap:wrap;gap:4px">
       ${pill('all', 'All')}
-      ${pill('yellow', 'Yellow', colorBg.yellow)}
-      ${pill('pink', 'Pink', colorBg.pink)}
-      ${pill('green', 'Green', colorBg.green)}
-      ${pill('blue', 'Blue', colorBg.blue)}
+      ${pill('yellow', 'Yellow · Promise', colorBg.yellow)}
+      ${pill('pink', 'Pink · Warning', colorBg.pink)}
+      ${pill('green', 'Green · Command', colorBg.green)}
+      ${pill('blue', 'Blue · Question', colorBg.blue)}
     </div>`;
     const list = filtered.length === 0
       ? `<div style="padding:16px 8px;color:var(--text-muted);font-size:13px;text-align:center">No ${filter} highlights yet.</div>`
@@ -5596,10 +5606,13 @@ function showHighlightPalette(verseEl, x, y) {
   const p = document.createElement('div');
   p.className = 'hl-palette';
   const colors = [['yellow','y'],['pink','p'],['green','g'],['blue','b']];
+  // Lightweight semantic suggestions — colors stay user-interpretable but
+  // tooltips give first-time users a "what should I use this for?" hint.
+  const HL_HINTS = { yellow: 'Promise', pink: 'Warning', green: 'Command', blue: 'Question' };
   colors.forEach(([name, suf]) => {
     const b = document.createElement('button');
     b.className = `hl-${suf}` + (cur === name ? ' active' : '');
-    b.title = name;
+    b.title = `${HL_HINTS[name]} (${name})`;
     b.textContent = cur === name ? '✓' : '';
     b.onclick = (e) => {
       e.stopPropagation();
