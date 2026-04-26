@@ -241,8 +241,9 @@ select:hover { border-color: var(--border-strong); }
   max-width: 680px;
   margin: 0 auto;
   /* Animate horizontal POSITION only (transform doesn't trigger layout),
-     so opening the sidebar doesn't reflow the verse text horizontally. */
-  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+     so opening the sidebar doesn't reflow the verse text horizontally.
+     Duration matches the sidebar's 0.34s so they finish together. */
+  transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
   will-change: transform;
 }
 
@@ -301,17 +302,21 @@ select:hover { border-color: var(--border-strong); }
   align-items: flex-start;
   border-left: 2px solid transparent;
 }
-.verse:hover {
-  background: var(--bg-alt);
-  border-left-color: var(--accent);
-  padding-left: 8px;
+@media (hover: hover) {
+  .verse:hover {
+    background: var(--bg-alt);
+    border-left-color: var(--accent);
+    padding-left: 8px;
+  }
 }
 .verse.active {
   background: var(--accent-soft);
   /* Keep border WIDTH constant (2px) so the verse text doesn't shift
-     horizontally when activated. Use color + an outset shadow to make
-     the indicator stronger without a layout-shifting width change. */
+     horizontally when activated. Same padding-left as :hover so a
+     hovered-then-clicked verse doesn't snap back 4px. Outset shadow
+     gives the indicator extra weight without layout shift. */
   border-left-color: var(--accent);
+  padding-left: 8px;
   box-shadow: -2px 0 0 0 var(--accent);
 }
 
@@ -886,7 +891,9 @@ body.mode-inline .ref-dot::after {
   .mobile-only { display: inline-flex !important; }
 }
 
-/* Desktop-only header search input — small, unobtrusive, instant. */
+/* Desktop-only header search input — fixed width to avoid shoving the
+   sibling header buttons left when focused (which caused a chapter-title
+   jolt and could miss in-flight clicks). */
 #header-search {
   font-family: var(--sans);
   font-size: 13px;
@@ -896,12 +903,11 @@ body.mode-inline .ref-dot::after {
   background: var(--bg-alt);
   color: var(--text);
   outline: none;
-  width: 220px;
+  width: 260px;
   margin-right: 6px;
-  transition: width 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 #header-search:focus {
-  width: 320px;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
   background: var(--bg);
@@ -2135,7 +2141,7 @@ body.mode-timeline .timeline-help { display: block; }
     <button id="commentary-toggle" class="theme-toggle" hidden aria-label="Toggle commentary" title="Show/hide verse commentary">Notes</button>
     <button id="wordstudy-toggle" class="theme-toggle" hidden aria-label="Toggle word study" title="Show/hide Hebrew & Greek with Strong's numbers">Original</button>
     <button id="redletter-toggle" class="theme-toggle" hidden aria-label="Toggle red-letter NT" title="Show Jesus' words in red (NT only)">Red Letter</button>
-    <input type="search" id="header-search" class="desktop-only" placeholder="Verse or keyword (e.g. John 3:16, hope)" autocapitalize="words" autocorrect="off" autocomplete="off" spellcheck="false" enterkeyhint="go" inputmode="search" aria-label="Search verse or keyword" />
+    <input type="search" id="header-search" class="desktop-only" placeholder="Verse or keyword (e.g. John 3:16, hope)" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false" enterkeyhint="go" inputmode="search" aria-label="Search verse or keyword" />
     <button id="settings-toggle" class="theme-toggle icon-btn" aria-label="Open settings" title="Settings & display options"><svg width="16" height="14" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1 2 L15 2 M1 7 L15 7 M1 12 L15 12"/></svg></button>
     <button id="read-aloud-btn" class="theme-toggle icon-btn" aria-label="Read chapter aloud" aria-pressed="false" title="Read this chapter aloud"><svg width="16" height="14" viewBox="0 0 16 14" fill="currentColor"><path d="M1 4 L4 4 L8 1 L8 13 L4 10 L1 10 Z"/><path d="M10 4 Q12 7 10 10" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M11.5 2.5 Q15 7 11.5 11.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></button>
     <button id="share-link" class="theme-toggle desktop-only icon-btn" aria-label="Copy share link" title="Copy direct link to this verse/chapter"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="3" cy="7" r="2"/><circle cx="11" cy="3" r="2"/><circle cx="11" cy="11" r="2"/><line x1="4.7" y1="6" x2="9.3" y2="3.8"/><line x1="4.7" y1="8" x2="9.3" y2="10.2"/></svg></button>
@@ -4122,9 +4128,18 @@ document.addEventListener('keydown', (e) => {
   const tag = (e.target.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
 
-  // / or Cmd/Ctrl+K → focus jump-to-verse (open Settings if needed)
+  // / or Cmd/Ctrl+K → focus search. Prefer the always-visible desktop
+  // header search; on mobile (where it's hidden) fall back to opening
+  // the settings drawer's jump input.
   if (e.key === '/' || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k')) {
     e.preventDefault();
+    const headerSearch = document.getElementById('header-search');
+    if (headerSearch && headerSearch.offsetParent !== null) {
+      // offsetParent === null when display:none (mobile). Visible → focus.
+      headerSearch.focus();
+      headerSearch.select();
+      return;
+    }
     const settingsBtn = document.getElementById('settings-toggle');
     const drawer = document.getElementById('settings-drawer');
     const jumpInput = document.getElementById('settings-jump-input');
