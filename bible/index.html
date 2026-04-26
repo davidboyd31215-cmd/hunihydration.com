@@ -233,7 +233,7 @@ body.sidebar-open .bible-text {
   padding: 6px 8px 6px 4px;
   border-radius: 4px;
   cursor: pointer;
-  transition: background 0.12s ease, padding-left 0.12s ease;
+  transition: background 0.16s ease, padding-left 0.16s ease, border-left-color 0.16s ease;
   align-items: flex-start;
   border-left: 2px solid transparent;
 }
@@ -818,11 +818,15 @@ body.mode-inline .ref-dot::after {
 .ref-card.parallel { border-left-color: var(--parallel); background: linear-gradient(90deg, rgba(61,110,54,0.05), transparent 60%); }
 .ref-card.thematic { border-left-color: var(--thematic); background: linear-gradient(90deg, rgba(107,64,128,0.04), transparent 60%); }
 .ref-card.quote { border-left-color: var(--quote); background: linear-gradient(90deg, rgba(139,107,26,0.05), transparent 60%); }
-[data-theme="dark"] .ref-card.prophecy { background: linear-gradient(90deg, rgba(194,96,96,0.08), transparent 60%); }
-[data-theme="dark"] .ref-card.fulfillment { background: linear-gradient(90deg, rgba(106,157,204,0.08), transparent 60%); }
-[data-theme="dark"] .ref-card.parallel { background: linear-gradient(90deg, rgba(124,175,108,0.08), transparent 60%); }
-[data-theme="dark"] .ref-card.thematic { background: linear-gradient(90deg, rgba(160,117,192,0.06), transparent 60%); }
-[data-theme="dark"] .ref-card.quote { background: linear-gradient(90deg, rgba(192,158,58,0.08), transparent 60%); }
+[data-theme="dark"] .ref-card.prophecy { background: linear-gradient(90deg, rgba(194,96,96,0.16), transparent 60%); }
+[data-theme="dark"] .ref-card.fulfillment { background: linear-gradient(90deg, rgba(106,157,204,0.16), transparent 60%); }
+[data-theme="dark"] .ref-card.parallel { background: linear-gradient(90deg, rgba(124,175,108,0.16), transparent 60%); }
+[data-theme="dark"] .ref-card.thematic { background: linear-gradient(90deg, rgba(160,117,192,0.13), transparent 60%); }
+[data-theme="dark"] .ref-card.quote { background: linear-gradient(90deg, rgba(192,158,58,0.16), transparent 60%); }
+[data-theme="dark"] #welcome-card { background: linear-gradient(135deg, rgba(123,176,224,0.16), transparent) !important; }
+[data-theme="focus"] #welcome-card { background: linear-gradient(135deg, rgba(107,77,36,0.13), transparent) !important; }
+#welcome-card button[aria-label="Dismiss welcome"] { transition: color 0.12s, background 0.12s; }
+#welcome-card button[aria-label="Dismiss welcome"]:hover { color: var(--text); background: var(--bg-alt); border-radius: 4px; }
 
 .ref-card-header {
   display: flex;
@@ -1462,6 +1466,17 @@ body.mode-timeline .timeline-help { display: block; }
     font-size: 10.5px;
     padding: 5px 7px;
   }
+}
+
+/* Landscape phones — tighter header, smaller bottom-nav */
+@media (max-width: 1100px) and (orientation: landscape) and (max-height: 500px) {
+  :root { --header-height: 44px; }
+  .header { padding: 4px 10px; }
+  #bottom-nav { padding: 4px 14px; }
+  #bottom-nav button.bn-arrow { height: 36px; }
+  #bottom-nav .bn-label { font-size: 13px; }
+  .bible-text { padding-top: 14px !important; padding-bottom: 60px !important; }
+  .verse-text { font-size: 16px; line-height: 1.6; }
 }
 
 @media (max-width: 480px) {
@@ -3668,6 +3683,33 @@ async function compareTranslations(osisKey, btn) {
 function haptic(pattern = 8) {
   if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} }
 }
+
+// Horizontal swipe gestures on bible-text → chapter prev/next (mobile only)
+(function attachChapterSwipe() {
+  if (!('ontouchstart' in window)) return;
+  const text = document.getElementById('bible-text');
+  if (!text) return;
+  let startX = 0, startY = 0, swiping = false;
+  text.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    if (window.innerWidth > 1100) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    swiping = true;
+  }, { passive: true });
+  text.addEventListener('touchend', (e) => {
+    if (!swiping) return;
+    swiping = false;
+    if (!e.changedTouches[0]) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) < 60) return;
+    if (Math.abs(dy) > Math.abs(dx) * 0.6) return; // mostly vertical = scroll
+    haptic(10);
+    if (dx < 0) document.getElementById('next-ch')?.click();
+    else document.getElementById('prev-ch')?.click();
+  }, { passive: true });
+})();
 
 // Swipe-down-to-dismiss for the bottom-sheet sidebar (mobile only)
 (function attachSidebarSwipe() {
