@@ -3605,6 +3605,20 @@ function getSermonsForVerse(osisBook, chapter, verse) {
   return out.slice(0, 8);
 }
 
+// Sermon feeds hand us dates in mixed shapes (RFC 822, ISO 8601, "Apr 26 2026",
+// sometimes year-only). Normalize to the user's locale in medium form so every
+// sermon row reads the same — e.g. "Apr 26, 2026" in en-US, "26 Apr 2026" in en-GB.
+// Returns the original string if it's not a real date (e.g. "2024" alone).
+function formatSermonDate(raw) {
+  if (!raw) return '';
+  const s = String(raw).trim();
+  // Year-only — leave as-is, no day/month to localize.
+  if (/^\d{4}$/.test(s)) return s;
+  const t = Date.parse(s);
+  if (isNaN(t)) return s;
+  return new Date(t).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 // Hebrew/Greek transliteration (pronunciation guide)
 const _HEB_TRANSLIT = {
   'א':"'",'ב':'b','ג':'g','ד':'d','ה':'h','ו':'v','ז':'z','ח':'ḥ','ט':'ṭ','י':'y','כ':'k','ך':'k','ל':'l','מ':'m','ם':'m','נ':'n','ן':'n','ס':'s','ע':"'",'פ':'p','ף':'p','צ':'ts','ץ':'ts','ק':'q','ר':'r','שׁ':'sh','שׂ':'s','ש':'sh','ת':'t',
@@ -4255,10 +4269,18 @@ function _renderImagePreview(canvasEl, verseText, reference, gradName, format) {
   if (lines.length > maxLines) lines.length = maxLines, lines[lines.length-1] += '…';
   const lineH = fontSize * 1.35;
   const startY = H/2 - (lines.length * lineH)/2 + lineH/2;
+  // Open-quote ornament — match the export so the preview is WYSIWYG
+  ctx.font = `400 ${isStory ? 36 : 30}px Georgia, serif`;
+  ctx.fillStyle = isLight ? 'rgba(0,0,0,0.30)' : 'rgba(255,255,255,0.4)';
+  ctx.fillText('"', W/2, startY - lineH * 1.2);
+  ctx.font = `500 ${fontSize}px Georgia, serif`;
+  ctx.fillStyle = fg;
   lines.forEach((l, i) => ctx.fillText(l, W/2, startY + i * lineH));
-  ctx.font = `600 11px -apple-system, sans-serif`;
-  ctx.fillStyle = isLight ? 'rgba(0,0,0,0.78)' : 'rgba(255,255,255,0.85)';
-  ctx.fillText('— ' + reference, W/2, startY + lines.length * lineH + 14);
+  // Reference + translation tag (mirrors export at line 4162-4166)
+  const transl = (state.translation || 'kjv').toUpperCase();
+  ctx.font = `600 11px -apple-system, system-ui, sans-serif`;
+  ctx.fillStyle = isLight ? 'rgba(0,0,0,0.78)' : 'rgba(255,255,255,0.92)';
+  ctx.fillText('— ' + reference + ' (' + transl + ')', W/2, startY + lines.length * lineH + 14);
   ctx.font = `500 8px sans-serif`;
   ctx.fillStyle = isLight ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.55)';
   ctx.fillText('hunihydration.com/bible', W/2, H - 14);
@@ -4382,7 +4404,7 @@ async function copyPassageForSermon() {
       hls.forEach(([k, color]) => lines.push(`  • ${osisToHuman(k)} [${color}]`));
       lines.push('');
     }
-    lines.push(`— Source: hunihydration.com/bible · ${new Date().toISOString().slice(0,10)}`);
+    lines.push(`— Source: hunihydration.com/bible · ${new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}`);
     const text = lines.join('\n');
     try {
       await navigator.clipboard.writeText(text);
@@ -4417,12 +4439,13 @@ function exportBookmarksJSON() {
 // Plain-text export — printable, pastable, readable as-is. Mirrors the JSON
 // export pattern but with a friendly text format.
 function exportBookmarksTXT() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10); // ISO for filename only
+  const todayDisplay = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   const bms = getBookmarks();
   const hls = Object.entries(getHighlights() || {});
   const lines = [
     `Scripture Link — bookmarks & highlights`,
-    `Exported ${today} from hunihydration.com/bible`,
+    `Exported ${todayDisplay} from hunihydration.com/bible`,
     '='.repeat(60),
     '',
   ];
@@ -5344,10 +5367,10 @@ function renderChapter(book, verses) {
       <div id="welcome-card">
         <button class="wc-dismiss" onclick="localStorage.setItem('scripture-welcome-seen','1'); document.getElementById('welcome-card').remove();" aria-label="Dismiss welcome">&times;</button>
         <div class="wc-title">Welcome to Scripture Link</div>
-        <div class="wc-body">A free Bible reader that connects every verse to the rest of Scripture. Tap any verse to see related passages, ancient-language meanings, and sermons that explain it.</div>
-        <div class="wc-section-label">New to the Bible? Start here</div>
+        <div class="wc-body">A free Bible reader that links every verse to related passages, original-language meanings, and sermons.</div>
+        <div class="wc-section-label">Start with a Gospel</div>
         <div class="wc-row">
-          <a class="wc-cta" href="#John.1.1">Read the Gospel of John →</a>
+          <a class="wc-cta" href="#John.1.1">Read John →</a>
         </div>
         <div class="wc-section-label">Or jump to a famous verse</div>
         <div class="wc-row">
@@ -5358,9 +5381,9 @@ function renderChapter(book, verses) {
         </div>
         <div class="wc-section-label" style="margin-top:14px">Try a feature</div>
         <div class="wc-row" style="gap:6px">
-          <a class="wc-chip" href="#John.3.16" onclick="setTimeout(()=>{const v=document.querySelector('[data-verse=\&quot;16\&quot;]');v&&v.click();},700)">See cross-references →</a>
-          <a class="wc-chip" href="javascript:void(0)" onclick="(function(){state.wordStudyOn=true;localStorage.setItem('scripture-ws-on','1');location.hash='#Gen.1.1';loadChapter();document.getElementById('welcome-card')?.remove();})()">Show Hebrew/Greek →</a>
-          <a class="wc-chip" href="javascript:void(0)" onclick="document.getElementById('settings-toggle')?.click();setTimeout(()=>document.querySelector('[data-action=themes]')?.click(),200)">Browse by theme →</a>
+          <a class="wc-chip" href="#John.3.16" onclick="setTimeout(()=>{const v=document.querySelector('[data-verse=\&quot;16\&quot;]');v&&v.click();},700)">See cross-references</a>
+          <a class="wc-chip" href="javascript:void(0)" onclick="(function(){state.wordStudyOn=true;localStorage.setItem('scripture-ws-on','1');location.hash='#Gen.1.1';loadChapter();document.getElementById('welcome-card')?.remove();})()">Show Hebrew &amp; Greek</a>
+          <a class="wc-chip" href="javascript:void(0)" onclick="document.getElementById('settings-toggle')?.click();setTimeout(()=>document.querySelector('[data-action=themes]')?.click(),200)">Browse themes</a>
         </div>
         <div class="wc-tip">
           <strong style="color:var(--text-muted)">Tap any verse</strong> to see its connections. Open <strong style="color:var(--text-muted)">Menu</strong> for read-aloud, commentary, and more. On a keyboard, press <kbd style="background:var(--bg);border:1px solid var(--border-strong);border-radius:3px;padding:1px 5px;font-family:monospace;color:var(--text-muted)">?</kbd> for shortcuts.
@@ -5847,7 +5870,7 @@ function showSidebar(key, verseNum, refs) {
               <div style="font-size:11px;color:var(--text-muted);margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
                 <span style="display:inline-block;padding:1px 6px;background:${color};color:white;border-radius:3px;font-size:9.5px;font-weight:600;letter-spacing:0.03em">${s.pastor || ''}</span>
                 ${s.feed ? `<span style="font-style:italic">${s.feed}</span>` : ''}
-                ${s.date ? `<span>· ${s.date}</span>` : ''}
+                ${s.date ? `<span>· ${formatSermonDate(s.date)}</span>` : ''}
                 ${s.duration ? `<span>· ${s.duration}</span>` : ''}
                 ${(() => {
                   // Subtle 'archive' tag for sermons older than 3 years so
@@ -5862,7 +5885,7 @@ function showSidebar(key, verseNum, refs) {
               </div>
             </a>`;
           }).join('')}
-          ${sermonScraped ? `<div style="font-size:10px;color:var(--text-dim);margin-top:6px;font-style:italic;text-align:right">Sermon index scraped ${sermonScraped}</div>` : ''}
+          ${sermonScraped ? `<div style="font-size:10px;color:var(--text-dim);margin-top:6px;font-style:italic;text-align:right">Sermon index scraped ${formatSermonDate(sermonScraped)}</div>` : ''}
         </div>` : '';
       return sermonsHTML + `
       <div class="blb-section" style="margin-top:${sermons.length ? '6px' : '14px'}">
