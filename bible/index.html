@@ -586,6 +586,51 @@ body.mode-graph .sidebar { right: -420px !important; }
 }
 body.mode-graph .graph-help { display: block; }
 
+/* Arc mode (Harrison/Römhild-style chord visualization) */
+#arc-stage {
+  display: none;
+  position: fixed;
+  top: var(--header-height);
+  left: 0; right: 0; bottom: 0;
+  background: #0A0B0D;
+  z-index: 30;
+}
+body.mode-arc #arc-stage { display: block; }
+body.mode-arc .bible-text,
+body.mode-arc .legend { display: none; }
+body.mode-arc .sidebar { right: -420px !important; }
+#arc-canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
+.arc-help {
+  position: fixed;
+  bottom: 16px; left: 16px;
+  background: rgba(20, 22, 28, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #2A2E38;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: var(--sans);
+  font-size: 11px;
+  color: #9CA0A8;
+  z-index: 25;
+  display: none;
+  pointer-events: none;
+}
+body.mode-arc .arc-help { display: block; }
+.arc-tooltip {
+  position: fixed;
+  background: rgba(20, 22, 28, 0.96);
+  border: 1px solid #3D424F;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-family: var(--sans);
+  font-size: 11px;
+  color: #E8E8E6;
+  pointer-events: none;
+  z-index: 200;
+  display: none;
+}
+
 /* Dark mode */
 [data-theme="dark"] {
   --bg: #15171C;
@@ -770,6 +815,7 @@ body.mode-graph .graph-help { display: block; }
       <button class="active" data-m="sidebar">Sidebar<span class="hint">→</span></button>
       <button data-m="inline">Inline<span class="hint">↓</span></button>
       <button data-m="graph">Graph</button>
+      <button data-m="arc">Arc</button>
     </div>
   </div>
 
@@ -809,6 +855,17 @@ body.mode-graph .graph-help { display: block; }
   <div class="graph-tooltip" id="graph-tooltip"></div>
 </div>
 <div class="graph-help">Drag to pan · scroll to zoom · click a node to read it</div>
+
+<div id="arc-stage">
+  <canvas id="arc-canvas"></canvas>
+  <div class="arc-tooltip" id="arc-tooltip"></div>
+  <div style="position:fixed;top:calc(var(--header-height) + 12px);right:16px;z-index:35;display:flex;gap:6px;font-family:var(--sans)">
+    <button id="arc-color-type" class="theme-toggle" style="background:rgba(20,22,28,0.92);color:#E8E8E6;border-color:#3D424F">Color: Type</button>
+    <button id="arc-color-distance" class="theme-toggle" style="background:rgba(20,22,28,0.92);color:#E8E8E6;border-color:#3D424F">Distance</button>
+    <button id="arc-color-book" class="theme-toggle" style="background:rgba(20,22,28,0.92);color:#E8E8E6;border-color:#3D424F">Book</button>
+  </div>
+</div>
+<div class="arc-help">63,779 connections · current chapter highlighted · hover an arc · click to jump · 226K typed cross-references from OpenBible.info</div>
 
 <script>
 // ═══════════════════════════════════════════════════════
@@ -1068,11 +1125,8 @@ function setMode(mode) {
     document.body.classList.remove('sidebar-open');
   }
   document.querySelectorAll('.inline-refs').forEach(el => el.classList.remove('open'));
-  if (mode === 'graph') {
-    startGraph();
-  } else {
-    stopGraph();
-  }
+  if (mode === 'graph') { startGraph(); } else { stopGraph(); }
+  if (mode === 'arc') { startArc(); } else { stopArc(); }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1121,13 +1175,15 @@ async function loadCrossRefs() {
   const status = document.getElementById('xrefs-status');
   try {
     if (status) status.textContent = 'loading refs…';
-    const res = await fetch('cross_refs.json');
+    const res = await fetch('cross_refs.json?v=3', { cache: 'no-cache' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     OB_REFS = await res.json();
     const n = Object.keys(OB_REFS).length;
     if (status) status.textContent = `${(n/1000).toFixed(1)}k verses linked`;
     // Re-render current chapter so markers pick up OB refs
     if (state.verses && state.verses.length) renderChapter(BOOKS[state.bookIdx], state.verses);
+    // Rebuild graph if user is already in graph mode
+    if (state.mode === 'graph') { stopGraph(); startGraph(); }
   } catch(e) {
     console.warn('cross_refs.json unavailable —', e.message);
     if (status) status.textContent = 'curated only';
@@ -1376,6 +1432,7 @@ function renderChapter(book, verses) {
 
     const typeCounts = {};
     refs.forEach(r => { typeCounts[r.type] = (typeCounts[r.type]||0)+1; });
+    obList.forEach(r => { const t = r.t || 'THEMATIC'; typeCounts[t] = (typeCounts[t]||0)+1; });
     const typeOrder = ['PROPHECY','FULFILLMENT','QUOTE','PARALLEL','THEMATIC'];
     let dotsHtml = '';
     if (hasRefs) {
@@ -1384,9 +1441,6 @@ function renderChapter(book, verses) {
         if (!typeCounts[type]) return;
         dotsHtml += `<span class="ref-dot ${type.toLowerCase()}" title="${type.toLowerCase()} (${typeCounts[type]})">${typeCounts[type]}</span>`;
       });
-      if (obList.length) {
-        dotsHtml += `<span class="ref-marker-extra" title="${obList.length} more cross-references (OpenBible.info)">+${obList.length}</span>`;
-      }
       dotsHtml += '</span>';
     }
 
@@ -1412,7 +1466,8 @@ function renderChapter(book, verses) {
         html += `<div class="inline-ref-item" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
           <div class="inline-ref-address" style="color:var(--text-dim);font-weight:500">More references <span style="font-style:italic;font-weight:400;color:var(--text-dim)">openbible.info</span></div>`;
         obList.forEach(r => {
-          html += `<div style="font-family:var(--sans);font-size:12px;margin:3px 0;display:flex;gap:8px;align-items:baseline"><a href="javascript:navigateToOsis('${r.r}')" style="color:var(--accent);text-decoration:none">${osisToHuman(r.r)}</a><span style="font-size:10px;color:var(--text-dim);font-variant-numeric:tabular-nums">${r.v}</span></div>`;
+          const t = (r.t || 'THEMATIC').toLowerCase();
+          html += `<div style="font-family:var(--sans);font-size:12px;margin:3px 0;display:flex;gap:8px;align-items:baseline"><a href="javascript:navigateToOsis('${r.r}')" style="color:var(--accent);text-decoration:none">${osisToHuman(r.r)}</a><span class="type ${t}" style="font-size:9px;padding:1px 6px">${t.toUpperCase()}</span><span style="font-size:10px;color:var(--text-dim);font-variant-numeric:tabular-nums">${r.v}</span></div>`;
         });
         html += `</div>`;
       }
@@ -1488,18 +1543,34 @@ function showSidebar(key, verseNum, refs) {
 
   let obHTML = '';
   if (obList.length) {
-    obHTML = `<div class="sidebar-section">
-      <div class="sidebar-section-title">More references<span class="ob-attribution">OpenBible.info · CC-BY</span></div>`;
+    const obByType = {};
     obList.forEach(r => {
-      const safeRef = r.r.replace(/[^A-Za-z0-9.\-]/g, '');
-      const human = osisToHuman(r.r);
-      obHTML += `<div class="ref-card ob" onclick="onObCardClick(this, '${safeRef}')">
-        <div class="ref-card-header">
-          <span class="ref-card-address" onclick="event.stopPropagation(); navigateToOsis('${safeRef}')" title="Jump to ${human}">${human}</span>
-          <span class="ref-vote-badge" title="${r.v} popularity votes">${r.v}</span>
-        </div>
-        <div class="ref-card-text"></div>
+      const t = r.t || 'THEMATIC';
+      (obByType[t] = obByType[t] || []).push(r);
+    });
+    const obTypeOrder = ['PROPHECY','FULFILLMENT','QUOTE','PARALLEL','THEMATIC'];
+    obHTML = `<div class="sidebar-section">
+      <div class="sidebar-section-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>More references</span>
+        <span class="ob-attribution">OpenBible.info · CC-BY</span>
       </div>`;
+    obTypeOrder.forEach(type => {
+      if (!obByType[type]) return;
+      const tlow = type.toLowerCase();
+      obHTML += `<div style="margin-top:10px"><div style="font-size:10px;letter-spacing:0.08em;color:var(--text-dim);text-transform:uppercase;margin:6px 0 4px 0">${type}</div>`;
+      obByType[type].forEach(r => {
+        const safeRef = r.r.replace(/[^A-Za-z0-9.\-]/g, '');
+        const human = osisToHuman(r.r);
+        obHTML += `<div class="ref-card ob ${tlow}" onclick="onObCardClick(this, '${safeRef}')">
+          <div class="ref-card-header">
+            <span class="ref-card-address" onclick="event.stopPropagation(); navigateToOsis('${safeRef}')" title="Jump to ${human}">${human}</span>
+            <span class="ref-type-badge ${tlow}" style="font-size:9px">${type}</span>
+            <span class="ref-vote-badge" title="${r.v} popularity votes">${r.v}</span>
+          </div>
+          <div class="ref-card-text"></div>
+        </div>`;
+      });
+      obHTML += `</div>`;
     });
     obHTML += `</div>`;
   }
@@ -1745,6 +1816,270 @@ function stopGraph() {
   if (graphState.raf) cancelAnimationFrame(graphState.raf);
   if (graphState.cleanup) graphState.cleanup();
   const t = document.getElementById('graph-tooltip');
+  if (t) t.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════
+// ARC MODE — Harrison/Römhild-style chord diagram
+// ═══════════════════════════════════════════════════════
+let arcState = { colorMode: 'type', verseIdx: null, hover: null, cleanup: null };
+
+function _parseOsis(key) {
+  const m = (key || '').match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)$/);
+  if (!m) return null;
+  return { book: m[1], ch: +m[2], v: +m[3], bookIdx: IDX_BY_OSIS[m[1]] };
+}
+
+function buildVerseIndex() {
+  const set = new Set();
+  Object.entries(OB_REFS || {}).forEach(([k, refs]) => {
+    set.add(k);
+    refs.forEach(r => set.add(r.r.split('-')[0]));
+  });
+  const arr = [...set].filter(k => _parseOsis(k));
+  arr.sort((a, b) => {
+    const A = _parseOsis(a), B = _parseOsis(b);
+    if (A.bookIdx !== B.bookIdx) return (A.bookIdx ?? 99) - (B.bookIdx ?? 99);
+    if (A.ch !== B.ch) return A.ch - B.ch;
+    return A.v - B.v;
+  });
+  const idx = new Map();
+  arr.forEach((k, i) => idx.set(k, i));
+  // Book boundaries (for vertical separators)
+  const bookStart = {};
+  arr.forEach((k, i) => {
+    const p = _parseOsis(k);
+    if (p && bookStart[p.book] === undefined) bookStart[p.book] = i;
+  });
+  return { idx, total: arr.length, sorted: arr, bookStart };
+}
+
+function arcColorFor(r, srcKey, tgtKey) {
+  if (arcState.colorMode === 'type') {
+    return TYPE_COLORS[r.t || 'THEMATIC'] || '#888';
+  } else if (arcState.colorMode === 'distance') {
+    const si = arcState.verseIdx.idx.get(srcKey);
+    const ti = arcState.verseIdx.idx.get(tgtKey);
+    if (si == null || ti == null) return '#888';
+    const d = Math.abs(ti - si) / arcState.verseIdx.total;
+    const hue = 280 - d * 280;
+    return `hsl(${hue}, 70%, 58%)`;
+  } else { // book
+    const m = srcKey.match(/^([1-3]?[A-Za-z]+)/);
+    const bi = IDX_BY_OSIS[m && m[1]] ?? 0;
+    return `hsl(${(bi * 360 / 66) | 0}, 70%, 58%)`;
+  }
+}
+
+function startArc() {
+  const canvas = document.getElementById('arc-canvas');
+  if (!canvas) return;
+  const tooltip = document.getElementById('arc-tooltip');
+  const ctx = canvas.getContext('2d');
+
+  if (!OB_REFS) {
+    ctx.fillStyle = '#9CA0A8';
+    ctx.font = '14px -apple-system, system-ui, sans-serif';
+    ctx.fillText('Loading 226K cross-references…', 40, 80);
+    return;
+  }
+  if (!arcState.verseIdx) arcState.verseIdx = buildVerseIndex();
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    const stage = document.getElementById('arc-stage');
+    const r = stage.getBoundingClientRect();
+    canvas.width = r.width * dpr;
+    canvas.height = r.height * dpr;
+    canvas.style.width = r.width + 'px';
+    canvas.style.height = r.height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    renderArc();
+  }
+
+  function renderArc() {
+    const w = canvas.width / (window.devicePixelRatio || 1);
+    const h = canvas.height / (window.devicePixelRatio || 1);
+    const margin = 30;
+    const baseY = h - 60;
+    const usableW = w - 2 * margin;
+    const { idx, total, bookStart } = arcState.verseIdx;
+    const xFor = (k) => {
+      const i = idx.get(k);
+      return i == null ? null : margin + (i / Math.max(1, total - 1)) * usableW;
+    };
+    const curBook = OSIS_BY_IDX[state.bookIdx];
+    const curCh = state.chapter;
+    const inCur = (k) => {
+      const p = _parseOsis(k);
+      return p && p.book === curBook && p.ch === curCh;
+    };
+
+    ctx.fillStyle = '#0A0B0D';
+    ctx.fillRect(0, 0, w, h);
+
+    // Pass 1: dim background arcs (whole Bible)
+    ctx.globalAlpha = 0.06;
+    ctx.lineWidth = 0.4;
+    Object.entries(OB_REFS).forEach(([srcKey, refs]) => {
+      const sx = xFor(srcKey);
+      if (sx == null) return;
+      if (inCur(srcKey)) return; // draw current-chapter ones in pass 2
+      refs.forEach(r => {
+        const tgtKey = r.r.split('-')[0];
+        const tx = xFor(tgtKey);
+        if (tx == null) return;
+        const cx = (sx + tx) / 2;
+        const radius = Math.abs(tx - sx) / 2;
+        if (radius < 0.5) return;
+        ctx.strokeStyle = arcColorFor(r, srcKey, tgtKey);
+        ctx.beginPath();
+        ctx.arc(cx, baseY, radius, Math.PI, 0, false);
+        ctx.stroke();
+      });
+    });
+
+    // Book separator ticks at the baseline
+    ctx.globalAlpha = 0.4;
+    ctx.strokeStyle = '#3D424F';
+    ctx.lineWidth = 0.5;
+    Object.values(bookStart).forEach(i => {
+      const x = margin + (i / Math.max(1, total - 1)) * usableW;
+      ctx.beginPath();
+      ctx.moveTo(x, baseY);
+      ctx.lineTo(x, baseY + 14);
+      ctx.stroke();
+    });
+
+    // Pass 2: highlighted current-chapter arcs
+    let highlighted = 0;
+    ctx.globalAlpha = 0.85;
+    ctx.lineWidth = 1.2;
+    Object.entries(OB_REFS).forEach(([srcKey, refs]) => {
+      if (!inCur(srcKey)) return;
+      const sx = xFor(srcKey);
+      if (sx == null) return;
+      refs.forEach(r => {
+        const tgtKey = r.r.split('-')[0];
+        const tx = xFor(tgtKey);
+        if (tx == null) return;
+        const cx = (sx + tx) / 2;
+        const radius = Math.abs(tx - sx) / 2;
+        if (radius < 0.5) return;
+        ctx.strokeStyle = arcColorFor(r, srcKey, tgtKey);
+        ctx.beginPath();
+        ctx.arc(cx, baseY, radius, Math.PI, 0, false);
+        ctx.stroke();
+        highlighted++;
+      });
+    });
+
+    // Baseline + label
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = '#5A6070';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(margin, baseY);
+    ctx.lineTo(w - margin, baseY);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#9CA0A8';
+    ctx.font = '11px -apple-system, system-ui, sans-serif';
+    ctx.fillText(`${BOOKS[state.bookIdx].name} ${curCh} — ${highlighted} highlighted connections`, margin, h - 22);
+    ctx.fillText('Genesis', margin, baseY + 30);
+    ctx.textAlign = 'right';
+    ctx.fillText('Revelation', w - margin, baseY + 30);
+    ctx.textAlign = 'left';
+  }
+
+  arcState.render = renderArc;
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Hover detection — find arc near cursor
+  function onMove(e) {
+    const r = canvas.getBoundingClientRect();
+    const mx = e.clientX - r.left;
+    const my = e.clientY - r.top;
+    const w = r.width, h = r.height;
+    const margin = 30;
+    const baseY = h - 60;
+    const usableW = w - 2 * margin;
+    const { idx, total, sorted } = arcState.verseIdx;
+    // Reverse-lookup from x-position
+    if (my > baseY + 20 || my < 20) {
+      tooltip.style.display = 'none';
+      return;
+    }
+    // Find nearest verse at this x
+    const t = (mx - margin) / usableW;
+    if (t < 0 || t > 1) { tooltip.style.display = 'none'; return; }
+    const i = Math.round(t * (total - 1));
+    const key = sorted[i];
+    if (!key) { tooltip.style.display = 'none'; return; }
+    const p = _parseOsis(key);
+    if (!p) { tooltip.style.display = 'none'; return; }
+    const bookName = BOOKS[p.bookIdx]?.name || p.book;
+    const refCount = (OB_REFS[key] || []).length;
+    tooltip.innerHTML = `<strong>${bookName} ${p.ch}:${p.v}</strong>${refCount ? ` · ${refCount} refs` : ''}`;
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top = (e.clientY + 14) + 'px';
+    tooltip.style.display = 'block';
+  }
+  function onClick(e) {
+    const r = canvas.getBoundingClientRect();
+    const mx = e.clientX - r.left;
+    const my = e.clientY - r.top;
+    const margin = 30;
+    const baseY = r.height - 60;
+    const usableW = r.width - 2 * margin;
+    if (my > baseY + 20 || my < 20) return;
+    const { sorted, total } = arcState.verseIdx;
+    const t = (mx - margin) / usableW;
+    if (t < 0 || t > 1) return;
+    const i = Math.round(t * (total - 1));
+    const key = sorted[i];
+    const p = _parseOsis(key);
+    if (!p || p.bookIdx == null) return;
+    state.bookIdx = p.bookIdx;
+    state.chapter = p.ch;
+    state.activeVerse = p.v;
+    setMode('sidebar');
+    document.querySelectorAll('#mode-group button').forEach(b => b.classList.toggle('active', b.dataset.m === 'sidebar'));
+    loadChapter();
+  }
+  canvas.addEventListener('mousemove', onMove);
+  canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+  canvas.addEventListener('click', onClick);
+
+  // Color-mode buttons
+  const colorBtns = {
+    type: document.getElementById('arc-color-type'),
+    distance: document.getElementById('arc-color-distance'),
+    book: document.getElementById('arc-color-book'),
+  };
+  function syncColorBtns() {
+    Object.entries(colorBtns).forEach(([m, b]) => {
+      if (!b) return;
+      b.style.background = (arcState.colorMode === m) ? '#2A4D6E' : 'rgba(20,22,28,0.92)';
+    });
+  }
+  Object.entries(colorBtns).forEach(([m, b]) => {
+    if (!b) return;
+    b.onclick = () => { arcState.colorMode = m; syncColorBtns(); renderArc(); };
+  });
+  syncColorBtns();
+
+  arcState.cleanup = () => {
+    window.removeEventListener('resize', resize);
+    canvas.removeEventListener('mousemove', onMove);
+    canvas.removeEventListener('click', onClick);
+  };
+}
+
+function stopArc() {
+  if (arcState.cleanup) { arcState.cleanup(); arcState.cleanup = null; }
+  const t = document.getElementById('arc-tooltip');
   if (t) t.style.display = 'none';
 }
 
