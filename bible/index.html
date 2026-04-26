@@ -2050,7 +2050,9 @@ body.mode-timeline .timeline-help { display: block; }
   // BLB Tagger configuration — set BEFORE the script loads
   var BLB = BLB || {}; BLB.Tagger = BLB.Tagger || {};
   BLB.Tagger.Translation = 'KJV';
-  BLB.Tagger.HyperLinks = 'hover';
+  // Hover on desktop, click on touch — hover-only mode causes confusing
+  // 'tap-to-show, tap-to-follow' double-tap on iPhones.
+  BLB.Tagger.HyperLinks = (window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches) ? 'hover' : 'click';
   BLB.Tagger.HideTranslationAbbrev = true;
   BLB.Tagger.DarkTheme = true;
   BLB.Tagger.TargetNewWindow = true;
@@ -3836,9 +3838,9 @@ function showBookmarksModal() {
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:10px;flex-wrap:wrap">
         <div class="ws-modal-orig" style="font-size:24px;margin:0">Bookmarks</div>
-        <button onclick="startClozePractice()" style="background:var(--accent);border:none;color:white;padding:7px 14px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Practice memorizing all saved verses">✎ Practice all${(window._getClozeDueCount && window._getClozeDueCount() > 0) ? ` · ${window._getClozeDueCount()} due` : ''}</button>
+        <button onclick="startClozePractice()" style="background:var(--accent);border:none;color:white;padding:7px 14px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Practice memorizing all saved verses (fill-in-the-blank)">🧠 Practice${(window._getClozeDueCount && window._getClozeDueCount() > 0) ? ` · ${window._getClozeDueCount()} due` : ' all'}</button>
       </div>
-      <div class="ws-modal-meta">${list.length} verse${list.length === 1 ? '' : 's'} saved · tap a verse to open it, or Practice to memorize</div>
+      <div class="ws-modal-meta">${list.length} verse${list.length === 1 ? '' : 's'} saved · tap to open, or Practice to test your memory${(window._getClozeDueCount && window._getClozeDueCount() > 0) ? ` (${window._getClozeDueCount()} due today)` : ''}</div>
       ${list.map((b, i) => `
         <div style="padding:12px 14px;margin:8px 0;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid #D4B870;border-radius:4px;font-family:var(--sans);position:relative">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:8px">
