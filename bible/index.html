@@ -302,15 +302,18 @@ body.sidebar-open .bible-text {
 }
 
 .verse-num {
-  font-family: var(--sans);
-  font-size: var(--verse-num-size, 12px);
-  color: var(--text-muted);
+  /* Match the verse body's serif so numbers feel like part of the text,
+     not a UI control. Light weight, oldstyle figures where available. */
+  font-family: var(--serif);
+  font-size: var(--verse-num-size, 11px);
+  color: var(--text-dim);
   min-width: 22px;
-  margin-top: 8px;
+  margin-top: 6px;
   text-align: right;
   user-select: none;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-variant-numeric: oldstyle-nums;
+  font-feature-settings: 'onum';
+  font-weight: 400;
 }
 /* Screen-reader-only utility for live regions */
 .sr-only {
@@ -2755,6 +2758,14 @@ function init() {
     readBtn.setAttribute('aria-label', label);
     readBtn.setAttribute('title', label);
   }
+  // Expose a hook so loadChapter() can mark reading inactive when the user
+  // navigates away mid-narration — prevents a queued onend from speaking
+  // verses from the new chapter at the old verse-index.
+  window._setReadingInactive = () => {
+    readingActive = false; readingPaused = false; readingVerseIdx = 0;
+    clearReadingHighlight();
+    syncReadBtn();
+  };
   function clearReadingHighlight() {
     document.querySelectorAll('.verse.speaking').forEach(el => el.classList.remove('speaking'));
   }
@@ -3323,10 +3334,18 @@ function removeBookmark(ref) {
 document.addEventListener('keydown', (e) => {
   // Always handle Escape regardless of focus
   if (e.key === 'Escape') {
+    // Helper: any time we close a modal via Escape, also restore body scroll
+    // (the various modal-open paths each set overflow:hidden, but Escape used
+    // to remove the DOM node without restoring it — leaking scroll-lock).
+    const restoreScroll = () => { document.body.style.overflow = ''; };
     const about = document.getElementById('about-modal');
-    if (about) { about.remove(); return; }
+    if (about) { about.remove(); restoreScroll(); return; }
     const kbd = document.getElementById('kbd-help');
-    if (kbd) { kbd.remove(); return; }
+    if (kbd) { kbd.remove(); restoreScroll(); return; }
+    const hl = document.getElementById('hl-modal');
+    if (hl) { hl.remove(); restoreScroll(); return; }
+    const img = document.getElementById('img-picker');
+    if (img) { img.remove(); restoreScroll(); return; }
     const modal = document.getElementById('ws-modal');
     if (modal && modal.classList.contains('open')) { closeWordStudy(); return; }
     const drawer = document.getElementById('settings-drawer');
@@ -4353,12 +4372,20 @@ async function fetchBSB(bookIdx, chapter) {
   return data.map(v => ({ verse: v.verse, text: (v.text || '').replace(/<[^>]+>/g, '').trim() }));
 }
 
+// Monotonically increasing load token so concurrent loadChapter() calls
+// (rapid arrow-key presses) don't let a slow stale fetch overwrite a newer one.
+window._chapterLoadId = window._chapterLoadId || 0;
+
 async function loadChapter() {
-  // Stop any in-progress speech when switching chapters
+  // Stop any in-progress speech when switching chapters AND clear the
+  // reading-active flag so a queued onend handler doesn't keep speaking
+  // verses from the old chapter into the new one.
   if ('speechSynthesis' in window) speechSynthesis.cancel();
+  if (window._setReadingInactive) window._setReadingInactive();
   const readBtn = document.getElementById('read-aloud-btn');
   if (readBtn && readBtn.textContent === 'Stop') readBtn.textContent = 'Listen';
 
+  const myLoadId = ++window._chapterLoadId;
   const book = BOOKS[state.bookIdx];
   document.getElementById('chapter-display').textContent = `${book.name} ${state.chapter}`;
   const bnLabel = document.getElementById('bn-label');
@@ -4385,6 +4412,9 @@ async function loadChapter() {
       return;
     }
 
+    // Bail if a newer loadChapter() call has superseded us — prevents stale
+    // network responses from overwriting a chapter the user has since left.
+    if (myLoadId !== window._chapterLoadId) return;
     state.verses = verses;
     // Clamp activeVerse against actual loaded verse count so a deep link
     // like #Ps.23.99 doesn't try to scroll to a non-existent verse.
@@ -4483,8 +4513,14 @@ function renderChapter(book, verses) {
           <a href="#Rom.8.28" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid var(--border)">Romans 8:28</a>
           <a href="#Matt.5.3" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid var(--border)">Beatitudes</a>
         </div>
-        <div style="font-size:11px;color:var(--text-dim);margin-top:14px;line-height:1.5">
-          <strong style="color:var(--text-muted)">Tap any verse</strong> to see its connections. Open <strong style="color:var(--text-muted)">Menu</strong> for word study, commentary, themes, and read-aloud.
+        <div style="font-size:12px;color:var(--text-dim);margin-top:14px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Try a feature</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+          <a href="#John.3.16" onclick="setTimeout(()=>{const v=document.querySelector('[data-verse=\&quot;16\&quot;]');v&&v.click();},700)" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:6px 11px;border-radius:14px;font-size:11.5px;font-weight:500;border:1px solid var(--border)">See cross-references →</a>
+          <a href="javascript:void(0)" onclick="(function(){state.wordStudyOn=true;localStorage.setItem('scripture-ws-on','1');location.hash='#Gen.1.1';loadChapter();document.getElementById('welcome-card')?.remove();})()" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:6px 11px;border-radius:14px;font-size:11.5px;font-weight:500;border:1px solid var(--border)">Show Hebrew/Greek →</a>
+          <a href="javascript:void(0)" onclick="document.getElementById('settings-toggle')?.click();setTimeout(()=>document.querySelector('[data-action=themes]')?.click(),200)" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:6px 11px;border-radius:14px;font-size:11.5px;font-weight:500;border:1px solid var(--border)">Browse by theme →</a>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:10px;line-height:1.5">
+          <strong style="color:var(--text-muted)">Tap any verse</strong> to see its connections. Open <strong style="color:var(--text-muted)">Menu</strong> for read-aloud, commentary, and more.
         </div>
       </div>
     `;
