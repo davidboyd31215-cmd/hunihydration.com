@@ -464,6 +464,25 @@ body.mode-inline .ref-dot::after {
 .hl-palette .hl-b { background: #BBDEFB; }
 .hl-palette .hl-clear { background: var(--bg); border-color: var(--border-strong); color: var(--text-muted); font-size: 16px; }
 
+/* Clean print — strip chrome, keep just verses + chapter heading */
+@media print {
+  @page { margin: 0.75in; size: letter; }
+  body { background: #fff !important; color: #000 !important; }
+  .header, .sidebar, .legend, #bottom-nav, #welcome-card, #votd-banner, #continue-banner,
+  #arc-stage, #graph-stage, #timeline-stage, #settings-drawer, #ws-modal, #about-modal, #kbd-help,
+  .ref-dots, .ws-strip, .blb-section, .end-of-chapter, .page-footer,
+  .book-bg-card { display: none !important; }
+  .bible-text { max-width: 100%; padding: 0 !important; margin: 0 !important; }
+  .book-title { font-family: Georgia, serif; font-size: 24pt; color: #000 !important; margin-bottom: 4pt; }
+  .chapter-title { font-family: Georgia, serif; font-size: 14pt; color: #000 !important; margin-bottom: 18pt; }
+  .verse { display: block; padding: 0; margin-bottom: 6pt; border: none !important; background: none !important; page-break-inside: avoid; }
+  .verse-num { display: inline; font-weight: 700; font-size: 9pt; vertical-align: super; color: #555 !important; margin-right: 4pt; }
+  .verse-text { display: inline; font-family: Georgia, serif; font-size: 11pt; line-height: 1.55; color: #000 !important; }
+  .verse.red-letter .verse-text { color: #800 !important; }
+  /* Footer ref */
+  .bible-text::after { content: 'hunihydration.com/bible'; display: block; margin-top: 24pt; padding-top: 8pt; border-top: 1pt solid #aaa; font-family: -apple-system, sans-serif; font-size: 8pt; color: #888; text-align: right; }
+}
+
 /* Skeleton loader (verse-shaped) */
 .verse-skeleton {
   display: flex; gap: 12px; margin-bottom: 12px; padding: 6px 4px;
