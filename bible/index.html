@@ -1930,6 +1930,13 @@ body.mode-timeline .timeline-help { display: block; }
         </div>
         <div class="settings-row-value" id="settings-bookmarks-value">0</div>
       </div>
+      <div class="settings-row" data-action="highlights">
+        <div class="settings-row-main">
+          <div class="settings-row-label">My highlighted verses</div>
+          <div class="settings-row-sub" id="settings-highlights-sub">Long-press a verse to highlight in 4 colors</div>
+        </div>
+        <div class="settings-row-value" id="settings-highlights-value">0</div>
+      </div>
     </div>
 
     <div class="settings-group-title">While I'm reading, show…</div>
@@ -2466,6 +2473,10 @@ function init() {
     setVal('settings-bookmarks-value', String(bs.length), 'action');
     const bsub = document.getElementById('settings-bookmarks-sub');
     if (bsub) bsub.textContent = bs.length === 0 ? 'Save verses you love by tapping the ★ Save button when reading' : `${bs.length} verse${bs.length === 1 ? '' : 's'} saved — tap to view`;
+    const hls = Object.keys(getHighlights());
+    setVal('settings-highlights-value', String(hls.length), 'action');
+    const hsub = document.getElementById('settings-highlights-sub');
+    if (hsub) hsub.textContent = hls.length === 0 ? 'Long-press a verse to highlight in 4 colors' : `${hls.length} highlighted verse${hls.length === 1 ? '' : 's'} — tap to view`;
   }
   // Helper: cycle to next value in a list
   function _cycle(list, current) { const i = list.indexOf(current); return list[(i+1) % list.length]; }
@@ -2551,6 +2562,10 @@ function init() {
       else if (action === 'kbdhelp') {
         closeSettings();
         showKeyboardHelp();
+      }
+      else if (action === 'highlights') {
+        closeSettings();
+        showHighlightsModal();
       }
       else if (action === 'about') {
         closeSettings();
@@ -2957,6 +2972,45 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'n' || e.key === 'j') { document.getElementById('next-ch')?.click(); return; }
   if (e.key === 'p' || e.key === 'k') { document.getElementById('prev-ch')?.click(); return; }
 });
+
+function showHighlightsModal() {
+  const existing = document.getElementById('hl-modal');
+  if (existing) { existing.remove(); return; }
+  const m = document.createElement('div');
+  m.id = 'hl-modal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;display:flex;align-items:center;justify-content:center;padding:24px;font-family:var(--sans)';
+  const h = getHighlights();
+  const entries = Object.entries(h);
+  const colorBg = {yellow:'#FFE082',pink:'#F8BBD0',green:'#C5E1A5',blue:'#BBDEFB'};
+  let body;
+  if (entries.length === 0) {
+    body = `<div style="padding:40px 20px;text-align:center;color:var(--text-muted)">
+      <div style="font-size:32px;margin-bottom:10px;opacity:0.5">★</div>
+      <div style="font-size:14px;line-height:1.5">No highlights yet.<br><br>Long-press any verse (or right-click on desktop) to highlight it in yellow, pink, green, or blue.</div>
+    </div>`;
+  } else {
+    body = entries.map(([osisRef, color]) => {
+      const safe = osisRef.replace(/[^A-Za-z0-9.\-]/g, '');
+      const human = osisToHuman(osisRef);
+      return `<div style="display:flex;gap:10px;align-items:center;padding:10px 8px;border-bottom:1px solid var(--border)">
+        <span style="width:14px;height:14px;border-radius:50%;background:${colorBg[color]||'#ccc'};flex-shrink:0;display:inline-block"></span>
+        <a href="javascript:document.getElementById('hl-modal').remove();navigateToOsis('${safe}')" style="color:var(--accent);text-decoration:none;font-size:14px;font-weight:500;flex:1">${human}</a>
+        <button onclick="const h=getHighlights();delete h['${safe}'];saveHighlights(h);applyAllHighlights();this.parentElement.remove()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:18px;padding:4px 8px" aria-label="Remove">×</button>
+      </div>`;
+    }).join('');
+    body = `<div style="max-height:60vh;overflow-y:auto;margin:8px 0">${body}</div>`;
+  }
+  m.innerHTML = `
+    <div style="background:var(--bg);border:1px solid var(--border-strong);border-radius:10px;padding:22px 24px 18px;max-width:440px;width:100%;box-shadow:0 12px 36px rgba(0,0,0,0.3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-family:var(--serif);font-size:18px;font-weight:600;color:var(--text)">My highlighted verses</div>
+        <button onclick="document.getElementById('hl-modal').remove()" style="background:none;border:none;font-size:22px;color:var(--text-dim);cursor:pointer">&times;</button>
+      </div>
+      ${body}
+    </div>`;
+  m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
+  document.body.appendChild(m);
+}
 
 function showAboutModal() {
   const existing = document.getElementById('about-modal');
