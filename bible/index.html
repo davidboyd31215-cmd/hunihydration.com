@@ -3067,6 +3067,17 @@ function exportVerseImage(verseText, reference, gradName) {
   showToast(`Verse image saved`);
 }
 
+async function copyVerseLink(osisKey) {
+  const url = `${location.origin}${location.pathname}#${osisKey}`;
+  try { await navigator.clipboard.writeText(url); showToast('Link copied'); haptic(8); }
+  catch { prompt('Copy this link:', url); }
+}
+async function copyVerseText(text, ref) {
+  const out = `"${text.trim()}" — ${ref}`;
+  try { await navigator.clipboard.writeText(out); showToast('Verse copied'); haptic(8); }
+  catch { prompt('Copy:', out); }
+}
+
 function showImagePickerModal(verseText, reference) {
   const existing = document.getElementById('img-picker');
   if (existing) { existing.remove(); return; }
@@ -4184,8 +4195,10 @@ function showSidebar(key, verseNum, refs) {
         <button class="bookmark-btn ${isBkmk ? 'active' : ''}" onclick="onBookmarkClick('${key}', this)" aria-label="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" title="${isBkmk ? 'Remove from bookmarks' : 'Save to bookmarks'}">${isBkmk ? '★ Saved' : '☆ Save'}</button>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-        <button id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent">Compare KJV / ESV / BSB</button>
-        <button onclick="showImagePickerModal(${JSON.stringify(verseText).replace(/"/g, '&quot;')}, '${book.name} ${state.chapter}:${verseNum}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent">Save as image</button>
+        <button onclick="copyVerseLink('${key}')" style="background:var(--accent);border:1px solid var(--accent);color:white;padding:6px 14px;border-radius:14px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy a direct link to this verse">Copy link</button>
+        <button onclick="copyVerseText(${JSON.stringify(verseText).replace(/"/g, '&quot;')}, '${book.name} ${state.chapter}:${verseNum}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy the verse text to paste anywhere">Copy text</button>
+        <button onclick="showImagePickerModal(${JSON.stringify(verseText).replace(/"/g, '&quot;')}, '${book.name} ${state.chapter}:${verseNum}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Save as a shareable image">Save as image</button>
+        <button id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent">Compare versions</button>
       </div>
       <div id="${cmpId}" style="margin-top:10px"></div>
     </div>
