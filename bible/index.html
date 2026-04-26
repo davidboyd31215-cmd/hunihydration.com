@@ -240,10 +240,11 @@ select:hover { border-color: var(--border-strong); }
   padding: 56px 32px 96px;
   max-width: 680px;
   margin: 0 auto;
-  /* Animate horizontal POSITION only (transform doesn't trigger layout),
-     so opening the sidebar doesn't reflow the verse text horizontally.
-     Duration matches the sidebar's 0.34s so they finish together. */
-  transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+  /* Animate horizontal POSITION (transform — no layout), and animate
+     padding-bottom too so the mobile bottom-sheet's reservation of
+     vertical room (24vh → 60vh) doesn't snap. Both 0.34s, matching sidebar. */
+  transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+              padding-bottom 0.34s cubic-bezier(0.32, 0.72, 0, 1);
   will-change: transform;
 }
 
@@ -611,6 +612,50 @@ body.mode-inline .ref-dot::after {
 [data-theme="dark"] .verse.hl-pink   { background: rgba(236,64,122,0.22) !important; }
 [data-theme="dark"] .verse.hl-green  { background: rgba(76,175,80,0.22) !important; }
 [data-theme="dark"] .verse.hl-blue   { background: rgba(66,133,244,0.22) !important; }
+
+/* Inline (Kindle-style) text-range highlighting — wraps just the
+   selected span via <mark class="thl-..."> rather than painting the
+   whole verse. Slightly more saturated than verse-level since they
+   sit inline against verse-text. */
+mark.thl-yellow { background: rgba(255,193,7,0.40); color: inherit; padding: 0; border-radius: 2px; }
+mark.thl-pink   { background: rgba(236,64,122,0.32); color: inherit; padding: 0; border-radius: 2px; }
+mark.thl-green  { background: rgba(76,175,80,0.32);  color: inherit; padding: 0; border-radius: 2px; }
+mark.thl-blue   { background: rgba(66,133,244,0.32); color: inherit; padding: 0; border-radius: 2px; }
+[data-theme="dark"] mark.thl-yellow { background: rgba(255,193,7,0.45); }
+[data-theme="dark"] mark.thl-pink   { background: rgba(236,64,122,0.40); }
+[data-theme="dark"] mark.thl-green  { background: rgba(76,175,80,0.40); }
+[data-theme="dark"] mark.thl-blue   { background: rgba(66,133,244,0.40); }
+.thl-palette {
+  position: fixed; z-index: 810;
+  background: var(--bg-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: 24px;
+  padding: 5px;
+  display: flex;
+  gap: 5px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+  animation: fade 0.12s ease;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.thl-palette button {
+  width: 28px; height: 28px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.thl-palette button.thl-y { background: #FFC107; }
+.thl-palette button.thl-p { background: #EC407A; }
+.thl-palette button.thl-g { background: #4CAF50; }
+.thl-palette button.thl-b { background: #4285F4; }
+.thl-palette button.thl-clear {
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 16px;
+  line-height: 1;
+}
 .hl-palette {
   position: fixed; z-index: 800;
   background: var(--bg-alt);
@@ -1891,20 +1936,28 @@ body.mode-timeline .timeline-help { display: block; }
     transition: width 0.18s ease, background 0.18s ease;
   }
   .sidebar-handle:active span { width: 60px; background: var(--text-muted); }
-  .sidebar-header { padding-top: 18px; padding-bottom: 14px; }
+  /* Tighter mobile sheet — was eating ~30% of the viewport in whitespace */
+  .sidebar-header { padding-top: 8px; padding-bottom: 8px; }
+  .sidebar { /* sidebar already overflows; tighten the body padding */ }
 
-  /* Larger tap targets in sidebar */
-  .ref-card { padding: 12px 14px; min-height: 44px; }
+  /* Larger tap targets in sidebar (kept) */
+  .ref-card { padding: 10px 12px; min-height: 44px; margin-bottom: 6px; }
   .ref-card-address { font-size: 14px; }
-  .blb-btn { padding: 10px 14px; min-height: 40px; font-size: 13px; }
+  .blb-btn { padding: 9px 12px; min-height: 40px; font-size: 13px; }
 
   /* Legend hidden on mobile to save space */
   .legend { display: none; }
 
-  /* Theological Q card — improve density on small screens */
-  .sidebar-section { padding: 12px 18px; }
-  .sidebar-verse-address { font-size: 16px; }
-  .sidebar-verse-text { font-size: 14px; line-height: 1.5; }
+  /* Tighter section padding so the verse address + text sit closer together
+     and the user sees more content above the fold. */
+  .sidebar-section { padding: 8px 16px 4px; }
+  .sidebar-verse-address { font-size: 16px; margin-bottom: 4px; }
+  .sidebar-verse-text { font-size: 14px; line-height: 1.45; }
+  /* Verse-action row (Copy verse + link, Copy text, Save as image, Compare,
+     Practice) — let it wrap tighter and remove the chunky gap. */
+  .sidebar-header > div:last-child > div:last-child { gap: 5px !important; margin-top: 6px !important; }
+  /* MacArthur sermons CTA inside commentary card — tighten vertical rhythm */
+  .sidebar-section .blb-section { margin-top: 8px !important; }
 
   /* Settings drawer rows — slightly tighter */
   .settings-row { min-height: 56px; padding: 12px 16px; }
@@ -2199,10 +2252,15 @@ body.mode-timeline .timeline-help { display: block; }
       <button class="settings-close-btn" onclick="closeSettings()" aria-label="Close">Done</button>
     </div>
 
+    <!-- Top: just the verse-or-keyword search. Reading-functionality
+         (translation, commentary, word study) follows next. Discovery
+         rows (themes, plans, bookmarks, streak, highlights) are now
+         lower in the drawer — they're profile-style features, not
+         changes to what you're reading right now. -->
     <div class="settings-group-title">Find a verse</div>
     <div class="settings-section">
       <div class="settings-search">
-        <input type="text" id="settings-jump-input" placeholder="Verse (John 3:16) or keyword (love, hope, peace)" autocapitalize="words" autocorrect="off" autocomplete="off" spellcheck="false" list="verse-suggestions" enterkeyhint="go" inputmode="search" />
+        <input type="text" id="settings-jump-input" placeholder="Verse (John 3:16) or keyword (love, hope, peace)" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false" list="verse-suggestions" enterkeyhint="go" inputmode="search" />
         <datalist id="verse-suggestions">
           <option value="Genesis 1:1">Creation</option>
           <option value="John 3:16">For God so loved the world</option>
@@ -2226,55 +2284,6 @@ body.mode-timeline .timeline-help { display: block; }
           <option value="Psalm 119:105">Thy word is a lamp</option>
         </datalist>
         <button id="settings-jump-btn">Go</button>
-      </div>
-      <div class="settings-row" data-action="themes">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Browse by theme</div>
-          <div class="settings-row-sub">Faithfulness, hope, fear, grief, prayer, love…</div>
-        </div>
-        <div class="settings-row-value">Open</div>
-      </div>
-      <div class="settings-row" data-action="plan">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Today's verse (30-day starter)</div>
-          <div class="settings-row-sub" id="settings-plan-sub">A different famous verse each day for 30 days</div>
-        </div>
-        <div class="settings-row-value" id="settings-plan-value">Day 1</div>
-      </div>
-      <div class="settings-row" data-action="planjohn">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Gospel of John in 21 days</div>
-          <div class="settings-row-sub" id="settings-planjohn-sub">One chapter of John per day, ch 1 → 21</div>
-        </div>
-        <div class="settings-row-value" id="settings-planjohn-value">Day 1</div>
-      </div>
-      <div class="settings-row" data-action="random">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Surprise me with a verse</div>
-          <div class="settings-row-sub">Jump to a famous verse at random</div>
-        </div>
-        <div class="settings-row-value">Pick</div>
-      </div>
-      <div class="settings-row" id="settings-streak-row" style="display:none">
-        <div class="settings-row-main">
-          <div class="settings-row-label" id="settings-streak-label">Reading streak</div>
-          <div class="settings-row-sub" id="settings-streak-sub">Show up every day to keep your streak alive</div>
-        </div>
-        <div class="settings-row-value" id="settings-streak-value" style="font-variant-numeric:tabular-nums">0🔥</div>
-      </div>
-      <div class="settings-row" data-action="bookmarks">
-        <div class="settings-row-main">
-          <div class="settings-row-label">My saved verses</div>
-          <div class="settings-row-sub" id="settings-bookmarks-sub">Save verses you love by tapping the ★ Save button when reading</div>
-        </div>
-        <div class="settings-row-value" id="settings-bookmarks-value">0</div>
-      </div>
-      <div class="settings-row" data-action="highlights">
-        <div class="settings-row-main">
-          <div class="settings-row-label">My highlighted verses</div>
-          <div class="settings-row-sub" id="settings-highlights-sub">Long-press a verse to highlight in 4 colors</div>
-        </div>
-        <div class="settings-row-value" id="settings-highlights-value">0</div>
       </div>
     </div>
 
@@ -2385,6 +2394,63 @@ body.mode-timeline .timeline-help { display: block; }
           <div class="settings-row-sub">Pastable text: chapter, citation, cross-refs, your highlights</div>
         </div>
         <div class="settings-row-value">Copy</div>
+      </div>
+    </div>
+
+    <!-- Discovery & personal — moved here from the top of the drawer.
+         These are profile-style features (themes/plans/bookmarks/streak)
+         that don't change what you're reading right now, so they sit
+         below the reading-functionality controls. -->
+    <div class="settings-group-title">My library &amp; discovery</div>
+    <div class="settings-section">
+      <div class="settings-row" id="settings-streak-row" style="display:none">
+        <div class="settings-row-main">
+          <div class="settings-row-label" id="settings-streak-label">Reading streak</div>
+          <div class="settings-row-sub" id="settings-streak-sub">Show up every day to keep your streak alive</div>
+        </div>
+        <div class="settings-row-value" id="settings-streak-value" style="font-variant-numeric:tabular-nums">0🔥</div>
+      </div>
+      <div class="settings-row" data-action="bookmarks">
+        <div class="settings-row-main">
+          <div class="settings-row-label">My saved verses</div>
+          <div class="settings-row-sub" id="settings-bookmarks-sub">Save verses you love by tapping the ★ Save button when reading</div>
+        </div>
+        <div class="settings-row-value" id="settings-bookmarks-value">0</div>
+      </div>
+      <div class="settings-row" data-action="highlights">
+        <div class="settings-row-main">
+          <div class="settings-row-label">My highlighted verses</div>
+          <div class="settings-row-sub" id="settings-highlights-sub">Long-press a verse to highlight in 4 colors</div>
+        </div>
+        <div class="settings-row-value" id="settings-highlights-value">0</div>
+      </div>
+      <div class="settings-row" data-action="themes">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Browse by theme</div>
+          <div class="settings-row-sub">Faithfulness, hope, fear, grief, prayer, love…</div>
+        </div>
+        <div class="settings-row-value">Open</div>
+      </div>
+      <div class="settings-row" data-action="plan">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Today's verse (30-day starter)</div>
+          <div class="settings-row-sub" id="settings-plan-sub">A different famous verse each day for 30 days</div>
+        </div>
+        <div class="settings-row-value" id="settings-plan-value">Day 1</div>
+      </div>
+      <div class="settings-row" data-action="planjohn">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Gospel of John in 21 days</div>
+          <div class="settings-row-sub" id="settings-planjohn-sub">One chapter of John per day, ch 1 → 21</div>
+        </div>
+        <div class="settings-row-value" id="settings-planjohn-value">Day 1</div>
+      </div>
+      <div class="settings-row" data-action="random">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Surprise me with a verse</div>
+          <div class="settings-row-sub">Jump to a famous verse at random</div>
+        </div>
+        <div class="settings-row-value">Pick</div>
       </div>
     </div>
 
@@ -5177,6 +5243,29 @@ function navigateToOsis(osisRef) {
   if (!m) return;
   const idx = IDX_BY_OSIS[m[1]];
   if (idx == null) return;
+  // Push the current verse onto the back stack BEFORE we mutate state, so
+  // the sidebar that opens for the destination verse can render a
+  // "← Back to {origin}" pill. Only push when:
+  //   - there is an active source verse (not a fresh page load / chapter-nav)
+  //   - the destination is genuinely a different verse (no self-jumps)
+  //   - we're not currently popping the stack (popVerseStack flips the flag)
+  const targetVerse = +m[3];
+  const sameVerse = state.activeVerse === targetVerse
+    && state.bookIdx === idx
+    && state.chapter === +m[2];
+  if (!window._suppressVerseBackPush && state.activeVerse && !sameVerse) {
+    window._verseBackStack = window._verseBackStack || [];
+    window._verseBackStack.push({
+      bookIdx: state.bookIdx,
+      chapter: state.chapter,
+      activeVerse: state.activeVerse,
+    });
+    // Cap at N entries — drop oldest.
+    const cap = window._VERSE_BACK_STACK_CAP || 5;
+    while (window._verseBackStack.length > cap) {
+      window._verseBackStack.shift();
+    }
+  }
   state.bookIdx = idx;
   state.chapter = +m[2];
   loadChapter().then(() => {
@@ -5343,6 +5432,33 @@ async function fetchRVR(bookIdx, chapter) {
 // (rapid arrow-key presses) don't let a slow stale fetch overwrite a newer one.
 window._chapterLoadId = window._chapterLoadId || 0;
 
+// In-memory stack of recent verse-tap origins so the user can hop back to
+// the verse they were studying after following a cross-ref / sermon /
+// share-link / themes-modal jump. Capped at 5 entries (oldest dropped).
+// Not persisted across reloads — only meaningful within a single browse session.
+window._verseBackStack = window._verseBackStack || [];
+window._VERSE_BACK_STACK_CAP = 5;
+// Internal flag so popVerseStack() can navigate without re-pushing the
+// origin we're trying to return TO.
+window._suppressVerseBackPush = false;
+
+window.popVerseStack = function() {
+  if (!window._verseBackStack || !window._verseBackStack.length) return;
+  const origin = window._verseBackStack.pop();
+  if (!origin || origin.bookIdx == null || !origin.chapter || !origin.activeVerse) return;
+  const osisBook = (typeof OSIS_BY_IDX !== 'undefined' && OSIS_BY_IDX[origin.bookIdx]) || null;
+  if (!osisBook) return;
+  // Suppress the push that navigateToOsis would otherwise perform — we are
+  // returning to an origin, not stacking a new hop on top of it.
+  window._suppressVerseBackPush = true;
+  try {
+    navigateToOsis(`${osisBook}.${origin.chapter}.${origin.activeVerse}`);
+  } finally {
+    // Reset on the next tick so the suppression only covers this single nav.
+    setTimeout(() => { window._suppressVerseBackPush = false; }, 0);
+  }
+};
+
 async function loadChapter() {
   // Stop any in-progress speech when switching chapters AND clear the
   // reading-active flag so a queued onend handler doesn't keep speaking
@@ -5395,6 +5511,7 @@ async function loadChapter() {
     }
     renderChapter(book, verses);
     applyAllHighlights();
+    if (typeof applyAllTextHighlights === 'function') applyAllTextHighlights();
     // Announce chapter change to screen readers
     const live = document.getElementById('a11y-live');
     if (live) live.textContent = `${book.name} chapter ${state.chapter}, ${verses.length} verses loaded`;
@@ -5932,8 +6049,30 @@ function showSidebar(key, verseNum, refs) {
 
   const isBkmk = isBookmarked(key);
   const cmpId = 'translation-compare-' + key.replace(/\./g, '-');
+
+  // "← Back to {origin}" pill — only when the back-stack has an entry whose
+  // top is NOT the verse we're already viewing. (After popVerseStack returns
+  // us home, the top would equal the current verse and the pill should hide.)
+  let backPillHTML = '';
+  const backStack = window._verseBackStack || [];
+  if (backStack.length) {
+    const top = backStack[backStack.length - 1];
+    const sameAsCurrent = top
+      && top.bookIdx === state.bookIdx
+      && top.chapter === state.chapter
+      && top.activeVerse === verseNum;
+    if (top && !sameAsCurrent) {
+      const originBookName = (BOOKS[top.bookIdx] && BOOKS[top.bookIdx].name) || '';
+      const originLabel = `${originBookName} ${top.chapter}:${top.activeVerse}`;
+      // Truncate long labels (e.g. "Song of Solomon 8:14") to keep the pill compact.
+      const truncated = originLabel.length > 28 ? originLabel.slice(0, 27) + '…' : originLabel;
+      backPillHTML = `<div onclick="window.popVerseStack()" title="Back to ${originLabel.replace(/"/g, '&quot;')}" style="padding: 6px 10px; background: var(--accent-soft); border-radius: 6px; color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: 8px; display: inline-flex; align-items: center; gap: 6px;"><span aria-hidden="true">←</span><span>Back to ${truncated}</span></div>`;
+    }
+  }
+
   document.getElementById('sidebar-content').innerHTML = `
     <div class="sidebar-header">
+      ${backPillHTML}
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
         <div style="flex:1;min-width:0">
           <div class="sidebar-verse-address">${book.name} ${state.chapter}:${verseNum}</div>
@@ -6291,6 +6430,272 @@ function showHighlightPalette(verseEl, x, y) {
     e.preventDefault();
     showHighlightPalette(v, e.clientX, e.clientY);
   });
+})();
+
+// ── Kindle-style text-range highlighting ──────────────────────
+// Stored separately from whole-verse highlights; the two compose
+// (a verse can have a yellow background + a pink inline range).
+// Storage shape: { "Mark.11.23": [{start, end, color}, ...], ... }
+// where start/end are character offsets into the verse-text element's
+// textContent (i.e. ignoring any nested <mark> or <span> tags — we
+// always re-walk text nodes when applying).
+const THL_KEY = 'scripture-text-highlights';
+function getTextHighlights() {
+  try { return JSON.parse(localStorage.getItem(THL_KEY) || '{}'); } catch (e) { return {}; }
+}
+function saveTextHighlights(h) {
+  try { localStorage.setItem(THL_KEY, JSON.stringify(h)); }
+  catch (e) { try { showToast('Storage full — remove old highlights to save more', 'error'); } catch (_) {} }
+}
+
+// Strip any existing <mark class="thl-..."> wrappers from a verse-text
+// element so we can re-paint cleanly from stored ranges.
+function _stripTextHighlights(verseTextEl) {
+  const marks = verseTextEl.querySelectorAll('mark[class^="thl-"]');
+  marks.forEach(m => {
+    const parent = m.parentNode;
+    while (m.firstChild) parent.insertBefore(m.firstChild, m);
+    parent.removeChild(m);
+  });
+  verseTextEl.normalize();
+}
+
+// Apply stored ranges to a single .verse element by walking its
+// .verse-text text nodes and wrapping the slice [start, end) in a mark.
+// Ranges are sorted by start, then applied one at a time. Overlapping
+// ranges are resolved so we never produce nested <mark>s.
+function applyTextHighlights(verseEl) {
+  if (!verseEl) return;
+  const key = verseEl.dataset && verseEl.dataset.key;
+  if (!key) return;
+  const verseTextEl = verseEl.querySelector('.verse-text');
+  if (!verseTextEl) return;
+  const all = getTextHighlights();
+  let ranges = all[key];
+  if (!ranges || !ranges.length) {
+    _stripTextHighlights(verseTextEl);
+    return;
+  }
+  ranges = ranges
+    .filter(r => r && Number.isFinite(r.start) && Number.isFinite(r.end) && r.end > r.start)
+    .map(r => ({ start: r.start, end: r.end, color: r.color }))
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+  // Resolve overlaps: same color → merge; different colors → later wins.
+  const resolved = [];
+  ranges.forEach(r => {
+    if (!resolved.length) { resolved.push({ ...r }); return; }
+    const prev = resolved[resolved.length - 1];
+    if (r.start >= prev.end) { resolved.push({ ...r }); return; }
+    if (r.color === prev.color) {
+      prev.end = Math.max(prev.end, r.end);
+    } else {
+      prev.end = r.start;
+      if (prev.end <= prev.start) resolved.pop();
+      resolved.push({ ...r });
+    }
+  });
+
+  _stripTextHighlights(verseTextEl);
+  resolved.forEach(r => _wrapRange(verseTextEl, r.start, r.end, r.color));
+}
+
+function _wrapRange(rootEl, start, end, color) {
+  // Walk text nodes in document order, tracking running char offset
+  // into rootEl.textContent. Collect intersecting nodes, then wrap them
+  // in REVERSE order so earlier offsets remain valid as we splitText.
+  const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, null);
+  let offset = 0;
+  const toWrap = [];
+  let node;
+  while ((node = walker.nextNode())) {
+    const len = node.nodeValue.length;
+    const nodeStart = offset;
+    const nodeEnd = offset + len;
+    offset = nodeEnd;
+    if (nodeEnd <= start) continue;
+    if (nodeStart >= end) break;
+    const sliceStart = Math.max(0, start - nodeStart);
+    const sliceEnd = Math.min(len, end - nodeStart);
+    toWrap.push({ node, sliceStart, sliceEnd });
+  }
+  toWrap.reverse().forEach(({ node, sliceStart, sliceEnd }) => {
+    let target = node;
+    if (sliceEnd < target.nodeValue.length) target.splitText(sliceEnd);
+    if (sliceStart > 0) target = target.splitText(sliceStart);
+    const mark = document.createElement('mark');
+    mark.className = 'thl-' + color;
+    target.parentNode.insertBefore(mark, target);
+    mark.appendChild(target);
+  });
+}
+
+function applyAllTextHighlights() {
+  document.querySelectorAll('.verse[data-key]').forEach(v => applyTextHighlights(v));
+}
+
+// Compute character offsets into verse-text.textContent for a given
+// DOM node + offset (as produced by Selection / Range). Returns -1 if
+// the node isn't inside verseTextEl.
+function _offsetWithin(verseTextEl, node, nodeOffset) {
+  if (!verseTextEl.contains(node) && node !== verseTextEl) return -1;
+  let total = 0;
+  if (node.nodeType === Node.ELEMENT_NODE) {
+    // Selection landed on an element boundary (e.g. between two children).
+    // Sum textContent length of every text node strictly before
+    // childNodes[nodeOffset] in document order.
+    const boundary = node.childNodes[nodeOffset] || null;
+    const walker = document.createTreeWalker(verseTextEl, NodeFilter.SHOW_TEXT, null);
+    let n;
+    while ((n = walker.nextNode())) {
+      if (boundary) {
+        const cmp = n.compareDocumentPosition(boundary);
+        // boundary FOLLOWING n → n is before boundary → count it
+        if (!(cmp & Node.DOCUMENT_POSITION_FOLLOWING)) break;
+      }
+      total += n.nodeValue.length;
+    }
+    return total;
+  }
+  const walker = document.createTreeWalker(verseTextEl, NodeFilter.SHOW_TEXT, null);
+  let n;
+  while ((n = walker.nextNode())) {
+    if (n === node) return total + nodeOffset;
+    total += n.nodeValue.length;
+  }
+  return -1;
+}
+
+// Render a small floating palette anchored above a DOMRect.
+function _showTextHlPalette(rect, onPick) {
+  document.querySelectorAll('.thl-palette').forEach(p => p.remove());
+  const p = document.createElement('div');
+  p.className = 'thl-palette';
+  // Prevent the palette from stealing the selection on mousedown.
+  p.addEventListener('mousedown', e => e.preventDefault());
+  const colors = [['yellow','y'],['pink','p'],['green','g'],['blue','b']];
+  colors.forEach(([name, suf]) => {
+    const b = document.createElement('button');
+    b.className = 'thl-' + suf;
+    b.title = name;
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      onPick(name);
+      p.remove();
+    });
+    p.appendChild(b);
+  });
+  document.body.appendChild(p);
+  const pw = p.offsetWidth, ph = p.offsetHeight;
+  const cx = rect.left + rect.width / 2;
+  let px = Math.max(8, Math.min(window.innerWidth - pw - 8, cx - pw / 2));
+  let py = rect.top - ph - 10;
+  if (py < 8) py = rect.bottom + 10; // not enough room above → flip below
+  p.style.left = px + 'px';
+  p.style.top = py + 'px';
+  setTimeout(() => {
+    function closeM(e) {
+      if (!p.contains(e.target)) { p.remove(); document.removeEventListener('mousedown', closeM); document.removeEventListener('touchstart', closeT); }
+    }
+    function closeT(e) {
+      if (!p.contains(e.target)) { p.remove(); document.removeEventListener('touchstart', closeT); document.removeEventListener('mousedown', closeM); }
+    }
+    document.addEventListener('mousedown', closeM);
+    document.addEventListener('touchstart', closeT, { passive: true });
+  }, 50);
+  return p;
+}
+
+// selectionchange listener — fires constantly as the user drags, so we
+// debounce (only show the palette once selection settles into a non-empty
+// range inside a single .verse-text).
+(function() {
+  let pendingTimer = null;
+  function maybeShow() {
+    pendingTimer = null;
+    const sel = document.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
+      document.querySelectorAll('.thl-palette').forEach(p => p.remove());
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    const anchorNode = sel.anchorNode;
+    const focusNode = sel.focusNode;
+    if (!anchorNode || !focusNode) return;
+    // Both endpoints must be inside the SAME .verse-text. Anything else
+    // (cross-verse drag, selection in sidebar/UI chrome) is ignored.
+    const aHost = anchorNode.nodeType === Node.ELEMENT_NODE ? anchorNode : anchorNode.parentElement;
+    const fHost = focusNode.nodeType === Node.ELEMENT_NODE ? focusNode : focusNode.parentElement;
+    const aVerseText = aHost && aHost.closest && aHost.closest('.verse-text');
+    const fVerseText = fHost && fHost.closest && fHost.closest('.verse-text');
+    if (!aVerseText || aVerseText !== fVerseText) {
+      document.querySelectorAll('.thl-palette').forEach(p => p.remove());
+      return;
+    }
+    const verseEl = aVerseText.closest('.verse[data-key]');
+    if (!verseEl) return;
+    const key = verseEl.dataset.key;
+    let startOff = _offsetWithin(aVerseText, range.startContainer, range.startOffset);
+    let endOff = _offsetWithin(aVerseText, range.endContainer, range.endOffset);
+    if (startOff < 0 || endOff < 0) return;
+    if (startOff > endOff) { const t = startOff; startOff = endOff; endOff = t; }
+    if (endOff - startOff < 1) return;
+    // Trim leading/trailing whitespace so we don't save half-space ranges.
+    const fullText = aVerseText.textContent;
+    while (endOff > startOff && /\s/.test(fullText.charAt(endOff - 1))) endOff--;
+    while (startOff < endOff && /\s/.test(fullText.charAt(startOff))) startOff++;
+    if (endOff - startOff < 1) return;
+
+    const rects = range.getClientRects();
+    const rect = rects.length ? rects[0] : range.getBoundingClientRect();
+    if (!rect || (!rect.width && !rect.height)) return;
+
+    _showTextHlPalette(rect, (color) => {
+      const all = getTextHighlights();
+      const arr = all[key] ? all[key].slice() : [];
+      arr.push({ start: startOff, end: endOff, color });
+      all[key] = arr;
+      saveTextHighlights(all);
+      // Clear native selection before re-painting (otherwise the browser
+      // restores the old range over our new <mark>).
+      try { sel.removeAllRanges(); } catch (e) {}
+      applyTextHighlights(verseEl);
+      try { haptic(8); } catch (e) {}
+      try { showToast('Highlighted'); } catch (e) {}
+    });
+  }
+  document.addEventListener('selectionchange', () => {
+    if (pendingTimer) clearTimeout(pendingTimer);
+    // Wait briefly for the user to release; otherwise the palette
+    // flickers under the moving caret on every selection update.
+    pendingTimer = setTimeout(maybeShow, 180);
+  });
+  // Tapping an existing inline highlight removes it (mobile-friendly
+  // alternative to a context menu on the mark element).
+  document.addEventListener('click', (e) => {
+    const m = e.target.closest && e.target.closest('mark[class^="thl-"]');
+    if (!m) return;
+    const verseEl = m.closest('.verse[data-key]');
+    if (!verseEl) return;
+    // Only treat as "remove" when there's no active selection — otherwise
+    // the user is mid-drag and we'd nuke their work.
+    const sel = document.getSelection();
+    if (sel && !sel.isCollapsed) return;
+    e.stopPropagation();
+    const verseTextEl = verseEl.querySelector('.verse-text');
+    if (!verseTextEl) return;
+    const range = document.createRange();
+    range.selectNodeContents(m);
+    const start = _offsetWithin(verseTextEl, range.startContainer, range.startOffset);
+    const end = _offsetWithin(verseTextEl, range.endContainer, range.endOffset);
+    const key = verseEl.dataset.key;
+    const all = getTextHighlights();
+    const arr = (all[key] || []).filter(r => !(r.start === start && r.end === end));
+    if (arr.length) all[key] = arr; else delete all[key];
+    saveTextHighlights(all);
+    applyTextHighlights(verseEl);
+    try { showToast('Highlight removed'); } catch (e) {}
+  }, true);
 })();
 
 // Verse-tap ripple — set CSS var to tap point
