@@ -1037,9 +1037,8 @@ body.mode-timeline .timeline-help { display: block; }
   #mode-group, #view-group, #translation-group, #depth-toggle, #commentary-toggle, #wordstudy-toggle, #redletter-toggle {
     display: none !important;
   }
-  /* Book select stays visible but compact, native iOS appearance */
-  #book-select {
-    max-width: 130px;
+  /* Book + chapter selects — native iOS style */
+  #book-select, #chapter-select {
     font-size: 14px;
     padding: 6px 22px 6px 10px;
     background: var(--bg-alt);
@@ -1053,6 +1052,10 @@ body.mode-timeline .timeline-help { display: block; }
     background-position: right 6px center;
     background-size: 10px;
   }
+  #book-select { max-width: 110px; }
+  #chapter-select { max-width: 70px; padding-left: 8px; }
+  /* When chapter dropdown is shown, hide the chapter-display text label */
+  #chapter-display { display: none; }
   /* Settings button — keep prominent */
   #settings-toggle {
     font-weight: 600;
@@ -1278,6 +1281,7 @@ body.mode-timeline .timeline-help { display: block; }
   <div class="header-controls">
     <span class="ctrl-label">Book</span>
     <select id="book-select"></select>
+    <select id="chapter-select" aria-label="Chapter" title="Jump to chapter"></select>
 
     <span class="ctrl-label" style="margin-left:8px">Translation</span>
     <div class="pill-group" id="translation-group">
@@ -1642,12 +1646,37 @@ function init() {
     sel.appendChild(opt);
   });
 
+  // Chapter selector — populated based on current book
+  const chSel = document.getElementById('chapter-select');
+  function refreshChapterSelect() {
+    if (!chSel) return;
+    const max = BOOKS[state.bookIdx].chapters;
+    chSel.innerHTML = '';
+    for (let i = 1; i <= max; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = i;
+      if (i === state.chapter) opt.selected = true;
+      chSel.appendChild(opt);
+    }
+  }
+  refreshChapterSelect();
+  if (chSel) chSel.addEventListener('change', () => {
+    state.chapter = +chSel.value;
+    state.activeVerse = null;
+    haptic(6);
+    loadChapter();
+  });
+
   sel.addEventListener('change', () => {
     state.bookIdx = +sel.value;
     state.chapter = 1;
     state.activeVerse = null;
+    refreshChapterSelect();
     loadChapter();
   });
+  // Keep chapter select in sync when chapter changes via prev/next
+  window._refreshChapterSelect = refreshChapterSelect;
 
   // Translation
   document.querySelectorAll('#translation-group button').forEach(btn => {
@@ -2505,6 +2534,7 @@ async function loadChapter() {
     state.verses = verses;
     renderChapter(book, verses);
     updateHash();
+    if (window._refreshChapterSelect) window._refreshChapterSelect();
     if (state.mode === 'graph') { stopGraph(); startGraph(); }
     if (state.activeVerse) setTimeout(scrollToActiveVerse, 80);
     if (state.wordStudyOn) {
