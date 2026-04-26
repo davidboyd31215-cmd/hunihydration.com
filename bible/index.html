@@ -455,6 +455,18 @@ body.mode-inline .ref-dot::after {
 }
 .sidebar-close:hover { color: var(--text); background: var(--border); }
 
+#sidebar-backdrop {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.32);
+  z-index: 90;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+body.sidebar-open #sidebar-backdrop { display: block; }
+@media (min-width: 821px) { body.sidebar-open #sidebar-backdrop { display: none; } }
+
 .sidebar-empty {
   padding: 56px 28px;
   text-align: center;
@@ -822,12 +834,15 @@ body.mode-arc .arc-help { display: block; }
       <button data-t="bsb">BSB</button>
     </div>
 
-    <span class="ctrl-label">View</span>
+    <span class="ctrl-label">Read</span>
     <div class="pill-group" id="mode-group">
       <button class="active" data-m="sidebar">Sidebar<span class="hint">→</span></button>
       <button data-m="inline">Inline<span class="hint">↓</span></button>
-      <button data-m="graph">Graph</button>
+    </div>
+    <span class="ctrl-label" style="margin-left:8px">View</span>
+    <div class="pill-group" id="view-group">
       <button data-m="arc">Arc</button>
+      <button data-m="graph">Graph</button>
     </div>
   </div>
 
@@ -848,6 +863,7 @@ body.mode-arc .arc-help { display: block; }
     <div class="loading">Loading…</div>
   </div>
 
+  <div id="sidebar-backdrop" onclick="closeSidebar()"></div>
   <aside class="sidebar" id="sidebar">
     <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close">&#215;</button>
     <div id="sidebar-content">
@@ -1072,10 +1088,10 @@ function init() {
     });
   });
 
-  // Mode
-  document.querySelectorAll('#mode-group button').forEach(btn => {
+  // Mode (Read + View groups together, single-active across both)
+  document.querySelectorAll('#mode-group button, #view-group button').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('#mode-group button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#mode-group button, #view-group button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       setMode(btn.dataset.m);
     });
@@ -1100,10 +1116,10 @@ function init() {
   const depthBtn = document.getElementById('depth-toggle');
   function syncDepthBtn() {
     if (!depthBtn) return;
-    depthBtn.textContent = state.depthMode === 'top' ? '⭐ Top' : '🌐 All';
+    depthBtn.textContent = state.depthMode === 'top' ? '⭐ Refs: Best' : '🌐 Refs: All';
     depthBtn.title = state.depthMode === 'top'
-      ? 'Showing top references — click to show all'
-      : 'Showing all references — click to show only the most-cited';
+      ? 'Currently showing only the strongest cross-references (vote ≥ 5 + typed). Click to expand to ALL references for this verse.'
+      : 'Currently showing every cross-reference for this verse. Click to filter back down to the strongest ones only.';
   }
   syncDepthBtn();
   if (depthBtn) depthBtn.addEventListener('click', () => {
@@ -1121,11 +1137,12 @@ function init() {
   const commentaryBtn = document.getElementById('commentary-toggle');
   function syncCommentaryBtn() {
     if (!commentaryBtn) return;
+    commentaryBtn.textContent = state.commentaryOn ? '📖 Notes: ON' : '📖 Notes: OFF';
     commentaryBtn.style.background = state.commentaryOn ? 'var(--accent-soft)' : '';
     commentaryBtn.style.borderColor = state.commentaryOn ? 'var(--accent)' : '';
     commentaryBtn.title = state.commentaryOn
-      ? 'Commentary ON — MacArthur-style verse notes (click to hide)'
-      : 'Commentary OFF — click to show MacArthur-style verse notes';
+      ? 'Commentary notes are showing in the sidebar — click to hide them'
+      : 'Click to turn on verse-by-verse commentary notes (Reformed/expositional style)';
   }
   syncCommentaryBtn();
   if (commentaryBtn) commentaryBtn.addEventListener('click', () => {
@@ -1266,12 +1283,53 @@ function generateRefNote(srcKey, refObj) {
     if (_PROPHETS.has(tb)) return `${sName} fulfills the prophecy spoken in ${tName} ${tc}:${tv}`;
     return `Fulfillment of the OT promise in ${tName} ${tc}:${tv}`;
   }
-  // THEMATIC
-  if (v >= 50) return `Cornerstone thematic link — ${v} scholarly sources affirm this connection`;
-  if (v >= 20) return `Strongly attested theme — frequently linked in commentary tradition`;
-  if (v >= 10) return `Notable thematic resonance with ${tName} ${tc}:${tv}`;
-  if (v >= 5) return `Shared theological theme between ${sName} and ${tName}`;
-  return `Thematic connection`;
+  // THEMATIC — try to generate a SPECIFIC note based on book + chapter context
+  const sChNum = parseInt(sm[2]); const tChNum = +tc;
+  // Tabernacle/Temple construction
+  if ((sb === 'Exod' && sChNum >= 25 && sChNum <= 40) || (sb === 'Num' && sChNum === 4)) {
+    if ((tb === 'Exod' && tChNum >= 25 && tChNum <= 40) || (tb === 'Num' && tChNum === 4)) {
+      return `Tabernacle-construction parallel — both texts describe the wilderness sanctuary's design`;
+    }
+    if (tb === '1Kgs' || tb === '2Chr' || tb === 'Ezek') return `Sanctuary architecture link — Tabernacle pattern echoed in Temple/Ezekiel's vision`;
+    if (tb === 'Heb') return `Hebrews argues this earthly sanctuary prefigures the heavenly one`;
+  }
+  // Sacrificial system
+  if ((sb === 'Lev' && sChNum <= 7) || (tb === 'Lev' && tChNum <= 7)) {
+    return `Sacrificial-system link — both passages bear on the Levitical offerings`;
+  }
+  // Davidic monarchy / Kings vs. Chronicles overlap (already handled in PARALLEL but THEMATIC catches the rest)
+  if (['1Sam','2Sam','1Kgs','2Kgs','1Chr','2Chr'].includes(sb) && ['1Sam','2Sam','1Kgs','2Kgs','1Chr','2Chr'].includes(tb)) {
+    return `Israelite-monarchy connection — shared narrative material in the historical books`;
+  }
+  // Wisdom literature
+  if (['Prov','Eccl','Job','Ps'].includes(sb) && ['Prov','Eccl','Job','Ps'].includes(tb)) {
+    return `Wisdom-literature parallel — shared poetic/sapiential theme`;
+  }
+  // Prophetic warnings
+  if (_PROPHETS.has(sb) && _PROPHETS.has(tb)) {
+    return `Prophetic resonance — both prophets address overlapping themes (judgment, restoration, covenant)`;
+  }
+  // Pauline cross-references
+  if (_PAULINE.has(sb) && _PAULINE.has(tb)) {
+    return `Pauline parallel — recurring theme across ${sName} and ${tName}`;
+  }
+  // Same book = local context
+  if (sb === tb) {
+    return `Internal echo within ${sName} — same author developing a recurring motif`;
+  }
+  // OT-NT bridge
+  if (_OT_OSIS.has(sb) && _NT_OSIS.has(tb)) {
+    return `OT → NT bridge — ${tName} draws on themes from ${sName}`;
+  }
+  if (_NT_OSIS.has(sb) && _OT_OSIS.has(tb)) {
+    return `NT roots in OT — ${sName} reflects on ${sName === tName ? '' : `${tName}'s`} theology`;
+  }
+  // Vote-based fallback for everything else
+  if (v >= 50) return `Cornerstone link — ${v} commentary sources affirm this connection`;
+  if (v >= 20) return `Strongly attested theme between ${sName} and ${tName}`;
+  if (v >= 10) return `Notable resonance — recurring image or vocabulary across these passages`;
+  if (v >= 5) return `Affirmed thematic link between ${sName} and ${tName}`;
+  return `Faint thematic echo — limited interpretive consensus`;
 }
 
 async function loadTheologyQuestions() {
@@ -1354,6 +1412,61 @@ function osisToHuman(osisRef) {
   const idx = IDX_BY_OSIS[m[1]];
   const name = idx != null ? BOOKS[idx].name : m[1];
   return `${name} ${m[2]}:${m[3]}`;
+}
+
+// Convert human ref like "John 3:16" or "1 Cor 13:4" to OSIS form, then navigate
+const _HUMAN_TO_OSIS = {
+  'gen':'Gen','genesis':'Gen','exo':'Exod','exod':'Exod','exodus':'Exod','lev':'Lev','leviticus':'Lev',
+  'num':'Num','numbers':'Num','deu':'Deut','deut':'Deut','deuteronomy':'Deut','jos':'Josh','josh':'Josh','joshua':'Josh',
+  'jdg':'Judg','judg':'Judg','judges':'Judg','rut':'Ruth','ruth':'Ruth',
+  '1sa':'1Sam','1sam':'1Sam','1samuel':'1Sam','i samuel':'1Sam','i sam':'1Sam','1 samuel':'1Sam','1 sam':'1Sam',
+  '2sa':'2Sam','2sam':'2Sam','2samuel':'2Sam','ii samuel':'2Sam','ii sam':'2Sam','2 samuel':'2Sam','2 sam':'2Sam',
+  '1ki':'1Kgs','1kgs':'1Kgs','1kings':'1Kgs','i kings':'1Kgs','1 kings':'1Kgs',
+  '2ki':'2Kgs','2kgs':'2Kgs','2kings':'2Kgs','ii kings':'2Kgs','2 kings':'2Kgs',
+  '1ch':'1Chr','1chr':'1Chr','1chronicles':'1Chr','i chronicles':'1Chr','1 chronicles':'1Chr',
+  '2ch':'2Chr','2chr':'2Chr','2chronicles':'2Chr','ii chronicles':'2Chr','2 chronicles':'2Chr',
+  'ezr':'Ezra','ezra':'Ezra','neh':'Neh','nehemiah':'Neh','est':'Esth','esth':'Esth','esther':'Esth',
+  'job':'Job','psa':'Ps','ps':'Ps','psalm':'Ps','psalms':'Ps','pro':'Prov','prov':'Prov','proverbs':'Prov',
+  'ecc':'Eccl','eccl':'Eccl','ecclesiastes':'Eccl','sng':'Song','song':'Song','songofsolomon':'Song','song of solomon':'Song',
+  'isa':'Isa','isaiah':'Isa','jer':'Jer','jeremiah':'Jer','lam':'Lam','lamentations':'Lam',
+  'eze':'Ezek','ezek':'Ezek','ezekiel':'Ezek','dan':'Dan','daniel':'Dan',
+  'hos':'Hos','hosea':'Hos','joe':'Joel','joel':'Joel','amo':'Amos','amos':'Amos',
+  'oba':'Obad','obad':'Obad','obadiah':'Obad','jon':'Jonah','jonah':'Jonah',
+  'mic':'Mic','micah':'Mic','nah':'Nah','nahum':'Nah','hab':'Hab','habakkuk':'Hab',
+  'zep':'Zeph','zeph':'Zeph','zephaniah':'Zeph','hag':'Hag','haggai':'Hag','zec':'Zech','zech':'Zech','zechariah':'Zech','mal':'Mal','malachi':'Mal',
+  'mat':'Matt','matt':'Matt','matthew':'Matt','mar':'Mark','mark':'Mark','luk':'Luke','luke':'Luke','jhn':'John','john':'John',
+  'act':'Acts','acts':'Acts','rom':'Rom','romans':'Rom',
+  '1co':'1Cor','1cor':'1Cor','1corinthians':'1Cor','i corinthians':'1Cor','1 corinthians':'1Cor',
+  '2co':'2Cor','2cor':'2Cor','2corinthians':'2Cor','ii corinthians':'2Cor','2 corinthians':'2Cor',
+  'gal':'Gal','galatians':'Gal','eph':'Eph','ephesians':'Eph','php':'Phil','phil':'Phil','philippians':'Phil',
+  'col':'Col','colossians':'Col',
+  '1th':'1Thess','1thess':'1Thess','1thessalonians':'1Thess','i thessalonians':'1Thess','1 thessalonians':'1Thess',
+  '2th':'2Thess','2thess':'2Thess','2thessalonians':'2Thess','ii thessalonians':'2Thess','2 thessalonians':'2Thess',
+  '1ti':'1Tim','1tim':'1Tim','1timothy':'1Tim','i timothy':'1Tim','1 timothy':'1Tim',
+  '2ti':'2Tim','2tim':'2Tim','2timothy':'2Tim','ii timothy':'2Tim','2 timothy':'2Tim',
+  'tit':'Titus','titus':'Titus','phm':'Phlm','phlm':'Phlm','philemon':'Phlm',
+  'heb':'Heb','hebrews':'Heb','jas':'Jas','james':'Jas',
+  '1pe':'1Pet','1pet':'1Pet','1peter':'1Pet','i peter':'1Pet','1 peter':'1Pet',
+  '2pe':'2Pet','2pet':'2Pet','2peter':'2Pet','ii peter':'2Pet','2 peter':'2Pet',
+  '1jn':'1John','1john':'1John','i john':'1John','1 john':'1John',
+  '2jn':'2John','2john':'2John','ii john':'2John','2 john':'2John',
+  '3jn':'3John','3john':'3John','iii john':'3John','3 john':'3John',
+  'jud':'Jude','jude':'Jude','rev':'Rev','revelation':'Rev'
+};
+
+function navigateHumanRef(humanRef) {
+  if (!humanRef) return;
+  const m = humanRef.trim().match(/^([1-3]?\s*[A-Za-z][A-Za-z\s]*?)\s*(\d+)\s*[:.]?\s*(\d+)?/);
+  if (!m) return;
+  const bookKey = m[1].toLowerCase().replace(/\./g,'').replace(/\s+/g,' ').trim();
+  let osisBook = _HUMAN_TO_OSIS[bookKey] || _HUMAN_TO_OSIS[bookKey.replace(/\s+/g,'')];
+  if (!osisBook) {
+    // try abbreviated
+    osisBook = _HUMAN_TO_OSIS[bookKey.split(' ').slice(-1)[0]];
+  }
+  if (!osisBook) return;
+  const osis = m[3] ? `${osisBook}.${m[2]}.${m[3]}` : `${osisBook}.${m[2]}.1`;
+  navigateToOsis(osis);
 }
 
 function navigateToOsis(osisRef) {
@@ -1709,7 +1822,7 @@ function showSidebar(key, verseNum, refs) {
       refHTML += `<div class="sidebar-section"><div class="sidebar-section-title">${type}</div>`;
       typeGroups[type].forEach(r => {
         refHTML += `
-          <div class="ref-card ${type.toLowerCase()}" onclick="window.open('https://www.blueletterbible.org/kjv/${r.ref.split(' ')[0].toLowerCase()}/${r.ref.split(':')[0].split(' ').slice(-1)[0]}/${r.ref.split(':')[1]}/', '_blank')">
+          <div class="ref-card ${type.toLowerCase()}" onclick="navigateHumanRef('${r.ref.replace(/'/g, "\\'")}')">
             <div class="ref-card-header">
               <span class="ref-card-address">${r.ref}</span>
               <span class="ref-type-badge ${type.toLowerCase()}">${type}</span>
@@ -1975,7 +2088,7 @@ function startGraph() {
           state.bookIdx = idx;
           state.chapter = +m[2];
           setMode('sidebar');
-          document.querySelectorAll('#mode-group button').forEach(b => b.classList.toggle('active', b.dataset.m === 'sidebar'));
+          document.querySelectorAll('#mode-group button, #view-group button').forEach(b => b.classList.toggle('active', b.dataset.m === 'sidebar'));
           loadChapter().then(() => {
             setTimeout(() => {
               const verseEl = document.getElementById('v-' + m[3]);
@@ -2038,7 +2151,7 @@ function stopGraph() {
 // ═══════════════════════════════════════════════════════
 // ARC MODE — Harrison/Römhild-style chord diagram
 // ═══════════════════════════════════════════════════════
-let arcState = { colorMode: 'type', verseIdx: null, hover: null, cleanup: null };
+let arcState = { colorMode: 'type', verseIdx: null, hover: null, cleanup: null, zoom: 1, panX: 0, drag: null };
 
 function _parseOsis(key) {
   const m = (key || '').match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)$/);
@@ -2118,11 +2231,12 @@ function startArc() {
     const h = canvas.height / (window.devicePixelRatio || 1);
     const margin = 30;
     const baseY = h - 60;
-    const usableW = w - 2 * margin;
+    const baseUsableW = w - 2 * margin;
+    const usableW = baseUsableW * arcState.zoom;
     const { idx, total, bookStart } = arcState.verseIdx;
     const xFor = (k) => {
       const i = idx.get(k);
-      return i == null ? null : margin + (i / Math.max(1, total - 1)) * usableW;
+      return i == null ? null : margin + (i / Math.max(1, total - 1)) * usableW + arcState.panX;
     };
     const curBook = OSIS_BY_IDX[state.bookIdx];
     const curCh = state.chapter;
@@ -2155,16 +2269,29 @@ function startArc() {
       });
     });
 
-    // Book separator ticks at the baseline
+    // Book separator ticks + labels (only when zoomed enough)
     ctx.globalAlpha = 0.4;
     ctx.strokeStyle = '#3D424F';
     ctx.lineWidth = 0.5;
-    Object.values(bookStart).forEach(i => {
-      const x = margin + (i / Math.max(1, total - 1)) * usableW;
+    Object.entries(bookStart).forEach(([bookOsis, i]) => {
+      const x = margin + (i / Math.max(1, total - 1)) * usableW + arcState.panX;
+      if (x < -50 || x > w + 50) return;
       ctx.beginPath();
       ctx.moveTo(x, baseY);
       ctx.lineTo(x, baseY + 14);
       ctx.stroke();
+      // Show book labels when zoomed in enough
+      if (arcState.zoom >= 2) {
+        const bIdx = IDX_BY_OSIS[bookOsis];
+        const bName = bIdx != null ? BOOKS[bIdx].name : bookOsis;
+        ctx.save();
+        ctx.fillStyle = '#9CA0A8';
+        ctx.font = '10px -apple-system, system-ui, sans-serif';
+        ctx.translate(x, baseY + 26);
+        ctx.rotate(-Math.PI / 4);
+        ctx.fillText(bName, 0, 0);
+        ctx.restore();
+      }
     });
 
     // Pass 2: highlighted current-chapter arcs
@@ -2212,61 +2339,123 @@ function startArc() {
   resize();
   window.addEventListener('resize', resize);
 
-  // Hover detection — find arc near cursor
+  // Convert canvas-x → verse key, accounting for zoom/pan
+  function keyAtX(mx, rectWidth) {
+    const margin = 30;
+    const baseUsableW = rectWidth - 2 * margin;
+    const usableW = baseUsableW * arcState.zoom;
+    const { sorted, total } = arcState.verseIdx;
+    const t = (mx - margin - arcState.panX) / usableW;
+    if (t < 0 || t > 1) return null;
+    const i = Math.round(t * (total - 1));
+    return sorted[i];
+  }
+
   function onMove(e) {
+    if (arcState.drag) {
+      const dx = e.clientX - arcState.drag.startX;
+      arcState.panX = arcState.drag.startPan + dx;
+      renderArc();
+      return;
+    }
     const r = canvas.getBoundingClientRect();
     const mx = e.clientX - r.left;
     const my = e.clientY - r.top;
-    const w = r.width, h = r.height;
-    const margin = 30;
-    const baseY = h - 60;
-    const usableW = w - 2 * margin;
-    const { idx, total, sorted } = arcState.verseIdx;
-    // Reverse-lookup from x-position
-    if (my > baseY + 20 || my < 20) {
-      tooltip.style.display = 'none';
-      return;
-    }
-    // Find nearest verse at this x
-    const t = (mx - margin) / usableW;
-    if (t < 0 || t > 1) { tooltip.style.display = 'none'; return; }
-    const i = Math.round(t * (total - 1));
-    const key = sorted[i];
+    const baseY = r.height - 60;
+    if (my > baseY + 30 || my < 20) { tooltip.style.display = 'none'; return; }
+    const key = keyAtX(mx, r.width);
     if (!key) { tooltip.style.display = 'none'; return; }
     const p = _parseOsis(key);
     if (!p) { tooltip.style.display = 'none'; return; }
     const bookName = BOOKS[p.bookIdx]?.name || p.book;
     const refCount = (OB_REFS[key] || []).length;
-    tooltip.innerHTML = `<strong>${bookName} ${p.ch}:${p.v}</strong>${refCount ? ` · ${refCount} refs` : ''}`;
+    tooltip.innerHTML = `<strong>${bookName} ${p.ch}:${p.v}</strong>${refCount ? ` · ${refCount} refs` : ''} <span style="color:#9CA0A8">— click to open</span>`;
     tooltip.style.left = (e.clientX + 14) + 'px';
     tooltip.style.top = (e.clientY + 14) + 'px';
     tooltip.style.display = 'block';
   }
-  function onClick(e) {
+  function onDown(e) {
+    arcState.drag = { startX: e.clientX, startY: e.clientY, startPan: arcState.panX, moved: false };
+    canvas.style.cursor = 'grabbing';
+  }
+  function onUp(e) {
+    const moved = arcState.drag && (Math.abs(e.clientX - arcState.drag.startX) > 4 || Math.abs(e.clientY - arcState.drag.startY) > 4);
+    arcState.drag = null;
+    canvas.style.cursor = 'crosshair';
+    if (!moved) {
+      // Treat as click — navigate
+      const r = canvas.getBoundingClientRect();
+      const mx = e.clientX - r.left;
+      const my = e.clientY - r.top;
+      const baseY = r.height - 60;
+      if (my > baseY + 30 || my < 20) return;
+      const key = keyAtX(mx, r.width);
+      if (!key) return;
+      const p = _parseOsis(key);
+      if (!p || p.bookIdx == null) return;
+      state.bookIdx = p.bookIdx;
+      state.chapter = p.ch;
+      state.activeVerse = p.v;
+      setMode('sidebar');
+      document.querySelectorAll('#mode-group button, #view-group button').forEach(b => b.classList.toggle('active', b.dataset.m === 'sidebar'));
+      loadChapter();
+    }
+  }
+  function onWheel(e) {
+    e.preventDefault();
     const r = canvas.getBoundingClientRect();
     const mx = e.clientX - r.left;
-    const my = e.clientY - r.top;
+    const oldZoom = arcState.zoom;
+    const factor = e.deltaY < 0 ? 1.18 : 1 / 1.18;
+    const newZoom = Math.max(1, Math.min(40, oldZoom * factor));
+    if (newZoom === oldZoom) return;
+    // Keep cursor x-pos stable
     const margin = 30;
-    const baseY = r.height - 60;
-    const usableW = r.width - 2 * margin;
-    if (my > baseY + 20 || my < 20) return;
-    const { sorted, total } = arcState.verseIdx;
-    const t = (mx - margin) / usableW;
-    if (t < 0 || t > 1) return;
-    const i = Math.round(t * (total - 1));
-    const key = sorted[i];
-    const p = _parseOsis(key);
-    if (!p || p.bookIdx == null) return;
-    state.bookIdx = p.bookIdx;
-    state.chapter = p.ch;
-    state.activeVerse = p.v;
-    setMode('sidebar');
-    document.querySelectorAll('#mode-group button').forEach(b => b.classList.toggle('active', b.dataset.m === 'sidebar'));
-    loadChapter();
+    const baseUsableW = r.width - 2 * margin;
+    const cursorWorld = (mx - margin - arcState.panX) / (baseUsableW * oldZoom);
+    arcState.zoom = newZoom;
+    arcState.panX = mx - margin - cursorWorld * (baseUsableW * newZoom);
+    renderArc();
   }
+  function onDblClick() { arcState.zoom = 1; arcState.panX = 0; renderArc(); }
   canvas.addEventListener('mousemove', onMove);
-  canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
-  canvas.addEventListener('click', onClick);
+  canvas.addEventListener('mousedown', onDown);
+  canvas.addEventListener('mouseup', onUp);
+  canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; arcState.drag = null; canvas.style.cursor = 'crosshair'; });
+  canvas.addEventListener('wheel', onWheel, { passive: false });
+  canvas.addEventListener('dblclick', onDblClick);
+
+  // Touch handlers — pinch-to-zoom + drag-to-pan
+  let touchState = null;
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      const t1 = e.touches[0], t2 = e.touches[1];
+      touchState = { mode: 'pinch', startDist: Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY), startZoom: arcState.zoom, midX: (t1.clientX + t2.clientX) / 2, startPan: arcState.panX };
+    } else if (e.touches.length === 1) {
+      touchState = { mode: 'pan', startX: e.touches[0].clientX, startPan: arcState.panX };
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchmove', e => {
+    if (!touchState) return;
+    if (touchState.mode === 'pinch' && e.touches.length === 2) {
+      const t1 = e.touches[0], t2 = e.touches[1];
+      const d = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const newZoom = Math.max(1, Math.min(40, touchState.startZoom * (d / touchState.startDist)));
+      const r = canvas.getBoundingClientRect();
+      const margin = 30;
+      const baseUsableW = r.width - 2 * margin;
+      const mx = touchState.midX - r.left;
+      const cursorWorld = (mx - margin - touchState.startPan) / (baseUsableW * touchState.startZoom);
+      arcState.zoom = newZoom;
+      arcState.panX = mx - margin - cursorWorld * (baseUsableW * newZoom);
+      renderArc();
+    } else if (touchState.mode === 'pan' && e.touches.length === 1) {
+      const dx = e.touches[0].clientX - touchState.startX;
+      arcState.panX = touchState.startPan + dx;
+      renderArc();
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchend', () => { touchState = null; }, { passive: true });
 
   // Color-mode buttons
   const colorBtns = {
@@ -2289,7 +2478,10 @@ function startArc() {
   arcState.cleanup = () => {
     window.removeEventListener('resize', resize);
     canvas.removeEventListener('mousemove', onMove);
-    canvas.removeEventListener('click', onClick);
+    canvas.removeEventListener('mousedown', onDown);
+    canvas.removeEventListener('mouseup', onUp);
+    canvas.removeEventListener('wheel', onWheel);
+    canvas.removeEventListener('dblclick', onDblClick);
   };
 }
 
