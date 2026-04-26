@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Scripture Link — Read the Bible with Cross-References, Hebrew/Greek &amp; Sermons</title>
-<meta name="description" content="A Bible reader with 344K typed cross-references, Hebrew &amp; Greek interlinear with Strong's, MacArthur-style commentary on top 1,000 verses, sermons from 5 ministries, and a chronological timeline of all 66 books.">
+<meta name="description" content="A Bible reader with 344K typed cross-references, Hebrew &amp; Greek interlinear with Strong's, original editorial commentary in the Reformed tradition, sermons from 5 ministries, and a chronological timeline of all 66 books.">
 <link rel="canonical" href="https://hunihydration.com/bible/">
 <meta name="theme-color" content="#2A4D6E" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#15171C" media="(prefers-color-scheme: dark)">
@@ -17,7 +17,7 @@
 
 <!-- Open Graph -->
 <meta property="og:title" content="Scripture Link — Bible study with cross-references, Hebrew/Greek, and sermons">
-<meta property="og:description" content="Read the Bible with 344K cross-references, original-language word study, MacArthur-style commentary, and sermons from MacArthur, Joby Martin, Ardavanis, JP Pokluda, and Watermark.">
+<meta property="og:description" content="Read the Bible with 344K cross-references, original-language word study, original editorial commentary in the Reformed tradition, and sermons from MacArthur, Joby Martin, Ardavanis, JP Pokluda, and Watermark.">
 <meta property="og:url" content="https://hunihydration.com/bible/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Scripture Link">
@@ -1987,11 +1987,11 @@ body.mode-timeline .timeline-help { display: block; }
 </div>
 
 <div class="legend">
-  <div class="legend-item"><div class="legend-dot prophecy"></div><span>Prophecy</span></div>
-  <div class="legend-item"><div class="legend-dot fulfillment"></div><span>Fulfillment</span></div>
-  <div class="legend-item"><div class="legend-dot parallel"></div><span>Parallel</span></div>
-  <div class="legend-item"><div class="legend-dot thematic"></div><span>Thematic</span></div>
-  <div class="legend-item"><div class="legend-dot quote"></div><span>NT Quote</span></div>
+  <div class="legend-item" title="Old Testament prediction of a future event (e.g. Isaiah 53 of the Messiah)"><div class="legend-dot prophecy"></div><span>Prophecy</span></div>
+  <div class="legend-item" title="New Testament passage that fulfills an OT prophecy"><div class="legend-dot fulfillment"></div><span>Fulfillment</span></div>
+  <div class="legend-item" title="Same story or sayings told in another book (e.g. parallel Gospel accounts)"><div class="legend-dot parallel"></div><span>Parallel</span></div>
+  <div class="legend-item" title="Verses sharing a similar theme, image, or doctrine"><div class="legend-dot thematic"></div><span>Thematic</span></div>
+  <div class="legend-item" title="New Testament direct quotation of an Old Testament verse"><div class="legend-dot quote"></div><span>NT Quote</span></div>
 </div>
 
 <div id="graph-stage">
@@ -4704,7 +4704,7 @@ function renderChapter(book, verses) {
           <a href="javascript:void(0)" onclick="document.getElementById('settings-toggle')?.click();setTimeout(()=>document.querySelector('[data-action=themes]')?.click(),200)" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:6px 11px;border-radius:14px;font-size:11.5px;font-weight:500;border:1px solid var(--border)">Browse by theme →</a>
         </div>
         <div style="font-size:11px;color:var(--text-dim);margin-top:10px;line-height:1.5">
-          <strong style="color:var(--text-muted)">Tap any verse</strong> to see its connections. Open <strong style="color:var(--text-muted)">Menu</strong> for read-aloud, commentary, and more.
+          <strong style="color:var(--text-muted)">Tap any verse</strong> to see its connections. Open <strong style="color:var(--text-muted)">Menu</strong> for read-aloud, commentary, and more. On a keyboard, press <kbd style="background:var(--bg);border:1px solid var(--border-strong);border-radius:3px;padding:1px 5px;font-family:monospace;color:var(--text-muted)">?</kbd> for shortcuts.
         </div>
       </div>
     `;
@@ -5056,8 +5056,8 @@ function showSidebar(key, verseNum, refs) {
     if (note) {
       commentaryHTML = `<div class="sidebar-section" style="border-left:3px solid #6B4D00;background:linear-gradient(135deg,rgba(212,184,112,0.08),transparent);padding:14px 16px;margin-top:8px;border-radius:4px">
         <div style="font-size:10px;letter-spacing:0.1em;color:#A07A20;text-transform:uppercase;margin-bottom:8px;font-weight:600;display:flex;justify-content:space-between;align-items:center">
-          <span>Commentary</span>
-          <span style="font-size:9px;font-style:italic;color:var(--text-dim);text-transform:none;letter-spacing:0">Reformed/expositional</span>
+          <span>Editorial note</span>
+          <span style="font-size:9px;font-style:italic;color:var(--text-dim);text-transform:none;letter-spacing:0" title="Original to Scripture Link, not John MacArthur. Reformed/expositional perspective.">By Scripture Link · Reformed/expositional</span>
         </div>
         <div style="font-family:var(--serif);font-size:14px;line-height:1.65;color:var(--text)">${note}</div>
         <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
