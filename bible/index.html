@@ -2030,11 +2030,14 @@ body.mode-timeline .timeline-help { display: block; }
 
   <div class="chapter-nav">
     <span class="status-pill" id="xrefs-status" title="OpenBible.info cross-references">…</span>
-    <button id="depth-toggle" class="theme-toggle desktop-only" aria-label="Toggle depth" title="Top references vs all">Top</button>
-    <button id="commentary-toggle" class="theme-toggle desktop-only" aria-label="Toggle commentary" title="Show/hide verse commentary">Notes</button>
-    <button id="wordstudy-toggle" class="theme-toggle desktop-only" aria-label="Toggle word study" title="Show/hide Hebrew & Greek with Strong's numbers">Original</button>
-    <button id="redletter-toggle" class="theme-toggle desktop-only" aria-label="Toggle red-letter NT" title="Show Jesus' words in red (NT only)">Red Letter</button>
-    <button id="settings-toggle" class="theme-toggle mobile-only icon-btn" aria-label="Open settings" title="Settings & display options"><svg width="16" height="14" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1 2 L15 2 M1 7 L15 7 M1 12 L15 12"/></svg></button>
+    <!-- These four toggles are kept in DOM (handlers still wire to them) but
+         hidden — the Settings drawer covers them on every breakpoint, and
+         the desktop header was getting too crowded. -->
+    <button id="depth-toggle" class="theme-toggle" hidden aria-label="Toggle depth" title="Top references vs all">Top</button>
+    <button id="commentary-toggle" class="theme-toggle" hidden aria-label="Toggle commentary" title="Show/hide verse commentary">Notes</button>
+    <button id="wordstudy-toggle" class="theme-toggle" hidden aria-label="Toggle word study" title="Show/hide Hebrew & Greek with Strong's numbers">Original</button>
+    <button id="redletter-toggle" class="theme-toggle" hidden aria-label="Toggle red-letter NT" title="Show Jesus' words in red (NT only)">Red Letter</button>
+    <button id="settings-toggle" class="theme-toggle icon-btn" aria-label="Open settings" title="Settings & display options"><svg width="16" height="14" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1 2 L15 2 M1 7 L15 7 M1 12 L15 12"/></svg></button>
     <button id="read-aloud-btn" class="theme-toggle icon-btn" aria-label="Read chapter aloud" aria-pressed="false" title="Read this chapter aloud"><svg width="16" height="14" viewBox="0 0 16 14" fill="currentColor"><path d="M1 4 L4 4 L8 1 L8 13 L4 10 L1 10 Z"/><path d="M10 4 Q12 7 10 10" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M11.5 2.5 Q15 7 11.5 11.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></button>
     <button id="share-link" class="theme-toggle desktop-only icon-btn" aria-label="Copy share link" title="Copy direct link to this verse/chapter"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="3" cy="7" r="2"/><circle cx="11" cy="3" r="2"/><circle cx="11" cy="11" r="2"/><line x1="4.7" y1="6" x2="9.3" y2="3.8"/><line x1="4.7" y1="8" x2="9.3" y2="10.2"/></svg></button>
     <button id="theme-toggle" class="theme-toggle desktop-only" aria-label="Toggle theme" title="Toggle light/dark">Dark</button>
@@ -2930,6 +2933,50 @@ function init() {
   function clearReadingHighlight() {
     document.querySelectorAll('.verse.speaking').forEach(el => el.classList.remove('speaking'));
   }
+  // Long-press the listen button to cycle reading speed (was DevTools-only).
+  if (readBtn) {
+    let _lpRead = null, _wasLongRead = false;
+    const startLP = () => {
+      _wasLongRead = false;
+      _lpRead = setTimeout(() => {
+        _wasLongRead = true;
+        const SPEEDS = [0.75, 1.0, 1.25, 1.5, 2.0];
+        const cur = parseFloat(localStorage.getItem('scripture-read-rate')) || 1.0;
+        const i = SPEEDS.findIndex(s => Math.abs(s - cur) < 0.01);
+        const next = SPEEDS[(i + 1) % SPEEDS.length];
+        localStorage.setItem('scripture-read-rate', String(next));
+        haptic([8, 30, 8]);
+        showToast(`Reading speed: ${next}× — restart Listen to apply`);
+      }, 550);
+    };
+    const cancelLP = () => { if (_lpRead) { clearTimeout(_lpRead); _lpRead = null; } };
+    readBtn.addEventListener('mousedown', startLP);
+    readBtn.addEventListener('touchstart', startLP, { passive: true });
+    readBtn.addEventListener('mouseup', cancelLP);
+    readBtn.addEventListener('mouseleave', cancelLP);
+    readBtn.addEventListener('touchend', cancelLP);
+    readBtn.addEventListener('touchcancel', cancelLP);
+    readBtn.addEventListener('click', (e) => {
+      if (_wasLongRead) { _wasLongRead = false; e.stopImmediatePropagation(); e.preventDefault(); }
+    }, true); // capture so we can cancel before the main handler fires
+  }
+  // Auto-pause when user switches tabs / locks phone — onend often
+  // doesn't fire reliably on iOS Safari, leaving readingActive=true with
+  // nothing playing. Pausing on hide and resuming on show is the
+  // high-value, reliable half of the fix.
+  if (typeof document !== 'undefined' && 'speechSynthesis' in window) {
+    document.addEventListener('visibilitychange', () => {
+      try {
+        if (document.hidden && readingActive && !readingPaused) {
+          speechSynthesis.pause();
+          readingPaused = true; syncReadBtn();
+        } else if (!document.hidden && readingActive && readingPaused) {
+          speechSynthesis.resume();
+          readingPaused = false; syncReadBtn();
+        }
+      } catch (e) {}
+    });
+  }
   if (readBtn) readBtn.addEventListener('click', () => {
     haptic(8);
     if (!('speechSynthesis' in window)) { alert('Your browser does not support speech synthesis.'); return; }
@@ -3483,6 +3530,7 @@ function showBookmarksModal() {
         <div style="padding:12px 14px;margin:8px 0;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid #D4B870;border-radius:4px;font-family:var(--sans);position:relative">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:8px">
             <span onclick="navigateToOsis('${b.ref}'); closeWordStudy(); closeSettings();" style="font-weight:600;font-size:14px;color:var(--accent);cursor:pointer;flex:1">${osisToHuman(b.ref)}</span>
+            <button onclick="event.stopPropagation(); shareBookmark(${i});" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:3px 9px;border-radius:11px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Share this verse">Share</button>
             <button onclick="event.stopPropagation(); startClozePractice(${i});" style="background:transparent;border:1px solid var(--accent);color:var(--accent);padding:3px 9px;border-radius:11px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Practice this verse">Practice</button>
             <button onclick="event.stopPropagation(); removeBookmark('${b.ref}'); showBookmarksModal();" style="background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;padding:0 4px;line-height:1" aria-label="Remove">&times;</button>
           </div>
@@ -3494,6 +3542,25 @@ function showBookmarksModal() {
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
+// One-tap share for a saved bookmark — uses native share sheet when available
+window.shareBookmark = async function(idx) {
+  const list = getBookmarks();
+  const b = list[idx];
+  if (!b) return;
+  const ref = osisToHuman(b.ref);
+  const url = `${location.origin}${location.pathname}#${b.ref}`;
+  const text = b.snippet ? `"${b.snippet.trim()}" — ${ref}` : ref;
+  const payload = { title: 'Scripture Link', text, url };
+  if (navigator.share && (!navigator.canShare || navigator.canShare(payload))) {
+    try { await navigator.share(payload); return; } catch (_) {}
+  }
+  try {
+    await navigator.clipboard.writeText(`${text}\n${url}`);
+    showToast('Verse + link copied');
+    haptic(8);
+  } catch (e) { prompt('Copy:', `${text}\n${url}`); }
+};
 
 // ===== Cloze Practice (verse memorization) =====
 let _clozeState = { idx: 0, hard: false, verses: [] };
