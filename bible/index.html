@@ -410,6 +410,42 @@ body.mode-inline .ref-dot::after {
   -webkit-tap-highlight-color: transparent;
 }
 .settings-section { padding: 4px 0; }
+.settings-search {
+  display: flex;
+  gap: 8px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-search input {
+  flex: 1;
+  padding: 11px 14px;
+  font-family: var(--sans);
+  font-size: 15px;
+  color: var(--text);
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+}
+.settings-search input:focus {
+  border-color: var(--accent);
+  background: var(--bg);
+}
+.settings-search button {
+  padding: 11px 18px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.settings-search button:active { opacity: 0.85; }
 .settings-row {
   display: flex;
   align-items: center;
@@ -1352,6 +1388,10 @@ body.mode-timeline .timeline-help { display: block; }
       <button class="settings-close-btn" onclick="closeSettings()" aria-label="Close">Done</button>
     </div>
     <div class="settings-section">
+      <div class="settings-search">
+        <input type="text" id="settings-jump-input" placeholder="Jump to verse  (e.g. John 3:16)" autocapitalize="words" autocorrect="off" autocomplete="off" spellcheck="false" />
+        <button id="settings-jump-btn">Go</button>
+      </div>
       <div class="settings-row" data-action="translation">
         <div class="settings-row-main">
           <div class="settings-row-label">Translation</div>
@@ -1842,11 +1882,31 @@ function init() {
     syncSettingsValues();
     drawer.classList.add('open');
     document.body.style.overflow = 'hidden';
+    setTimeout(() => {
+      const inp = document.getElementById('settings-jump-input');
+      if (inp) inp.focus();
+    }, 250);
   });
   window.closeSettings = () => {
     drawer.classList.remove('open');
     document.body.style.overflow = '';
   };
+
+  // Jump-to-verse handler
+  function doJump() {
+    const inp = document.getElementById('settings-jump-input');
+    if (!inp) return;
+    const ref = inp.value.trim();
+    if (!ref) return;
+    haptic(8);
+    navigateHumanRef(ref);
+    inp.value = '';
+    closeSettings();
+  }
+  const jumpBtn = document.getElementById('settings-jump-btn');
+  const jumpInput = document.getElementById('settings-jump-input');
+  if (jumpBtn) jumpBtn.addEventListener('click', doJump);
+  if (jumpInput) jumpInput.addEventListener('keydown', e => { if (e.key === 'Enter') doJump(); });
   drawer && drawer.querySelectorAll('.settings-row').forEach(row => {
     row.addEventListener('click', () => {
       const action = row.dataset.action;
