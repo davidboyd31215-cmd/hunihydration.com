@@ -1384,6 +1384,7 @@ body.mode-timeline .timeline-help { display: block; }
     <button id="wordstudy-toggle" class="theme-toggle desktop-only" aria-label="Toggle word study" title="Show/hide Hebrew & Greek with Strong's numbers">Original</button>
     <button id="redletter-toggle" class="theme-toggle desktop-only" aria-label="Toggle red-letter NT" title="Show Jesus' words in red (NT only)">Red Letter</button>
     <button id="settings-toggle" class="theme-toggle mobile-only" aria-label="Open settings" title="Settings & display options">Settings</button>
+    <button id="read-aloud-btn" class="theme-toggle" aria-label="Read chapter aloud" title="Read this chapter aloud">Listen</button>
     <button id="share-link" class="theme-toggle" aria-label="Copy share link" title="Copy direct link to this verse/chapter">Share</button>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">Dark</button>
     <button id="prev-ch" aria-label="Previous chapter">&#8592;</button>
@@ -2002,6 +2003,45 @@ function init() {
       }
       syncSettingsValues();
     });
+  });
+
+  // Read-aloud button — speech-synthesizes the current chapter
+  const readBtn = document.getElementById('read-aloud-btn');
+  let readingActive = false;
+  function syncReadBtn() {
+    if (!readBtn) return;
+    readBtn.textContent = readingActive ? 'Stop' : 'Listen';
+  }
+  if (readBtn) readBtn.addEventListener('click', () => {
+    haptic(8);
+    if (!('speechSynthesis' in window)) {
+      alert('Your browser does not support speech synthesis.');
+      return;
+    }
+    if (readingActive) {
+      speechSynthesis.cancel();
+      readingActive = false;
+      syncReadBtn();
+      return;
+    }
+    if (!state.verses || !state.verses.length) return;
+    const fullText = state.verses.map(v => `${v.verse}. ${v.text.trim()}`).join(' ');
+    // Chunk the text into sentences for nicer pacing & to allow stopping mid-chapter
+    const chunks = fullText.match(/[^.!?]+[.!?]+/g) || [fullText];
+    let i = 0;
+    function speakNext() {
+      if (!readingActive || i >= chunks.length) {
+        readingActive = false; syncReadBtn(); return;
+      }
+      const u = new SpeechSynthesisUtterance(chunks[i++]);
+      u.rate = 1.0; u.pitch = 1.0; u.lang = 'en-US';
+      u.onend = speakNext;
+      u.onerror = () => { readingActive = false; syncReadBtn(); };
+      speechSynthesis.speak(u);
+    }
+    readingActive = true;
+    syncReadBtn();
+    speakNext();
   });
 
   // Share-link button
@@ -2728,6 +2768,11 @@ async function fetchBSB(bookIdx, chapter) {
 }
 
 async function loadChapter() {
+  // Stop any in-progress speech when switching chapters
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  const readBtn = document.getElementById('read-aloud-btn');
+  if (readBtn && readBtn.textContent === 'Stop') readBtn.textContent = 'Listen';
+
   const book = BOOKS[state.bookIdx];
   document.getElementById('chapter-display').textContent = `${book.name} ${state.chapter}`;
   document.getElementById('book-select').value = state.bookIdx;
