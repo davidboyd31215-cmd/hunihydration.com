@@ -5138,7 +5138,8 @@ async function fetchVerseText(osisRef) {
         }
         text = parts.join(' ');
       } else {
-        const range = endVerse > verse ? `${book.abbr}+${chapter}:${verse}-${endVerse}` : `${book.abbr}+${chapter}:${verse}`;
+        const refPath = encodeURIComponent(book.name);
+        const range = endVerse > verse ? `${refPath}+${chapter}:${verse}-${endVerse}` : `${refPath}+${chapter}:${verse}`;
         try {
           const r = await fetch(`https://bible-api.com/${range}?translation=kjv`);
           if (!r.ok) throw new Error('bible-api ' + r.status);
@@ -5204,9 +5205,10 @@ async function fetchKJV(book, chapter) {
         .sort((a,b) => a.verse - b.verse);
     }
   }
-  // Primary: bible-api.com
+  // Primary: bible-api.com — use the full book name; some 3-letter abbrs
+  // we ship (e.g. 'mar' for Mark) are not recognized by bible-api and 404.
   try {
-    const res = await fetch(`https://bible-api.com/${book.abbr}+${chapter}?translation=kjv`);
+    const res = await fetch(`https://bible-api.com/${encodeURIComponent(book.name)}+${chapter}?translation=kjv`);
     if (res.ok) {
       const data = await res.json();
       if (data.verses && data.verses.length) return data.verses;
@@ -6011,7 +6013,7 @@ async function compareTranslations(osisKey, btn) {
   async function fetchVerse(translation) {
     try {
       if (translation === 'kjv') {
-        const r = await fetch(`https://bible-api.com/${book.abbr}+${ch}:${v}?translation=kjv`);
+        const r = await fetch(`https://bible-api.com/${encodeURIComponent(book.name)}+${ch}:${v}?translation=kjv`);
         if (r.ok) {
           const d = await r.json();
           return (d.verses && d.verses[0]) ? d.verses[0].text.trim() : '';
