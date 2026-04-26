@@ -1814,18 +1814,32 @@ body.mode-timeline .timeline-help { display: block; }
     overscroll-behavior: contain;
   }
   .sidebar.open { right: 0; bottom: 0; }
-  .sidebar::before {
-    content: '';
+  /* Real sticky-top grab handle with a transparent 24px hit-area around the
+     visible 44x5 pill — gives the swipe-down-to-dismiss gesture an honest
+     tap target instead of relying on a 5px-tall pseudo-element. */
+  .sidebar-handle {
     position: sticky;
-    top: 8px;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    width: 100%;
+    z-index: 10;
+    cursor: grab;
+    -webkit-tap-highlight-color: transparent;
+    background: transparent;
+  }
+  .sidebar-handle:active { cursor: grabbing; }
+  .sidebar-handle span {
     display: block;
     width: 44px;
     height: 5px;
     border-radius: 3px;
     background: var(--border-strong);
-    margin: 0 auto -5px;
-    z-index: 10;
+    transition: width 0.18s ease, background 0.18s ease;
   }
+  .sidebar-handle:active span { width: 60px; background: var(--text-muted); }
   .sidebar-header { padding-top: 18px; padding-bottom: 14px; }
 
   /* Larger tap targets in sidebar */
@@ -2099,6 +2113,7 @@ body.mode-timeline .timeline-help { display: block; }
     <button class="bn-arrow" onclick="document.getElementById('next-ch').click()" aria-label="Next chapter">›</button>
   </nav>
   <aside class="sidebar" id="sidebar" role="dialog" aria-modal="false" aria-label="Verse details">
+    <div class="sidebar-handle" aria-hidden="true"><span></span></div>
     <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close">&#215;</button>
     <div id="sidebar-content" class="noTag">
       <div class="sidebar-empty">
@@ -3252,9 +3267,13 @@ function init() {
       const cur = window.scrollY;
       const header = document.querySelector('.header');
       if (!header) return;
-      if (cur > _lastScroll && cur > 80) {
+      // Symmetric thresholds — was hiding on any down-delta past y=80
+      // (twitchy on iOS Safari toolbar collapse) and revealing on a 4px
+      // up-delta. Now require >=8px in either direction and don't hide
+      // until the user has clearly scrolled past the header band.
+      if (cur - _lastScroll > 8 && cur > 160) {
         header.classList.add('hidden-on-scroll');
-      } else if (cur < _lastScroll - 4) {
+      } else if (_lastScroll - cur > 8) {
         header.classList.remove('hidden-on-scroll');
       }
       _lastScroll = cur;
@@ -5651,11 +5670,21 @@ function showSidebar(key, verseNum, refs) {
             const color = PASTOR_COLORS[s.pastor] || '#888';
             return `<a href="${s.url}" target="_blank" rel="noopener" style="display:block;padding:11px 13px;margin:6px 0;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid ${color};border-radius:4px;text-decoration:none;color:var(--text);font-family:var(--sans);transition:background 0.15s">
               <div style="font-size:13px;font-weight:600;line-height:1.35;color:var(--text)">${s.title}</div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:4px;display:flex;align-items:center;gap:6px">
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
                 <span style="display:inline-block;padding:1px 6px;background:${color};color:white;border-radius:3px;font-size:9.5px;font-weight:600;letter-spacing:0.03em">${s.pastor || ''}</span>
                 ${s.feed ? `<span style="font-style:italic">${s.feed}</span>` : ''}
                 ${s.date ? `<span>· ${s.date}</span>` : ''}
                 ${s.duration ? `<span>· ${s.duration}</span>` : ''}
+                ${(() => {
+                  // Subtle 'archive' tag for sermons older than 3 years so
+                  // a Watermark 2010 sermon doesn't look as fresh as a 2024 one.
+                  if (!s.date) return '';
+                  const ym = (s.date.match(/(20\d{2}|19\d{2})/) || [])[0];
+                  if (!ym) return '';
+                  const age = new Date().getFullYear() - +ym;
+                  if (age < 3) return '';
+                  return `<span style="font-size:9.5px;color:var(--text-dim);border:1px solid var(--border);border-radius:2px;padding:0 5px;font-weight:600" title="${age} years old">${ym}</span>`;
+                })()}
               </div>
             </a>`;
           }).join('')}
