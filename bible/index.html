@@ -1037,10 +1037,43 @@ body.mode-timeline .timeline-help { display: block; }
   #mode-group, #view-group, #translation-group, #depth-toggle, #commentary-toggle, #wordstudy-toggle, #redletter-toggle {
     display: none !important;
   }
-  /* Book select stays visible but compact */
-  #book-select { max-width: 130px; font-size: 13px; padding: 4px 6px; }
-  /* The settings button is the gateway to everything else */
-  #settings-toggle { font-weight: 600; }
+  /* Book select stays visible but compact, native iOS appearance */
+  #book-select {
+    max-width: 130px;
+    font-size: 14px;
+    padding: 6px 22px 6px 10px;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='%23999'><path d='M3 5l3 3 3-3'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 10px;
+  }
+  /* Settings button — keep prominent */
+  #settings-toggle {
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 14px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 8px;
+  }
+  /* Chapter prev/next — bigger tap targets */
+  #prev-ch, #next-ch {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    font-size: 18px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   /* Status pill ("29.4k linked") hidden — surface in settings instead */
   .status-pill { display: none; }
   #chapter-display { font-size: 13px; min-width: auto; padding: 0 6px; }
@@ -1126,10 +1159,18 @@ body.mode-timeline .timeline-help { display: block; }
   /* Larger tap targets in sidebar */
   .ref-card { padding: 12px 14px; min-height: 44px; }
   .ref-card-address { font-size: 14px; }
-  .blb-btn { padding: 9px 14px; min-height: 38px; font-size: 13px; }
+  .blb-btn { padding: 10px 14px; min-height: 40px; font-size: 13px; }
 
   /* Legend hidden on mobile to save space */
   .legend { display: none; }
+
+  /* Theological Q card — improve density on small screens */
+  .sidebar-section { padding: 12px 18px; }
+  .sidebar-verse-address { font-size: 16px; }
+  .sidebar-verse-text { font-size: 14px; line-height: 1.5; }
+
+  /* Settings drawer rows — slightly tighter */
+  .settings-row { min-height: 56px; padding: 12px 16px; }
 }
 
 @media (max-width: 480px) {
