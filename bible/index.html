@@ -1851,6 +1851,24 @@ body.mode-timeline .timeline-help { display: block; }
         <div class="settings-row-value">Copy</div>
       </div>
     </div>
+
+    <div class="settings-group-title">Help &amp; about</div>
+    <div class="settings-section">
+      <div class="settings-row" data-action="kbdhelp">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Keyboard shortcuts</div>
+          <div class="settings-row-sub">Quick keys for power users</div>
+        </div>
+        <div class="settings-row-value">View</div>
+      </div>
+      <div class="settings-row" data-action="about">
+        <div class="settings-row-main">
+          <div class="settings-row-label">About Scripture Link</div>
+          <div class="settings-row-sub">Data sources, credits, contact</div>
+        </div>
+        <div class="settings-row-value">Open</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2368,6 +2386,14 @@ function init() {
         document.getElementById('share-link').click();
         closeSettings();
       }
+      else if (action === 'kbdhelp') {
+        closeSettings();
+        showKeyboardHelp();
+      }
+      else if (action === 'about') {
+        closeSettings();
+        showAboutModal();
+      }
       syncSettingsValues();
     });
   });
@@ -2730,6 +2756,10 @@ function removeBookmark(ref) {
 document.addEventListener('keydown', (e) => {
   // Always handle Escape regardless of focus
   if (e.key === 'Escape') {
+    const about = document.getElementById('about-modal');
+    if (about) { about.remove(); return; }
+    const kbd = document.getElementById('kbd-help');
+    if (kbd) { kbd.remove(); return; }
     const modal = document.getElementById('ws-modal');
     if (modal && modal.classList.contains('open')) { closeWordStudy(); return; }
     const drawer = document.getElementById('settings-drawer');
@@ -2765,6 +2795,41 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'n' || e.key === 'j') { document.getElementById('next-ch')?.click(); return; }
   if (e.key === 'p' || e.key === 'k') { document.getElementById('prev-ch')?.click(); return; }
 });
+
+function showAboutModal() {
+  const existing = document.getElementById('about-modal');
+  if (existing) { existing.remove(); return; }
+  const m = document.createElement('div');
+  m.id = 'about-modal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;display:flex;align-items:center;justify-content:center;padding:24px;font-family:var(--sans);overflow-y:auto';
+  m.innerHTML = `
+    <div style="background:var(--bg);border:1px solid var(--border-strong);border-radius:10px;padding:24px 28px 20px;max-width:520px;width:100%;box-shadow:0 12px 36px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto">
+      <div style="font-family:var(--serif);font-size:20px;font-weight:600;margin-bottom:6px;color:var(--text)">Scripture Link</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.55">An independent Bible reader built with cross-references, original-language word study, commentary, and sermons. Not affiliated with any church or publisher.</div>
+
+      <div style="font-size:11px;letter-spacing:0.08em;font-weight:700;color:var(--accent);text-transform:uppercase;margin-bottom:8px">Data sources</div>
+      <ul style="font-size:13px;color:var(--text-muted);line-height:1.7;padding-left:18px;margin-bottom:16px">
+        <li><strong style="color:var(--text)">Bible text:</strong> KJV (public domain via bible-api.com &amp; bolls.life), ESV (esv.org API), BSB (bolls.life)</li>
+        <li><strong style="color:var(--text)">Cross-references:</strong> 344,799 from <a href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener" style="color:var(--accent)">OpenBible.info</a> (CC-BY)</li>
+        <li><strong style="color:var(--text)">Hebrew &amp; Greek:</strong> 14,197-entry Strong's lexicon (public domain) via <a href="https://github.com/tahmmee/interlinear_bibledata" target="_blank" rel="noopener" style="color:var(--accent)">interlinear_bibledata</a></li>
+        <li><strong style="color:var(--text)">Sermons:</strong> RSS feeds from Grace to You (MacArthur), The Church of Eleven22 (Joby Martin), Dial In (Jonny Ardavanis), Becoming Something (JP Pokluda / Harris Creek), Watermark</li>
+        <li><strong style="color:var(--text)">Commentary &amp; theological questions:</strong> Original, in the Reformed/expositional tradition (covers top 1,000 most-cited verses)</li>
+        <li><strong style="color:var(--text)">Verse hover tooltips:</strong> <a href="https://www.blueletterbible.org" target="_blank" rel="noopener" style="color:var(--accent)">Blue Letter Bible</a> Tagger</li>
+      </ul>
+
+      <div style="font-size:11px;letter-spacing:0.08em;font-weight:700;color:var(--accent);text-transform:uppercase;margin-bottom:8px">Privacy</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55">No tracking, no analytics, no ads. Your bookmarks and settings are stored only in your browser.</div>
+
+      <div style="font-size:11px;letter-spacing:0.08em;font-weight:700;color:var(--accent);text-transform:uppercase;margin-bottom:8px">Theological perspective</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.55">Commentary and sermon picks reflect a Reformed/expositional perspective. Verse text and cross-reference data are translation- and tradition-neutral.</div>
+
+      <div style="text-align:right;margin-top:8px">
+        <button onclick="document.getElementById('about-modal').remove()" style="background:var(--accent);color:white;border:none;padding:8px 18px;border-radius:6px;font-weight:600;cursor:pointer;font-family:var(--sans);font-size:13px">Got it</button>
+      </div>
+    </div>`;
+  m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
+  document.body.appendChild(m);
+}
 
 function showKeyboardHelp() {
   const existing = document.getElementById('kbd-help');
