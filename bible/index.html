@@ -267,6 +267,13 @@ body.sidebar-open .bible-text {
   flex: 1;
 }
 
+/* Mobile-friendly hit areas (visual size kept small, expanded touch via padding) */
+@media (pointer: coarse) {
+  .ref-dot, .ref-vote-badge { padding: 8px 12px !important; }
+  .ws-word { padding: 10px 8px !important; min-width: 44px; }
+  .pill-group button { padding: 10px 14px !important; min-height: 40px; }
+}
+
 .ref-dots {
   display: inline-flex;
   gap: 3px;
