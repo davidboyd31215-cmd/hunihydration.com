@@ -2642,11 +2642,11 @@ function init() {
     const bs = getBookmarks();
     setVal('settings-bookmarks-value', String(bs.length), 'action');
     const bsub = document.getElementById('settings-bookmarks-sub');
-    if (bsub) bsub.textContent = bs.length === 0 ? 'Save verses you love by tapping the ★ Save button when reading' : `${bs.length} verse${bs.length === 1 ? '' : 's'} saved — tap to view`;
+    if (bsub) bsub.textContent = bs.length === 0 ? 'Save verses you love by tapping the ★ Save button when reading' : `${bs.length} verse${bs.length === 1 ? '' : 's'} saved — open to review`;
     const hls = Object.keys(getHighlights());
     setVal('settings-highlights-value', String(hls.length), 'action');
     const hsub = document.getElementById('settings-highlights-sub');
-    if (hsub) hsub.textContent = hls.length === 0 ? 'Long-press a verse to highlight in 4 colors' : `${hls.length} highlighted verse${hls.length === 1 ? '' : 's'} — tap to view`;
+    if (hsub) hsub.textContent = hls.length === 0 ? 'Long-press a verse to highlight in 4 colors' : `${hls.length} highlighted verse${hls.length === 1 ? '' : 's'} — open to review`;
     // Reading streak
     const streak = (window._getReadingStreak && window._getReadingStreak()) || 0;
     const streakRow = document.getElementById('settings-streak-row');
@@ -4135,6 +4135,40 @@ function updateHash() {
   } catch(e) {}
 }
 
+// ── Journal (per-chapter reflections) ────────────────────
+// Stored as scripture-journal[bookIdx-chapter] = { text, updated }
+window._saveJournal = function(key, text) {
+  clearTimeout(window._journalTimer);
+  const status = document.getElementById('journal-status-' + key);
+  if (status) status.textContent = 'typing…';
+  window._journalTimer = setTimeout(() => {
+    try {
+      const map = JSON.parse(localStorage.getItem('scripture-journal') || '{}');
+      if (text && text.trim()) {
+        map[key] = { text: text, updated: Date.now() };
+      } else {
+        delete map[key];
+      }
+      localStorage.setItem('scripture-journal', JSON.stringify(map));
+      if (status) {
+        status.textContent = text && text.trim() ? 'Saved' : '';
+        status.style.color = 'var(--text-dim)';
+      }
+    } catch (e) {
+      if (status) { status.textContent = 'Storage full'; status.style.color = 'var(--prophecy)'; }
+    }
+  }, 500);
+};
+window._getJournalCount = function() {
+  try {
+    const map = JSON.parse(localStorage.getItem('scripture-journal') || '{}');
+    return Object.keys(map).filter(k => {
+      const e = map[k];
+      return e && (typeof e === 'string' ? e.trim() : (e.text && e.text.trim()));
+    }).length;
+  } catch(e) { return 0; }
+};
+
 // ── Bookmarks / favorites ─────────────────────────────────
 function getBookmarks() {
   try { return JSON.parse(localStorage.getItem('scripture-bookmarks') || '[]'); }
@@ -4779,6 +4813,23 @@ function renderChapter(book, verses) {
     html += `</nav>`;
   }
 
+  // Per-chapter reflection textarea — user-authored journaling.
+  // Stored in localStorage as scripture-journal[bookIdx-chapter] = {text, updated}
+  const _journalKey = `${state.bookIdx}-${state.chapter}`;
+  const _journalMap = (() => { try { return JSON.parse(localStorage.getItem('scripture-journal') || '{}'); } catch(e) { return {}; } })();
+  const _journalEntry = _journalMap[_journalKey];
+  const _journalText = _journalEntry ? (typeof _journalEntry === 'string' ? _journalEntry : (_journalEntry.text || '')) : '';
+  html += `<section class="journal-block" style="margin:32px 0 24px;padding:18px 18px 14px;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:6px;font-family:var(--sans)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px">
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Reflection</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-top:2px">What stood out to you in ${book.name} ${state.chapter}?</div>
+      </div>
+      <span id="journal-status-${_journalKey}" style="font-size:11px;color:var(--text-dim)"></span>
+    </div>
+    <textarea id="journal-${_journalKey}" placeholder="Write a few sentences — saved automatically, only on this device." rows="3" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-family:var(--serif);font-size:14px;line-height:1.55;resize:vertical;box-sizing:border-box;min-height:60px" oninput="_saveJournal('${_journalKey}', this.value)">${_journalText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}</textarea>
+  </section>`;
+
   html += `<footer class="page-footer">
     <div class="footer-line">Scripture Link · Independent open-source Bible reader · No tracking · Works offline</div>
     <div class="footer-line" style="font-size:12px;color:var(--text-muted);margin-top:4px">Commentary and sermon picks reflect a <strong style="color:var(--text)">Reformed/expositional</strong> tradition. Verse text and cross-references are tradition-neutral.</div>
@@ -4790,7 +4841,7 @@ function renderChapter(book, verses) {
       <a href="https://github.com/davidboyd31215-cmd/hunihydration.com" target="_blank" rel="noopener">GitHub</a>
     </div>
     <div class="footer-attribution">
-      Cross-references © OpenBible.info CC-BY · Strong's lexicon public domain · KJV public domain
+      Cross-references © <a href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener">OpenBible.info</a>, licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · Strong's Concordance (1890), public domain · KJV public domain (US; Crown copyright UK)
     </div>
   </footer>`;
 
