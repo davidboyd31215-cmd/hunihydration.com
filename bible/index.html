@@ -2916,10 +2916,13 @@ async function loadTheologyQuestions() {
       const el = document.querySelector('.verse.active');
       if (el) el.click();
     }
-  } catch(e) { console.warn('theology data unavailable', e.message); }
+  } catch(e) { _silentLog('theology data unavailable', e.message); }
 }
 
 // ── Deep-link routing (#Book.Chapter[.Verse]) ──────────────
+// Silent log (replaces console.warn in production noise)
+const _silentLog = () => {};
+
 function showToast(msg, kind) {
   let t = document.getElementById('toast');
   if (!t) {
@@ -3038,7 +3041,7 @@ async function loadCrossRefs() {
     // Rebuild graph if user is already in graph mode
     if (state.mode === 'graph') { stopGraph(); startGraph(); }
   } catch(e) {
-    console.warn('cross_refs.json unavailable —', e.message);
+    _silentLog('cross_refs.json unavailable —', e.message);
     if (status) status.textContent = 'curated only';
   }
 }
@@ -3107,16 +3110,38 @@ const _HUMAN_TO_OSIS = {
 
 function navigateHumanRef(humanRef) {
   if (!humanRef) return;
-  const m = humanRef.trim().match(/^([1-3]?\s*[A-Za-z][A-Za-z\s]*?)\s*(\d+)\s*[:.]?\s*(\d+)?/);
-  if (!m) return;
-  const bookKey = m[1].toLowerCase().replace(/\./g,'').replace(/\s+/g,' ').trim();
-  let osisBook = _HUMAN_TO_OSIS[bookKey] || _HUMAN_TO_OSIS[bookKey.replace(/\s+/g,'')];
+  // Normalize: lowercase, collapse spaces, convert leading roman numerals (i,ii,iii) → digits
+  let s = humanRef.trim().toLowerCase().replace(/\s+/g, ' ').replace(/\./g, '');
+  s = s.replace(/^(iii)\s*/, '3 ').replace(/^(ii)\s*/, '2 ').replace(/^(i)\s+/, '1 ');
+  // Try book + chapter [+ verse]
+  let m = s.match(/^([1-3]?\s*[a-z][a-z\s]*?)\s*(\d+)\s*[:.]?\s*(\d+)?/);
+  let bookKey, chap, vers;
+  if (m) {
+    bookKey = m[1].replace(/\s+/g, ' ').trim();
+    chap = +m[2];
+    vers = m[3] ? +m[3] : null;
+  } else {
+    // Maybe just a book name with no chapter
+    bookKey = s.replace(/\s+/g, ' ').trim();
+    chap = 1; vers = null;
+  }
+  let osisBook = _HUMAN_TO_OSIS[bookKey] || _HUMAN_TO_OSIS[bookKey.replace(/\s+/g, '')];
   if (!osisBook) {
-    // try abbreviated
+    // Try last word (e.g. "1 john" → "john")
     osisBook = _HUMAN_TO_OSIS[bookKey.split(' ').slice(-1)[0]];
   }
-  if (!osisBook) return;
-  const osis = m[3] ? `${osisBook}.${m[2]}.${m[3]}` : `${osisBook}.${m[2]}.1`;
+  if (!osisBook) {
+    // Fuzzy: find closest book name (Levenshtein-ish — substring match)
+    const candidate = Object.keys(_HUMAN_TO_OSIS).find(k => k.length >= 3 && (k.startsWith(bookKey.replace(/\s+/g, '').slice(0, 3)) || bookKey.includes(k.slice(0, 3))));
+    if (candidate) {
+      osisBook = _HUMAN_TO_OSIS[candidate];
+      showToast(`Opened "${BOOKS[IDX_BY_OSIS[osisBook]].name}" — closest match`);
+    } else {
+      showToast(`Couldn't find "${humanRef}" — try "John 3:16" or "Psalm 23"`, 'error');
+      return;
+    }
+  }
+  const osis = vers ? `${osisBook}.${chap}.${vers}` : `${osisBook}.${chap}.1`;
   navigateToOsis(osis);
 }
 
@@ -3187,7 +3212,7 @@ async function fetchVerseText(osisRef) {
     verseTextCache.set(cacheKey, text);
     return text;
   } catch(e) {
-    console.warn('verse fetch failed for', osisRef, e);
+    _silentLog('verse fetch failed for', osisRef, e);
     return null;
   }
 }
