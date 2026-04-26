@@ -1513,6 +1513,8 @@ body.mode-timeline .timeline-help { display: block; }
 }
 [data-theme="focus"] .verse.red-letter .verse-text { color: #8B3A2E; }
 [data-theme="focus"] .ref-card { background: var(--bg-alt); }
+/* Focus theme: active pill should use accent, not heavy black-on-cream slab */
+[data-theme="focus"] .pill-group button.active { background: var(--accent); color: #F4ECD8; }
 [data-theme="focus"] body { font-family: 'Source Serif 4', Georgia, serif; }
 /* Focus mode dims (not hides) cross-refs/legend; hides interlinear strip; bigger serif */
 [data-theme="focus"] .ref-dots { opacity: 0.45; }
@@ -1874,9 +1876,9 @@ body.mode-timeline .timeline-help { display: block; }
 
     <span class="ctrl-label" style="margin-left:8px">Translation</span>
     <div class="pill-group" id="translation-group">
-      <button class="active" data-t="kjv">KJV</button>
-      <button data-t="esv">ESV</button>
-      <button data-t="bsb">BSB</button>
+      <button class="active" data-t="kjv" title="King James Version (1611) — classical English with thee/thou/begat" aria-label="King James Version">KJV</button>
+      <button data-t="esv" title="English Standard Version — modern, readable, literal" aria-label="English Standard Version">ESV</button>
+      <button data-t="bsb" title="Berean Standard Bible — modern, free to copy, literal" aria-label="Berean Standard Bible">BSB</button>
     </div>
 
     <div class="pill-group" id="mode-group">
@@ -1979,6 +1981,13 @@ body.mode-timeline .timeline-help { display: block; }
           <option value="Psalm 119:105">Thy word is a lamp</option>
         </datalist>
         <button id="settings-jump-btn">Go</button>
+      </div>
+      <div class="settings-row" data-action="themes">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Browse by theme</div>
+          <div class="settings-row-sub">Faithfulness, hope, fear, grief, prayer, love…</div>
+        </div>
+        <div class="settings-row-value">Open</div>
       </div>
       <div class="settings-row" data-action="random">
         <div class="settings-row-main">
@@ -2361,13 +2370,31 @@ async function ensureConcordanceLoaded() {
 // INIT
 // ═══════════════════════════════════════════════════════
 function init() {
-  // Populate book select
+  // Populate book select with optgroups so a beginner can find the Gospels
   const sel = document.getElementById('book-select');
-  BOOKS.forEach((b, i) => {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = b.name;
-    sel.appendChild(opt);
+  // Section breakpoints in 66-book canonical order
+  const SECTIONS = [
+    { label: 'New here? Start with the Gospels', range: [39, 42] }, // Matt, Mark, Luke, John
+    { label: 'Old Testament — Law', range: [0, 4] },
+    { label: 'Old Testament — History', range: [5, 16] },
+    { label: 'Old Testament — Wisdom & Poetry', range: [17, 21] },
+    { label: 'Old Testament — Major Prophets', range: [22, 26] },
+    { label: 'Old Testament — Minor Prophets', range: [27, 38] },
+    { label: 'New Testament — Gospels & Acts', range: [39, 43] },
+    { label: 'New Testament — Paul’s Letters', range: [44, 56] },
+    { label: 'New Testament — General Letters', range: [57, 64] },
+    { label: 'New Testament — Revelation', range: [65, 65] },
+  ];
+  SECTIONS.forEach(({ label, range }) => {
+    const og = document.createElement('optgroup');
+    og.label = label;
+    for (let i = range[0]; i <= range[1] && i < BOOKS.length; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = BOOKS[i].name;
+      og.appendChild(opt);
+    }
+    sel.appendChild(og);
   });
 
   // Chapter selector — populated based on current book
@@ -2640,6 +2667,10 @@ function init() {
         const pick = FAMOUS[Math.floor(Math.random() * FAMOUS.length)];
         navigateToOsis(pick);
         closeSettings();
+      }
+      else if (action === 'themes') {
+        closeSettings();
+        showThemesModal();
       }
       else if (action === 'bookmarks') {
         showBookmarksModal();
@@ -3041,6 +3072,66 @@ function closeWordStudy() {
   const modal = document.getElementById('ws-modal');
   modal.classList.remove('open');
   document.body.style.overflow = '';
+}
+
+// Curated topical themes — handpicked verses by theme so worship leaders /
+// devotional readers don't need to know references to find a passage.
+const THEMES = [
+  { name: "God's faithfulness", color: '#5A8E6F', refs: ['Lam.3.22','Lam.3.23','Ps.36.5','Deut.7.9','2Tim.2.13','Ps.89.1','Heb.10.23','Ps.100.5'] },
+  { name: 'Hope', color: '#4A7BB7', refs: ['Rom.15.13','Lam.3.21','Heb.6.19','Ps.42.11','Rom.5.5','Rom.8.24','1Pet.1.3'] },
+  { name: 'Fear & anxiety', color: '#7E5B96', refs: ['Phil.4.6','Phil.4.7','Isa.41.10','Ps.34.4','1Pet.5.7','John.14.27','Ps.56.3','2Tim.1.7'] },
+  { name: 'Comfort in grief', color: '#5B7186', refs: ['Ps.34.18','Matt.5.4','Rev.21.4','2Cor.1.3','2Cor.1.4','Ps.23.4','John.14.1','1Thess.4.13'] },
+  { name: 'Love', color: '#B7596B', refs: ['1John.4.19','1Cor.13.4','1Cor.13.5','1Cor.13.6','1Cor.13.7','John.15.13','Rom.5.8','1John.4.7','1John.4.8'] },
+  { name: 'Prayer', color: '#7A5D1F', refs: ['Matt.6.9','Phil.4.6','1Thess.5.17','Jas.5.16','Matt.7.7','Eph.6.18','Ps.34.17','Heb.4.16'] },
+  { name: 'Identity in Christ', color: '#3D5A6E', refs: ['2Cor.5.17','Eph.2.10','Gal.2.20','Rom.8.1','1John.3.1','Eph.1.5','1Pet.2.9','John.1.12'] },
+  { name: 'Salvation & grace', color: '#6B4D00', refs: ['Eph.2.8','Eph.2.9','John.3.16','Rom.10.9','Rom.10.10','Tit.3.5','Acts.4.12','Rom.6.23'] },
+  { name: 'Wisdom', color: '#5A6E3D', refs: ['Prov.3.5','Prov.3.6','Jas.1.5','Prov.9.10','Eccl.7.12','Col.3.16','Prov.4.7'] },
+  { name: 'Strength & courage', color: '#A03939', refs: ['Josh.1.9','Phil.4.13','Isa.40.31','Ps.46.1','2Tim.1.7','1Cor.16.13','Deut.31.6'] },
+  { name: 'Forgiveness', color: '#7E445B', refs: ['1John.1.9','Eph.4.32','Col.3.13','Matt.6.14','Ps.103.12','Mic.7.19','Acts.3.19'] },
+  { name: 'Worship & praise', color: '#A77B2A', refs: ['Ps.100.1','Ps.100.2','Ps.100.4','Rev.4.11','Ps.150.6','Ps.95.1','John.4.24','Ps.34.1'] },
+];
+
+function showThemesModal() {
+  const modal = document.getElementById('ws-modal');
+  const body = document.getElementById('ws-modal-body');
+  body.innerHTML = `
+    <div class="ws-modal-orig" style="font-size:24px">Browse by theme</div>
+    <div class="ws-modal-meta">${THEMES.length} curated themes — tap to see verses on that topic</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:12px">
+      ${THEMES.map((t, i) => `
+        <button onclick="showThemeVerses(${i})" style="background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid ${t.color};color:var(--text);padding:11px 12px;border-radius:6px;font-family:var(--sans);font-size:13px;font-weight:600;text-align:left;cursor:pointer;transition:background 0.15s;line-height:1.3" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg-alt)'">
+          ${t.name}
+          <div style="font-size:10.5px;color:var(--text-muted);font-weight:400;margin-top:3px">${t.refs.length} verses</div>
+        </button>
+      `).join('')}
+    </div>
+  `;
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function showThemeVerses(idx) {
+  const t = THEMES[idx];
+  if (!t) return;
+  const modal = document.getElementById('ws-modal');
+  const body = document.getElementById('ws-modal-body');
+  body.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap">
+      <div>
+        <div style="font-family:var(--sans);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em">Theme</div>
+        <div style="font-family:var(--serif);font-size:22px;color:${t.color};font-weight:600">${t.name}</div>
+      </div>
+      <button onclick="showThemesModal()" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;cursor:pointer">← All themes</button>
+    </div>
+    <div class="ws-modal-meta">${t.refs.length} verses · tap any to read in context</div>
+    ${t.refs.map(ref => `
+      <div onclick="navigateToOsis('${ref}'); closeWordStudy(); closeSettings();" style="padding:11px 13px;margin:8px 0;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid ${t.color};border-radius:4px;cursor:pointer;font-family:var(--sans);transition:background 0.15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg-alt)'">
+        <div style="font-weight:600;font-size:14px;color:var(--accent)">${osisToHuman(ref)}</div>
+      </div>
+    `).join('')}
+  `;
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 function showBookmarksModal() {
@@ -4231,18 +4322,22 @@ function renderChapter(book, verses) {
       <div id="welcome-card" style="background:linear-gradient(135deg,var(--accent-soft),transparent);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:18px 20px;margin:0 0 24px 0;font-family:var(--sans);position:relative">
         <button onclick="localStorage.setItem('scripture-welcome-seen','1'); document.getElementById('welcome-card').remove();" style="position:absolute;top:8px;right:10px;background:none;border:none;font-size:18px;color:var(--text-dim);cursor:pointer;padding:4px 8px;line-height:1" aria-label="Dismiss welcome">&times;</button>
         <div style="font-family:var(--serif);font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px">Welcome to Scripture Link</div>
-        <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">
-          Read the Bible with 344K cross-references and Hebrew &amp; Greek word study. Commentary and sermons reflect a <strong style="color:var(--text)">Reformed/expositional</strong> tradition (MacArthur, Pokluda, Martin, Ardavanis, Watermark).
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px">
+          A free Bible reader that connects every verse to the rest of Scripture. Tap any verse to see related passages, ancient-language meanings, and sermons that explain it.
         </div>
-        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Try one of these</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600">New to the Bible? Start here</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+          <a href="#John.1.1" style="background:var(--accent);color:white;text-decoration:none;padding:8px 14px;border-radius:6px;font-size:13px;font-weight:600">Read the Gospel of John →</a>
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Or jump to a famous verse</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px">
-          <a href="#John.3.16" style="background:var(--accent);color:white;text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:600">John 3:16</a>
+          <a href="#John.3.16" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid var(--border)">John 3:16</a>
           <a href="#Ps.23.1" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid var(--border)">Psalm 23</a>
           <a href="#Rom.8.28" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid var(--border)">Romans 8:28</a>
           <a href="#Matt.5.3" style="background:var(--bg-alt);color:var(--text);text-decoration:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid var(--border)">Beatitudes</a>
         </div>
         <div style="font-size:11px;color:var(--text-dim);margin-top:14px;line-height:1.5">
-          Or <strong style="color:var(--text-muted)">tap any verse</strong> below to see its connections, or open the <strong style="color:var(--text-muted)">Menu</strong> for Hebrew/Greek, commentary, and red-letter Jesus's words.
+          <strong style="color:var(--text-muted)">Tap any verse</strong> to see its connections. Open <strong style="color:var(--text-muted)">Menu</strong> for word study, commentary, themes, and read-aloud.
         </div>
       </div>
     `;
