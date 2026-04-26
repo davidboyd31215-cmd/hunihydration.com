@@ -1775,6 +1775,7 @@ function init() {
   loadTheologyQuestions();
   loadRedLetter();
   loadBookBackgrounds();
+  loadCommentary();
 }
 
 function applyTheme(theme) {
@@ -1825,6 +1826,14 @@ async function loadBookBackgrounds() {
   try {
     const r = await fetch('book_backgrounds.json');
     if (r.ok) BOOK_BG = await r.json();
+  } catch(e) {}
+}
+
+let COMMENTARY = null;
+async function loadCommentary() {
+  try {
+    const r = await fetch('commentary.json');
+    if (r.ok) COMMENTARY = await r.json();
   } catch(e) {}
 }
 
@@ -2655,17 +2664,32 @@ function showSidebar(key, verseNum, refs) {
     obHTML += `</div>`;
   }
 
-  // Commentary section (MacArthur-style — placeholder when data not loaded)
+  // Commentary section — uses Reformed/expositional notes when available; falls back to GTY sermon link
   let commentaryHTML = '';
   if (state.commentaryOn) {
-    const macartShareURL = `https://www.gty.org/library/sermons-library/scripture/${book.abbr.toLowerCase()}/${state.chapter}`;
-    commentaryHTML = `<div class="sidebar-section" style="border-left:3px solid #6B4D00;background:linear-gradient(135deg,rgba(212,184,112,0.08),transparent);padding:12px 14px;margin-top:8px">
-      <div style="font-size:10px;letter-spacing:0.1em;color:#A07A20;text-transform:uppercase;margin-bottom:6px;font-weight:600">Commentary</div>
-      <div style="font-family:var(--serif);font-size:13px;line-height:1.55;color:var(--text-muted);font-style:italic">
-        MacArthur-style verse commentary for the top 500 verses ships in the next push. For now, you can read MacArthur's actual sermons on this passage at gty.org.
-      </div>
-      <div style="margin-top:10px"><a href="${macartShareURL}" target="_blank" rel="noopener" style="display:inline-block;background:#6B4D00;color:#FFF3D6;padding:6px 12px;border-radius:4px;font-family:var(--sans);font-size:11px;text-decoration:none">Read MacArthur sermons on ${book.name} ${state.chapter} ↗</a></div>
-    </div>`;
+    const note = COMMENTARY && COMMENTARY[key];
+    const refStr = encodeURIComponent(book.name + ' ' + state.chapter + ':' + verseNum);
+    const gtyURL = `https://www.gty.org/search?q=${refStr}`;
+    if (note) {
+      commentaryHTML = `<div class="sidebar-section" style="border-left:3px solid #6B4D00;background:linear-gradient(135deg,rgba(212,184,112,0.08),transparent);padding:14px 16px;margin-top:8px;border-radius:4px">
+        <div style="font-size:10px;letter-spacing:0.1em;color:#A07A20;text-transform:uppercase;margin-bottom:8px;font-weight:600;display:flex;justify-content:space-between;align-items:center">
+          <span>Commentary</span>
+          <span style="font-size:9px;font-style:italic;color:var(--text-dim);text-transform:none;letter-spacing:0">Reformed/expositional</span>
+        </div>
+        <div style="font-family:var(--serif);font-size:14px;line-height:1.65;color:var(--text)">${note}</div>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+          <a href="${gtyURL}" target="_blank" rel="noopener" style="display:inline-block;background:#6B4D00;color:#FFF3D6;padding:6px 12px;border-radius:4px;font-family:var(--sans);font-size:11px;text-decoration:none">MacArthur sermons on this passage ↗</a>
+        </div>
+      </div>`;
+    } else {
+      commentaryHTML = `<div class="sidebar-section" style="border-left:3px solid #6B4D00;background:linear-gradient(135deg,rgba(212,184,112,0.06),transparent);padding:12px 14px;margin-top:8px;border-radius:4px">
+        <div style="font-size:10px;letter-spacing:0.1em;color:#A07A20;text-transform:uppercase;margin-bottom:6px;font-weight:600">Commentary</div>
+        <div style="font-family:var(--serif);font-size:13px;line-height:1.55;color:var(--text-muted);font-style:italic">
+          No commentary written for this verse yet — currently covering the 200 most-cited verses. Read MacArthur's sermons on the chapter:
+        </div>
+        <div style="margin-top:10px"><a href="${gtyURL}" target="_blank" rel="noopener" style="display:inline-block;background:#6B4D00;color:#FFF3D6;padding:6px 12px;border-radius:4px;font-family:var(--sans);font-size:11px;text-decoration:none">MacArthur on ${book.name} ${state.chapter} ↗</a></div>
+      </div>`;
+    }
   }
 
   const tq = THEOLOGY_Q && THEOLOGY_Q[key];
