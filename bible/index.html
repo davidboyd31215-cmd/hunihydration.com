@@ -543,12 +543,27 @@ body.mode-inline .ref-dot::after {
 .settings-row-value {
   font-family: var(--sans);
   font-size: 13px;
-  color: var(--accent);
+  color: var(--text-muted);
   font-weight: 600;
-  padding: 6px 12px;
-  background: var(--accent-soft);
+  padding: 6px 14px;
+  background: var(--border);
   border-radius: 14px;
   flex-shrink: 0;
+  min-width: 56px;
+  text-align: center;
+  transition: background 0.15s, color 0.15s;
+}
+.settings-row-value.on {
+  background: #2E8B5E;
+  color: white;
+}
+.settings-row-value.off {
+  background: var(--border);
+  color: var(--text-muted);
+}
+.settings-row-value.action {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* Word Study (Hebrew/Greek interlinear) */
@@ -959,6 +974,18 @@ body.sidebar-open #sidebar-backdrop { display: block; }
 }
 .theme-toggle:hover { color: var(--text); border-color: var(--border-strong); background: var(--bg-alt); }
 .theme-toggle:active { transform: scale(0.97); }
+.icon-btn { padding: 7px 10px !important; display: inline-flex; align-items: center; justify-content: center; }
+.icon-btn svg { display: block; }
+/* Toggle ON state — filled accent */
+.theme-toggle.is-on {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.theme-toggle.is-on:hover {
+  background: var(--accent);
+  filter: brightness(1.1);
+}
 
 /* Graph mode */
 #graph-stage {
@@ -1184,20 +1211,24 @@ body.mode-timeline .timeline-help { display: block; }
   #chapter-select { max-width: 70px; padding-left: 8px; }
   /* Chapter-display redundant — chapter-select shows the number */
   #chapter-display { display: none; }
-  /* Settings button — keep prominent */
+  /* Settings hamburger — prominent square icon */
   #settings-toggle {
-    font-weight: 600;
-    font-size: 13px;
-    padding: 8px 14px;
-    background: var(--accent-soft);
-    border: 1px solid var(--accent);
-    color: var(--accent);
+    width: 38px;
+    height: 38px;
+    padding: 0 !important;
+    background: var(--bg-alt);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
     border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
+  #settings-toggle svg { display: block; }
   /* Chapter prev/next — bigger tap targets */
   #prev-ch, #next-ch {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     padding: 0;
     font-size: 18px;
     border-radius: 8px;
@@ -1205,6 +1236,7 @@ body.mode-timeline .timeline-help { display: block; }
     align-items: center;
     justify-content: center;
   }
+  #chapter-display { font-size: 13px; min-width: auto; padding: 0 4px; font-weight: 600; }
   /* Status pill ("29.4k linked") hidden — surface in settings instead */
   .status-pill { display: none; }
   #chapter-display { font-size: 13px; min-width: auto; padding: 0 6px; }
@@ -1435,9 +1467,9 @@ body.mode-timeline .timeline-help { display: block; }
     <button id="commentary-toggle" class="theme-toggle desktop-only" aria-label="Toggle commentary" title="Show/hide verse commentary">Notes</button>
     <button id="wordstudy-toggle" class="theme-toggle desktop-only" aria-label="Toggle word study" title="Show/hide Hebrew & Greek with Strong's numbers">Original</button>
     <button id="redletter-toggle" class="theme-toggle desktop-only" aria-label="Toggle red-letter NT" title="Show Jesus' words in red (NT only)">Red Letter</button>
-    <button id="settings-toggle" class="theme-toggle mobile-only" aria-label="Open settings" title="Settings & display options">Menu</button>
-    <button id="read-aloud-btn" class="theme-toggle desktop-only" aria-label="Read chapter aloud" title="Read this chapter aloud">Listen</button>
-    <button id="share-link" class="theme-toggle desktop-only" aria-label="Copy share link" title="Copy direct link to this verse/chapter">Share</button>
+    <button id="settings-toggle" class="theme-toggle mobile-only icon-btn" aria-label="Open settings" title="Settings & display options"><svg width="16" height="14" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1 2 L15 2 M1 7 L15 7 M1 12 L15 12"/></svg></button>
+    <button id="read-aloud-btn" class="theme-toggle desktop-only icon-btn" aria-label="Read chapter aloud" title="Read this chapter aloud"><svg width="16" height="14" viewBox="0 0 16 14" fill="currentColor"><path d="M1 4 L4 4 L8 1 L8 13 L4 10 L1 10 Z"/><path d="M10 4 Q12 7 10 10" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M11.5 2.5 Q15 7 11.5 11.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></button>
+    <button id="share-link" class="theme-toggle desktop-only icon-btn" aria-label="Copy share link" title="Copy direct link to this verse/chapter"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="3" cy="7" r="2"/><circle cx="11" cy="3" r="2"/><circle cx="11" cy="11" r="2"/><line x1="4.7" y1="6" x2="9.3" y2="3.8"/><line x1="4.7" y1="8" x2="9.3" y2="10.2"/></svg></button>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">Dark</button>
     <button id="prev-ch" aria-label="Previous chapter">&#8592;</button>
     <span id="chapter-display" class="noTag">Genesis 1</span>
@@ -1902,8 +1934,7 @@ function init() {
   function syncCommentaryBtn() {
     if (!commentaryBtn) return;
     commentaryBtn.textContent = state.commentaryOn ? 'Notes: ON' : 'Notes: OFF';
-    commentaryBtn.style.background = state.commentaryOn ? 'var(--accent-soft)' : '';
-    commentaryBtn.style.borderColor = state.commentaryOn ? 'var(--accent)' : '';
+    commentaryBtn.classList.toggle('is-on', state.commentaryOn);
     commentaryBtn.title = state.commentaryOn
       ? 'Commentary notes are showing in the sidebar — click to hide them'
       : 'Click to turn on verse-by-verse commentary notes (Reformed/expositional style)';
@@ -1922,9 +1953,15 @@ function init() {
   function syncRlBtn() {
     if (!rlBtn) return;
     rlBtn.textContent = state.redLetterOn ? 'Red Letter: ON' : 'Red Letter: OFF';
-    rlBtn.style.background = state.redLetterOn ? 'rgba(180,50,50,0.12)' : '';
-    rlBtn.style.borderColor = state.redLetterOn ? '#B43232' : '';
-    rlBtn.style.color = state.redLetterOn ? '#B43232' : '';
+    if (state.redLetterOn) {
+      rlBtn.style.background = '#B43232';
+      rlBtn.style.color = 'white';
+      rlBtn.style.borderColor = '#B43232';
+    } else {
+      rlBtn.style.background = '';
+      rlBtn.style.color = '';
+      rlBtn.style.borderColor = '';
+    }
     rlBtn.title = state.redLetterOn
       ? "Words of Jesus shown in red (Gospels, Acts, Revelation) — click to disable"
       : "Click to highlight Jesus' direct speech in red across the NT";
@@ -1943,8 +1980,7 @@ function init() {
   function syncWsBtn() {
     if (!wsBtn) return;
     wsBtn.textContent = state.wordStudyOn ? 'Original: ON' : 'Original: OFF';
-    wsBtn.style.background = state.wordStudyOn ? 'var(--accent-soft)' : '';
-    wsBtn.style.borderColor = state.wordStudyOn ? 'var(--accent)' : '';
+    wsBtn.classList.toggle('is-on', state.wordStudyOn);
     wsBtn.title = state.wordStudyOn
       ? 'Hebrew/Greek interlinear is showing — click each word for Strong\'s definition'
       : 'Click to show original Hebrew/Greek words with Strong\'s numbers and concordance';
@@ -1968,31 +2004,27 @@ function init() {
   const settingsBtn = document.getElementById('settings-toggle');
   const drawer = document.getElementById('settings-drawer');
   function syncSettingsValues() {
-    const dv = document.getElementById('settings-depth-value');
-    const cv = document.getElementById('settings-commentary-value');
-    const wv = document.getElementById('settings-ws-value');
-    const rv = document.getElementById('settings-rl-value');
-    const tv = document.getElementById('settings-theme-value');
-    const trv = document.getElementById('settings-translation-value');
-    const rmv = document.getElementById('settings-readmode-value');
-    const vmv = document.getElementById('settings-viewmode-value');
-    if (dv) { dv.textContent = state.depthMode === 'top' ? 'Best' : 'All'; }
-    if (cv) { cv.textContent = state.commentaryOn ? 'On' : 'Off'; }
-    if (wv) { wv.textContent = state.wordStudyOn ? 'On' : 'Off'; }
-    if (rv) { rv.textContent = state.redLetterOn ? 'On' : 'Off'; }
-    if (tv) { tv.textContent = (document.documentElement.getAttribute('data-theme') === 'dark') ? 'Dark' : 'Light'; }
-    if (trv) { trv.textContent = state.translation.toUpperCase(); }
-    if (rmv) { rmv.textContent = state.mode === 'inline' ? 'Inline' : 'Sidebar'; }
-    if (vmv) {
-      vmv.textContent = ({sidebar:'Read',inline:'Read',arc:'Arc',graph:'Graph',timeline:'Timeline'})[state.mode] || 'Read';
-    }
+    const setVal = (id, text, cls) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = text;
+      el.classList.remove('on','off','action');
+      if (cls) el.classList.add(cls);
+    };
+    setVal('settings-depth-value', state.depthMode === 'top' ? 'Best' : 'All', 'action');
+    setVal('settings-commentary-value', state.commentaryOn ? 'On' : 'Off', state.commentaryOn ? 'on' : 'off');
+    setVal('settings-ws-value', state.wordStudyOn ? 'On' : 'Off', state.wordStudyOn ? 'on' : 'off');
+    setVal('settings-rl-value', state.redLetterOn ? 'On' : 'Off', state.redLetterOn ? 'on' : 'off');
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    setVal('settings-theme-value', isDark ? 'Dark' : 'Light', 'action');
+    setVal('settings-translation-value', state.translation.toUpperCase(), 'action');
+    setVal('settings-readmode-value', state.mode === 'inline' ? 'Inline' : 'Sidebar', 'action');
+    setVal('settings-viewmode-value', ({sidebar:'Read',inline:'Read',arc:'Arc',graph:'Graph',timeline:'Timeline'})[state.mode] || 'Read', 'action');
     const ds = document.getElementById('settings-depth-sub');
     if (ds) ds.textContent = state.depthMode === 'top' ? 'Showing top references only' : 'Showing all references';
-    // Bookmark count
     const bs = getBookmarks();
-    const bv = document.getElementById('settings-bookmarks-value');
+    setVal('settings-bookmarks-value', String(bs.length), 'action');
     const bsub = document.getElementById('settings-bookmarks-sub');
-    if (bv) bv.textContent = bs.length;
     if (bsub) bsub.textContent = bs.length === 0 ? 'No verses saved yet' : `${bs.length} verse${bs.length === 1 ? '' : 's'} saved — tap to view`;
   }
   // Helper: cycle to next value in a list
@@ -3711,6 +3743,8 @@ function startArc() {
   let _dimCache = null; // { canvas, zoom, panX, colorMode, w, h }
   let _dimDebounce = null;
 
+  // Cap dim layer to ~40K arcs sampled deterministically (avoids freezing on 344K)
+  const DIM_MAX_ARCS = 40000;
   function _renderDimToOffscreen(w, h, baseY, margin, baseUsableW) {
     const dpr = window.devicePixelRatio || 1;
     const off = document.createElement('canvas');
@@ -3721,36 +3755,47 @@ function startArc() {
     const { idx, total } = arcState.verseIdx;
     const curBook = OSIS_BY_IDX[state.bookIdx];
     const curCh = state.chapter;
+
+    // First pass: count refs to compute sample stride
+    let totalRefs = 0;
+    const entries = Object.entries(OB_REFS);
+    for (const [, refs] of entries) totalRefs += refs.length;
+    const stride = Math.max(1, Math.ceil(totalRefs / DIM_MAX_ARCS));
+
     // Group arcs by stroke color → one Path2D per color → one stroke() per color
-    const paths = new Map(); // color → Path2D
-    Object.entries(OB_REFS).forEach(([srcKey, refs]) => {
+    const paths = new Map();
+    let counter = 0;
+    for (let ei = 0; ei < entries.length; ei++) {
+      const [srcKey, refs] = entries[ei];
       const si = idx.get(srcKey);
-      if (si == null) return;
+      if (si == null) { counter += refs.length; continue; }
       const sx = margin + (si / Math.max(1, total - 1)) * usableW + arcState.panX;
-      // Skip current-chapter arcs (they get redrawn live, brighter)
+      // Skip current-chapter arcs (drawn live, brighter)
       const sp = _parseOsis(srcKey);
-      if (sp && sp.book === curBook && sp.ch === curCh) return;
-      // Cull source way off-screen
-      if (sx < -w * 2 || sx > w * 3) return;
-      refs.forEach(r => {
+      const isCur = sp && sp.book === curBook && sp.ch === curCh;
+      if (isCur) { counter += refs.length; continue; }
+      // Quick cull
+      if (sx < -w * 1.5 || sx > w * 2.5) { counter += refs.length; continue; }
+      for (let ri = 0; ri < refs.length; ri++, counter++) {
+        if (counter % stride !== 0) continue;
+        const r = refs[ri];
         const tgtKey = r.r.split('-')[0];
         const ti = idx.get(tgtKey);
-        if (ti == null) return;
+        if (ti == null) continue;
         const tx = margin + (ti / Math.max(1, total - 1)) * usableW + arcState.panX;
         const radius = Math.abs(tx - sx) / 2;
-        if (radius < 0.5) return;
-        // Cull arcs whose entire bounding box is off-screen
+        if (radius < 0.5) continue;
         const cx = (sx + tx) / 2;
-        if (cx + radius < 0 || cx - radius > w) return;
-        if (baseY - radius > h) return;
+        if (cx + radius < 0 || cx - radius > w) continue;
+        if (baseY - radius > h) continue;
         const color = arcColorFor(r, srcKey, tgtKey);
         let p = paths.get(color);
         if (!p) { p = new Path2D(); paths.set(color, p); }
         p.moveTo(cx + radius, baseY);
         p.arc(cx, baseY, radius, 0, Math.PI, true);
-      });
-    });
-    octx.globalAlpha = 0.07;
+      }
+    }
+    octx.globalAlpha = stride > 1 ? Math.min(0.18, 0.07 * Math.sqrt(stride)) : 0.07;
     octx.lineWidth = 0.4;
     paths.forEach((path, color) => {
       octx.strokeStyle = color;
