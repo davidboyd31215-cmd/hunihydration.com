@@ -295,13 +295,22 @@ body.sidebar-open .bible-text {
 .verse-num {
   font-family: var(--sans);
   font-size: 12px;
-  color: var(--text-dim);
+  color: var(--text-muted);
   min-width: 22px;
   margin-top: 8px;
   text-align: right;
   user-select: none;
   font-variant-numeric: tabular-nums;
-  font-weight: 500;
+  font-weight: 600;
+}
+/* Screen-reader-only utility for live regions */
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap;
+  border: 0;
 }
 
 .verse-text {
@@ -1884,7 +1893,7 @@ body.mode-timeline .timeline-help { display: block; }
     <button id="wordstudy-toggle" class="theme-toggle desktop-only" aria-label="Toggle word study" title="Show/hide Hebrew & Greek with Strong's numbers">Original</button>
     <button id="redletter-toggle" class="theme-toggle desktop-only" aria-label="Toggle red-letter NT" title="Show Jesus' words in red (NT only)">Red Letter</button>
     <button id="settings-toggle" class="theme-toggle mobile-only icon-btn" aria-label="Open settings" title="Settings & display options"><svg width="16" height="14" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1 2 L15 2 M1 7 L15 7 M1 12 L15 12"/></svg></button>
-    <button id="read-aloud-btn" class="theme-toggle desktop-only icon-btn" aria-label="Read chapter aloud" title="Read this chapter aloud"><svg width="16" height="14" viewBox="0 0 16 14" fill="currentColor"><path d="M1 4 L4 4 L8 1 L8 13 L4 10 L1 10 Z"/><path d="M10 4 Q12 7 10 10" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M11.5 2.5 Q15 7 11.5 11.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></button>
+    <button id="read-aloud-btn" class="theme-toggle icon-btn" aria-label="Read chapter aloud" aria-pressed="false" title="Read this chapter aloud"><svg width="16" height="14" viewBox="0 0 16 14" fill="currentColor"><path d="M1 4 L4 4 L8 1 L8 13 L4 10 L1 10 Z"/><path d="M10 4 Q12 7 10 10" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M11.5 2.5 Q15 7 11.5 11.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></button>
     <button id="share-link" class="theme-toggle desktop-only icon-btn" aria-label="Copy share link" title="Copy direct link to this verse/chapter"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="3" cy="7" r="2"/><circle cx="11" cy="3" r="2"/><circle cx="11" cy="11" r="2"/><line x1="4.7" y1="6" x2="9.3" y2="3.8"/><line x1="4.7" y1="8" x2="9.3" y2="10.2"/></svg></button>
     <button id="theme-toggle" class="theme-toggle desktop-only" aria-label="Toggle theme" title="Toggle light/dark">Dark</button>
     <button id="prev-ch" aria-label="Previous chapter">&#8592;</button>
@@ -1895,6 +1904,7 @@ body.mode-timeline .timeline-help { display: block; }
 
 <div class="layout">
   <a href="#bible-text" class="skip-link">Skip to scripture text</a>
+  <div id="a11y-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   <main class="bible-text" id="bible-text" role="main">
     <div class="loading">Loading…</div>
   </div>
@@ -2082,6 +2092,13 @@ body.mode-timeline .timeline-help { display: block; }
           <div class="settings-row-sub">Clean printable text — no chrome</div>
         </div>
         <div class="settings-row-value">Print</div>
+      </div>
+      <div class="settings-row" data-action="copysermon">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Copy passage + refs (sermon prep)</div>
+          <div class="settings-row-sub">Pastable text: chapter, citation, cross-refs, your highlights</div>
+        </div>
+        <div class="settings-row-value">Copy</div>
       </div>
     </div>
 
@@ -2644,6 +2661,10 @@ function init() {
         closeSettings();
         setTimeout(() => window.print(), 250);
       }
+      else if (action === 'copysermon') {
+        copyPassageForSermon();
+        closeSettings();
+      }
       else if (action === 'about') {
         closeSettings();
         showAboutModal();
@@ -2659,8 +2680,11 @@ function init() {
   let readingVerseIdx = 0;
   function syncReadBtn() {
     if (!readBtn) return;
-    readBtn.textContent = readingActive ? (readingPaused ? 'Resume' : 'Stop') : 'Listen';
     readBtn.classList.toggle('is-on', readingActive);
+    readBtn.setAttribute('aria-pressed', readingActive ? 'true' : 'false');
+    const label = readingActive ? (readingPaused ? 'Resume reading aloud' : 'Stop reading aloud') : 'Read chapter aloud';
+    readBtn.setAttribute('aria-label', label);
+    readBtn.setAttribute('title', label);
   }
   function clearReadingHighlight() {
     document.querySelectorAll('.verse.speaking').forEach(el => el.classList.remove('speaking'));
@@ -3023,19 +3047,94 @@ function showBookmarksModal() {
     `;
   } else {
     body.innerHTML = `
-      <div class="ws-modal-orig" style="font-size:24px">Bookmarks</div>
-      <div class="ws-modal-meta">${list.length} verse${list.length === 1 ? '' : 's'} saved</div>
-      ${list.map(b => `
-        <div onclick="navigateToOsis('${b.ref}'); closeWordStudy(); closeSettings();" style="padding:12px 14px;margin:8px 0;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid #D4B870;border-radius:4px;cursor:pointer;font-family:var(--sans);position:relative">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span style="font-weight:600;font-size:14px;color:var(--accent)">${osisToHuman(b.ref)}</span>
-            <button onclick="event.stopPropagation(); removeBookmark('${b.ref}'); showBookmarksModal();" style="background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;padding:0 6px;line-height:1" aria-label="Remove">&times;</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:10px;flex-wrap:wrap">
+        <div class="ws-modal-orig" style="font-size:24px;margin:0">Bookmarks</div>
+        <button onclick="startClozePractice()" style="background:var(--accent);border:none;color:white;padding:7px 14px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Practice memorizing all saved verses">✎ Practice all</button>
+      </div>
+      <div class="ws-modal-meta">${list.length} verse${list.length === 1 ? '' : 's'} saved · tap a verse to open it, or Practice to memorize</div>
+      ${list.map((b, i) => `
+        <div style="padding:12px 14px;margin:8px 0;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid #D4B870;border-radius:4px;font-family:var(--sans);position:relative">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:8px">
+            <span onclick="navigateToOsis('${b.ref}'); closeWordStudy(); closeSettings();" style="font-weight:600;font-size:14px;color:var(--accent);cursor:pointer;flex:1">${osisToHuman(b.ref)}</span>
+            <button onclick="event.stopPropagation(); startClozePractice(${i});" style="background:transparent;border:1px solid var(--accent);color:var(--accent);padding:3px 9px;border-radius:11px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Practice this verse">Practice</button>
+            <button onclick="event.stopPropagation(); removeBookmark('${b.ref}'); showBookmarksModal();" style="background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;padding:0 4px;line-height:1" aria-label="Remove">&times;</button>
           </div>
-          <div style="font-family:var(--serif);font-size:13px;color:var(--text);font-style:italic;line-height:1.45">${b.snippet || ''}</div>
+          <div onclick="navigateToOsis('${b.ref}'); closeWordStudy(); closeSettings();" style="font-family:var(--serif);font-size:13px;color:var(--text);font-style:italic;line-height:1.45;cursor:pointer">${b.snippet || ''}</div>
         </div>
       `).join('')}
     `;
   }
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+// ===== Cloze Practice (verse memorization) =====
+let _clozeState = { idx: 0, hard: false, verses: [] };
+function startClozePractice(startIdx) {
+  const list = getBookmarks();
+  if (!list.length) return;
+  _clozeState.verses = list;
+  _clozeState.idx = (typeof startIdx === 'number' && startIdx >= 0 && startIdx < list.length) ? startIdx : 0;
+  _clozeState.hard = false;
+  renderCloze();
+}
+function renderCloze() {
+  const modal = document.getElementById('ws-modal');
+  const body = document.getElementById('ws-modal-body');
+  const v = _clozeState.verses[_clozeState.idx];
+  if (!v) { showBookmarksModal(); return; }
+  const ref = osisToHuman(v.ref);
+  const text = (v.snippet || '').trim();
+  if (!text) {
+    body.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-family:var(--sans)">No verse text saved for ${ref}. Open the verse to refresh its snippet, then come back.</div>
+    <div style="text-align:center;margin-top:12px"><button onclick="showBookmarksModal()" style="background:var(--accent);border:none;color:white;padding:8px 14px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer">Back to bookmarks</button></div>`;
+    modal.classList.add('open');
+    return;
+  }
+  // Tokenize keeping punctuation separate from words
+  const tokens = text.split(/(\s+)/);
+  const wordIdxs = [];
+  tokens.forEach((t, i) => { if (/\w/.test(t)) wordIdxs.push(i); });
+  // Skip very short words (1-2 letter) — keep articles visible to anchor the verse
+  const blankCandidates = wordIdxs.filter(i => tokens[i].replace(/[^\w]/g, '').length >= 3);
+  const blankRate = _clozeState.hard ? 0.6 : 0.32;
+  const blankCount = Math.max(1, Math.round(blankCandidates.length * blankRate));
+  // Deterministic blank selection per verse so re-renders are stable
+  const seed = v.ref.length + _clozeState.idx * 7 + (_clozeState.hard ? 1 : 0);
+  const shuffled = [...blankCandidates].sort((a, b) => ((a * 9301 + 49297 + seed) % 233280) - ((b * 9301 + 49297 + seed) % 233280));
+  const blanks = new Set(shuffled.slice(0, blankCount));
+  const html = tokens.map((t, i) => {
+    if (blanks.has(i)) {
+      const word = t;
+      const wordLen = word.replace(/[^\w]/g, '').length;
+      const dashes = '_'.repeat(Math.max(3, wordLen));
+      return `<span class="cloze-blank" data-word="${word.replace(/"/g, '&quot;')}" onclick="this.textContent=this.dataset.word; this.classList.add('cloze-revealed')" style="display:inline-block;background:var(--bg-alt);border-bottom:2px solid var(--accent);padding:0 6px;margin:0 1px;border-radius:3px;cursor:pointer;font-family:var(--mono,monospace);letter-spacing:0.05em;color:var(--text-muted);min-width:${wordLen*0.55}em;text-align:center" title="Tap to reveal">${dashes}</span>`;
+    }
+    return t;
+  }).join('');
+  body.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+      <div>
+        <div style="font-family:var(--sans);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em">Practice ${_clozeState.idx + 1} of ${_clozeState.verses.length}</div>
+        <div style="font-family:var(--serif);font-size:20px;color:var(--accent);font-weight:600">${ref}</div>
+      </div>
+      <button onclick="showBookmarksModal()" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;cursor:pointer">Back</button>
+    </div>
+    <div style="font-family:var(--serif);font-size:18px;line-height:1.85;color:var(--text);padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:6px;margin:6px 0 14px">
+      ${html}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button onclick="document.querySelectorAll('.cloze-blank').forEach(e=>{e.textContent=e.dataset.word;e.classList.add('cloze-revealed')})" style="background:var(--accent);border:none;color:white;padding:8px 14px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer">Reveal all</button>
+      <button onclick="renderCloze()" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:8px 14px;border-radius:14px;font-family:var(--sans);font-size:12px;cursor:pointer">Reset blanks</button>
+      <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--sans);font-size:12px;color:var(--text-muted);cursor:pointer;margin-left:auto">
+        <input type="checkbox" ${_clozeState.hard ? 'checked' : ''} onchange="_clozeState.hard=this.checked; renderCloze()" style="margin:0">Harder (60%)
+      </label>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;justify-content:space-between">
+      <button onclick="if(_clozeState.idx>0){_clozeState.idx--;renderCloze()}" ${_clozeState.idx === 0 ? 'disabled' : ''} style="flex:1;background:transparent;border:1px solid var(--border-strong);color:${_clozeState.idx === 0 ? 'var(--text-dim)' : 'var(--text)'};padding:10px;border-radius:14px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:${_clozeState.idx === 0 ? 'default' : 'pointer'}">← Previous</button>
+      <button onclick="if(_clozeState.idx<_clozeState.verses.length-1){_clozeState.idx++;renderCloze()}else{showToast('You\\'ve practiced all '+_clozeState.verses.length+' verses');showBookmarksModal()}" style="flex:1;background:var(--accent);border:none;color:white;padding:10px;border-radius:14px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer">${_clozeState.idx < _clozeState.verses.length - 1 ? 'Next →' : 'Done'}</button>
+    </div>
+  `;
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -3311,6 +3410,53 @@ function applyTextSize(size) {
   const lh = { S: '1.7', M: '1.78', L: '1.85', XL: '1.9' };
   document.documentElement.style.setProperty('--verse-font-size', map[size] || '19px');
   document.documentElement.style.setProperty('--verse-line-height', lh[size] || '1.78');
+}
+
+// Build a pastable, citation-ready text dump for sermon prep.
+// Includes: chapter heading, every verse with number, all bookmarks/highlights for this chapter,
+// and any visible cross-references for this chapter.
+async function copyPassageForSermon() {
+  try {
+    const book = BOOKS[state.bookIdx];
+    const ref = `${book.name} ${state.chapter}`;
+    const trans = (state.translation || 'kjv').toUpperCase();
+    const lines = [];
+    lines.push(`${ref} (${trans})`);
+    lines.push('='.repeat(Math.min(60, ref.length + trans.length + 3)));
+    lines.push('');
+    // Verses
+    if (state.verses && state.verses.length) {
+      state.verses.forEach(v => {
+        lines.push(`${v.verse}. ${(v.text || '').replace(/\s+/g, ' ').trim()}`);
+      });
+    } else {
+      lines.push('(verses not loaded — open the chapter and try again)');
+    }
+    lines.push('');
+    // Bookmarks for this chapter
+    const osisBook = OSIS_BY_IDX[state.bookIdx];
+    const chPrefix = `${osisBook}.${state.chapter}.`;
+    const bms = getBookmarks().filter(b => b.ref && b.ref.startsWith(chPrefix));
+    if (bms.length) {
+      lines.push(`Saved verses (${bms.length}):`);
+      bms.forEach(b => lines.push(`  • ${osisToHuman(b.ref)} — ${(b.snippet || '').slice(0, 140)}`));
+      lines.push('');
+    }
+    // Highlights for this chapter
+    const hls = Object.entries(getHighlights() || {}).filter(([k]) => k.startsWith(chPrefix));
+    if (hls.length) {
+      lines.push(`Highlights (${hls.length}):`);
+      hls.forEach(([k, color]) => lines.push(`  • ${osisToHuman(k)} [${color}]`));
+      lines.push('');
+    }
+    lines.push(`— Source: hunihydration.com/bible · ${new Date().toISOString().slice(0,10)}`);
+    const text = lines.join('\n');
+    await navigator.clipboard.writeText(text);
+    showToast(`Copied ${ref} for sermon prep`);
+    haptic(8);
+  } catch (e) {
+    showToast('Copy failed — try again');
+  }
 }
 
 function exportBookmarksJSON() {
@@ -3994,6 +4140,9 @@ async function loadChapter() {
     state.verses = verses;
     renderChapter(book, verses);
     applyAllHighlights();
+    // Announce chapter change to screen readers
+    const live = document.getElementById('a11y-live');
+    if (live) live.textContent = `${book.name} chapter ${state.chapter}, ${verses.length} verses loaded`;
     updateHash();
     if (window._saveReadingPosition) window._saveReadingPosition();
     if (window._refreshChapterSelect) window._refreshChapterSelect();
@@ -4477,6 +4626,7 @@ function showSidebar(key, verseNum, refs) {
                 <span style="display:inline-block;padding:1px 6px;background:${color};color:white;border-radius:3px;font-size:9.5px;font-weight:600;letter-spacing:0.03em">${s.pastor || ''}</span>
                 ${s.feed ? `<span style="font-style:italic">${s.feed}</span>` : ''}
                 ${s.date ? `<span>· ${s.date}</span>` : ''}
+                ${s.duration ? `<span>· ${s.duration}</span>` : ''}
               </div>
             </a>`;
           }).join('')}
