@@ -2892,8 +2892,12 @@ function init() {
         const v = state.verses.find(x => x.verse === state.activeVerse);
         if (v && v.text) shareText = `"${v.text.replace(/\s+/g, ' ').trim()}"\n— ${ref}`;
       }
-      // Prefer the native share sheet on platforms that support it
-      const sharePayload = { title: ref, text: shareText, url };
+      // Prefer the native share sheet on platforms that support it.
+      // title is intentionally generic — iOS Mail uses it as the subject and
+      // some Android targets ignore `text` if a unique title is set, which
+      // would make the recipient see only the ref three times in their
+      // message. A static brand title keeps text/url as the primary content.
+      const sharePayload = { title: 'Scripture Link', text: shareText, url };
       const canDoShare = navigator.share && (!navigator.canShare || navigator.canShare(sharePayload));
       if (canDoShare) {
         try {
@@ -3638,10 +3642,15 @@ function exportVerseImage(verseText, reference, gradName, format) {
   showToast(`Verse image saved`);
 }
 
-async function copyVerseLink(osisKey) {
+async function copyVerseLink(osisKey, verseText, ref) {
   const url = `${location.origin}${location.pathname}#${osisKey}`;
-  try { await navigator.clipboard.writeText(url); showToast('Link copied'); haptic(8); }
-  catch { prompt('Copy this link:', url); }
+  // If we have the verse text and reference, build a richer payload that
+  // reads in the recipient's SMS/iMessage preview without requiring a tap.
+  const payload = (verseText && ref)
+    ? `"${(verseText || '').replace(/\s+/g, ' ').trim()}" — ${ref}\n${url}`
+    : url;
+  try { await navigator.clipboard.writeText(payload); showToast(verseText ? 'Verse + link copied' : 'Link copied'); haptic(8); }
+  catch { prompt('Copy:', payload); }
 }
 async function copyVerseText(text, ref) {
   const out = `"${text.trim()}" — ${ref}`;
@@ -3873,6 +3882,8 @@ function importBookmarksJSON() {
   inp.click();
 }
 
+// Filter state for highlights modal — module-scoped so it survives modal re-render
+window._hlFilter = window._hlFilter || 'all';
 function showHighlightsModal() {
   const existing = document.getElementById('hl-modal');
   if (existing) { existing.remove(); return; }
@@ -3882,6 +3893,8 @@ function showHighlightsModal() {
   const h = getHighlights();
   const entries = Object.entries(h);
   const colorBg = {yellow:'#FFE082',pink:'#F8BBD0',green:'#C5E1A5',blue:'#BBDEFB'};
+  const filter = window._hlFilter || 'all';
+  const filtered = filter === 'all' ? entries : entries.filter(([_, c]) => c === filter);
   let body;
   if (entries.length === 0) {
     body = `<div style="padding:40px 20px;text-align:center;color:var(--text-muted)">
@@ -3889,16 +3902,34 @@ function showHighlightsModal() {
       <div style="font-size:14px;line-height:1.5">No highlights yet.<br><br>Long-press any verse (or right-click on desktop) to highlight it in yellow, pink, green, or blue.</div>
     </div>`;
   } else {
-    body = entries.map(([osisRef, color]) => {
-      const safe = osisRef.replace(/[^A-Za-z0-9.\-]/g, '');
-      const human = osisToHuman(osisRef);
-      return `<div style="display:flex;gap:10px;align-items:center;padding:10px 8px;border-bottom:1px solid var(--border)">
-        <span style="width:14px;height:14px;border-radius:50%;background:${colorBg[color]||'#ccc'};flex-shrink:0;display:inline-block"></span>
-        <a href="javascript:document.getElementById('hl-modal').remove();navigateToOsis('${safe}')" style="color:var(--accent);text-decoration:none;font-size:14px;font-weight:500;flex:1">${human}</a>
-        <button onclick="const h=getHighlights();delete h['${safe}'];saveHighlights(h);applyAllHighlights();this.parentElement.remove()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:18px;padding:4px 8px" aria-label="Remove">×</button>
-      </div>`;
-    }).join('');
-    body = `<div style="max-height:60vh;overflow-y:auto;margin:8px 0">${body}</div>`;
+    // Filter pill row — counts per color so users see distribution at a glance
+    const counts = {yellow:0,pink:0,green:0,blue:0};
+    entries.forEach(([_, c]) => { if (counts[c] != null) counts[c]++; });
+    const pill = (key, label, dotColor) => {
+      const active = filter === key;
+      const sw = dotColor ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};margin-right:5px;vertical-align:1px"></span>` : '';
+      const cnt = key === 'all' ? entries.length : counts[key];
+      return `<button onclick="window._hlFilter='${key}';document.getElementById('hl-modal').remove();showHighlightsModal()" style="background:${active ? 'var(--accent)' : 'transparent'};color:${active ? 'white' : 'var(--text)'};border:1px solid ${active ? 'var(--accent)' : 'var(--border-strong)'};padding:5px 11px;border-radius:13px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;margin-right:5px">${sw}${label} (${cnt})</button>`;
+    };
+    const filterRow = `<div style="margin:8px 0 10px;display:flex;flex-wrap:wrap;gap:4px">
+      ${pill('all', 'All')}
+      ${pill('yellow', 'Yellow', colorBg.yellow)}
+      ${pill('pink', 'Pink', colorBg.pink)}
+      ${pill('green', 'Green', colorBg.green)}
+      ${pill('blue', 'Blue', colorBg.blue)}
+    </div>`;
+    const list = filtered.length === 0
+      ? `<div style="padding:16px 8px;color:var(--text-muted);font-size:13px;text-align:center">No ${filter} highlights yet.</div>`
+      : filtered.map(([osisRef, color]) => {
+          const safe = osisRef.replace(/[^A-Za-z0-9.\-]/g, '');
+          const human = osisToHuman(osisRef);
+          return `<div style="display:flex;gap:10px;align-items:center;padding:10px 8px;border-bottom:1px solid var(--border)">
+            <span style="width:14px;height:14px;border-radius:50%;background:${colorBg[color]||'#ccc'};flex-shrink:0;display:inline-block"></span>
+            <a href="javascript:document.getElementById('hl-modal').remove();navigateToOsis('${safe}')" style="color:var(--accent);text-decoration:none;font-size:14px;font-weight:500;flex:1">${human}</a>
+            <button onclick="const h=getHighlights();delete h['${safe}'];saveHighlights(h);applyAllHighlights();this.parentElement.remove()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:18px;padding:4px 8px" aria-label="Remove">×</button>
+          </div>`;
+        }).join('');
+    body = filterRow + `<div style="max-height:55vh;overflow-y:auto;margin:0">${list}</div>`;
   }
   m.innerHTML = `
     <div style="background:var(--bg);border:1px solid var(--border-strong);border-radius:10px;padding:22px 24px 18px;max-width:440px;width:100%;box-shadow:0 12px 36px rgba(0,0,0,0.3)">
@@ -5101,7 +5132,7 @@ function showSidebar(key, verseNum, refs) {
         <button class="bookmark-btn ${isBkmk ? 'active' : ''}" onclick="onBookmarkClick('${key}', this)" aria-label="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" title="${isBkmk ? 'Remove from bookmarks' : 'Save to bookmarks'}">${isBkmk ? '★ Saved' : '☆ Save'}</button>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-        <button onclick="copyVerseLink('${key}')" style="background:var(--accent);border:1px solid var(--accent);color:white;padding:6px 14px;border-radius:14px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy a direct link to this verse">Copy link</button>
+        <button onclick="copyVerseLink('${key}', ${JSON.stringify(verseText).replace(/"/g, '&quot;')}, '${book.name} ${state.chapter}:${verseNum}')" style="background:var(--accent);border:1px solid var(--accent);color:white;padding:6px 14px;border-radius:14px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy verse text + link to share">Copy verse + link</button>
         <button onclick="copyVerseText(${JSON.stringify(verseText).replace(/"/g, '&quot;')}, '${book.name} ${state.chapter}:${verseNum}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy the verse text to paste anywhere">Copy text</button>
         <button onclick="showImagePickerModal(${JSON.stringify(verseText).replace(/"/g, '&quot;')}, '${book.name} ${state.chapter}:${verseNum}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Save as a shareable image">Save as image</button>
         <button id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent">Compare versions</button>
@@ -5196,11 +5227,26 @@ function onBookmarkClick(key, btn) {
 }
 
 // ── Compare-translations: fetch the active verse in all three translations ──
+// Persisted in localStorage with a 30-day TTL — survives across sessions so a
+// user comparing the same verse next week doesn't pay 3 network requests again.
 const _compareCache = (() => {
-  try { return JSON.parse(sessionStorage.getItem('scripture-compare-cache') || '{}'); } catch(e) { return {}; }
+  try {
+    const raw = JSON.parse(localStorage.getItem('scripture-compare-cache') || '{}');
+    const cutoff = Date.now() - 30 * 86400000;
+    Object.keys(raw).forEach(k => { if (!raw[k] || (raw[k].ts || 0) < cutoff) delete raw[k]; });
+    return raw;
+  } catch(e) { return {}; }
 })();
 function _saveCompareCache() {
-  try { sessionStorage.setItem('scripture-compare-cache', JSON.stringify(_compareCache)); } catch(e) {}
+  try { localStorage.setItem('scripture-compare-cache', JSON.stringify(_compareCache)); }
+  catch(e) {
+    // If localStorage is full, drop the oldest 50% and retry once
+    try {
+      const sorted = Object.entries(_compareCache).sort((a, b) => (a[1].ts || 0) - (b[1].ts || 0));
+      sorted.slice(0, Math.ceil(sorted.length / 2)).forEach(([k]) => delete _compareCache[k]);
+      localStorage.setItem('scripture-compare-cache', JSON.stringify(_compareCache));
+    } catch(e2) {}
+  }
 }
 
 async function compareTranslations(osisKey, btn) {
