@@ -1339,7 +1339,9 @@ body.mode-inline .ref-dot::after {
   color: var(--text-dim);
   font-size: 14px;
   font-family: var(--sans);
+  animation: loading-pulse 1.4s ease-in-out infinite;
 }
+@keyframes loading-pulse { 0%, 100% { opacity: 0.55 } 50% { opacity: 1 } }
 
 .sidebar-close {
   position: absolute;
@@ -2081,14 +2083,14 @@ body.mode-timeline .timeline-help { display: block; }
       <button data-t="rvr" title="Reina-Valera 1960 — la Biblia clásica en español" aria-label="Reina-Valera 1960 — Spanish">RVR</button>
     </div>
 
-    <div class="pill-group" id="mode-group">
-      <button class="active" data-m="sidebar">Sidebar</button>
-      <button data-m="inline">Inline</button>
+    <div class="pill-group" id="mode-group" role="group" aria-label="Where related verses appear">
+      <button class="active" data-m="sidebar" title="Show cross-references in a side panel" aria-label="Show related verses in a sidebar">Sidebar</button>
+      <button data-m="inline" title="Show cross-references right under each verse" aria-label="Show related verses inline under each verse">Inline</button>
     </div>
-    <div class="pill-group" id="view-group">
-      <button data-m="arc" title="See every cross-reference in the whole Bible as a chord diagram (current chapter highlighted)">Arc</button>
-      <button data-m="graph" title="Force-directed network: connected verses cluster together">Graph</button>
-      <button data-m="timeline" title="Chronological timeline of all 66 books — when written and what era they cover">Timeline</button>
+    <div class="pill-group" id="view-group" role="group" aria-label="Visualization mode">
+      <button data-m="arc" title="See every cross-reference in the whole Bible as a chord diagram (current chapter highlighted)" aria-label="Arc chord diagram">Arc</button>
+      <button data-m="graph" title="Force-directed network: connected verses cluster together" aria-label="Force-directed graph">Graph</button>
+      <button data-m="timeline" title="Chronological timeline of all 66 books — when written and what era they cover" aria-label="Chronological book timeline">Timeline</button>
     </div>
   </div>
 
@@ -3562,11 +3564,14 @@ function getSermonsForVerse(osisBook, chapter, verse) {
     // Defensive: skip the optional _meta entry if present.
     const direct = (verseKey === '_meta' ? null : SERMONS[verseKey]) || [];
     const chapterMatch = (chKey === '_meta' ? null : SERMONS[chKey]) || [];
+    // Sort newest-first so 2025 sermons crowd 2010 ones, not the reverse.
     const seen = new Set();
     direct.concat(chapterMatch).forEach(s => {
       if (!seen.has(s.url)) { seen.add(s.url); out.push(s); }
     });
   }
+  const yearOf = s => { const m = String(s.date || '').match(/\b(19|20)\d{2}\b/); return m ? +m[0] : 0; };
+  out.sort((a, b) => yearOf(b) - yearOf(a));
   return out.slice(0, 8);
 }
 
@@ -5180,7 +5185,7 @@ async function loadChapter() {
     else if (state.translation === 'rvr') verses = await fetchRVR(state.bookIdx, state.chapter);
 
     if (!verses || !verses.length) {
-      textEl.innerHTML = '<div class="loading" style="padding:60px 30px;text-align:center;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:10px;opacity:0.5">📖</div><div>That chapter isn\'t available right now.</div><div style="font-size:13px;margin-top:8px;opacity:0.7">Try another book or chapter from the dropdown above.</div></div>';
+      textEl.innerHTML = `<div class="loading" style="padding:60px 30px;text-align:center;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:10px;opacity:0.5">📖</div><div>This chapter isn't in the ${(state.translation || 'kjv').toUpperCase()} yet.</div><div style="font-size:13px;margin-top:8px;opacity:0.7">Try switching translations above (KJV/ESV/BSB/RVR), or pick another chapter.</div></div>`;
       return;
     }
 
