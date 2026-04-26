@@ -1,0 +1,530 @@
+{
+  "Gen": {
+    "author": "Moses (traditional); compiled c. 1446–1406 BC",
+    "date": "c. 1446–1406 BC (events span Creation to c. 1805 BC)",
+    "genre": "Narrative / Pentateuch (Torah)",
+    "audience": "Israel at Sinai and entering Canaan",
+    "theme": "Origins — God creates, judges, and chooses a covenant family",
+    "summary": "From the seven days of creation to Joseph's death in Egypt, Genesis traces how a holy God establishes humanity, judges sin (the Flood), and selects Abraham's line as the channel through whom every nation will be blessed."
+  },
+  "Exod": {
+    "author": "Moses",
+    "date": "c. 1446–1406 BC (events: c. 1876–1446 BC)",
+    "genre": "Narrative / Law / Pentateuch",
+    "audience": "Israel emerging from Egyptian slavery",
+    "theme": "Redemption — God delivers His people and dwells among them",
+    "summary": "Israel groans under Egyptian bondage. God raises Moses, sends the ten plagues, parts the Red Sea, gives the Ten Commandments at Sinai, and instructs the building of the tabernacle so His glory can dwell with His people."
+  },
+  "Lev": {
+    "author": "Moses",
+    "date": "c. 1446–1406 BC",
+    "genre": "Law / Cultic instruction",
+    "audience": "Israel encamped at Sinai",
+    "theme": "Holiness — how a sinful people approach a holy God",
+    "summary": "Sacrificial system, priesthood, dietary laws, festivals, and the Day of Atonement. The repeated refrain — 'Be holy, for I am holy' — frames every regulation as covenantal proximity to God."
+  },
+  "Num": {
+    "author": "Moses",
+    "date": "c. 1446–1406 BC",
+    "genre": "Narrative / Law / Pentateuch",
+    "audience": "Israel in the wilderness",
+    "theme": "Wilderness wandering — faithfulness tested across forty years",
+    "summary": "Two censuses bracket Israel's failure to enter Canaan. Rebellion, complaint, and the long detour shape a generation. Despite unfaithfulness, God preserves His covenant promises and brings the next generation to the brink of the Promised Land."
+  },
+  "Deut": {
+    "author": "Moses",
+    "date": "c. 1406 BC",
+    "genre": "Covenant renewal / Sermon",
+    "audience": "Israel on the plains of Moab before crossing the Jordan",
+    "theme": "Love and obey the LORD with all your heart",
+    "summary": "Moses' farewell sermons re-cite the Law for the new generation, structured as an ancient suzerain-vassal covenant. Blessings and curses, the Shema (Deut 6:4–5), and the call to choose life or death define Israel's identity."
+  },
+  "Josh": {
+    "author": "Joshua (traditional, with later additions)",
+    "date": "Events c. 1406–1380 BC",
+    "genre": "Historical narrative",
+    "audience": "Post-conquest Israel",
+    "theme": "God's faithfulness in fulfilling the land promise",
+    "summary": "Crossing the Jordan, the fall of Jericho, the conquest campaigns, and the division of the land among the twelve tribes. Joshua's final charge — 'Choose this day whom ye will serve' — closes the book."
+  },
+  "Judg": {
+    "author": "Anonymous (traditionally Samuel)",
+    "date": "c. 1050–1000 BC; events span c. 1380–1050 BC",
+    "genre": "Historical narrative",
+    "audience": "Early monarchic Israel",
+    "theme": "When everyone did right in his own eyes, the cycle of sin and rescue",
+    "summary": "Twelve charismatic deliverers (Othniel, Ehud, Deborah, Gideon, Samson, etc.) rescue Israel from oppressors as the nation cycles through apostasy, distress, repentance, and deliverance. The book closes in moral chaos, anticipating the need for a king."
+  },
+  "Ruth": {
+    "author": "Anonymous (traditionally Samuel)",
+    "date": "c. 1010–970 BC; events during the period of the Judges",
+    "genre": "Narrative / Short story",
+    "audience": "Davidic-era Israel",
+    "theme": "Hesed (loyal love) and the providence of God in Messianic genealogy",
+    "summary": "A Moabite widow's loyalty to her Israelite mother-in-law brings her into the redemptive line of David — and ultimately of Jesus Christ. A quiet pastoral counter-narrative to the violence of Judges."
+  },
+  "1Sam": {
+    "author": "Samuel, Nathan, and Gad (with later compilation)",
+    "date": "Compiled c. 930 BC; events c. 1100–1010 BC",
+    "genre": "Historical narrative",
+    "audience": "Divided-monarchy Israel",
+    "theme": "From judges to kings — the LORD raises up His anointed",
+    "summary": "Samuel transitions Israel from tribal judges to monarchy. Saul is anointed, fails, and is rejected. David, the shepherd-king after God's own heart, is anointed and pursued. Ends with Saul's death at Gilboa."
+  },
+  "2Sam": {
+    "author": "Compiled by court historians (Nathan, Gad)",
+    "date": "Events c. 1010–970 BC",
+    "genre": "Historical narrative",
+    "audience": "Divided-monarchy Israel",
+    "theme": "David's reign — the rise, the fall, and the eternal covenant",
+    "summary": "David unites Israel, captures Jerusalem, receives the Davidic Covenant (2 Sam 7), but falls into sin with Bathsheba. The consequences ripple through Absalom's revolt. Ends with David's penitent psalm and census."
+  },
+  "1Kgs": {
+    "author": "Anonymous (traditionally Jeremiah)",
+    "date": "c. 561–538 BC; events 970–852 BC",
+    "genre": "Historical narrative",
+    "audience": "Exilic Judah",
+    "theme": "The temple, the divided kingdom, and the prophets who confront kings",
+    "summary": "Solomon's wisdom, wealth, temple-building, and apostasy. The kingdom splits (Israel vs. Judah). Elijah confronts Ahab and Jezebel on Mount Carmel."
+  },
+  "2Kgs": {
+    "author": "Anonymous (traditionally Jeremiah)",
+    "date": "c. 561–538 BC; events 852–586 BC",
+    "genre": "Historical narrative",
+    "audience": "Exilic Judah",
+    "theme": "Why both kingdoms fell — covenant infidelity and prophetic warning unheeded",
+    "summary": "Elisha's miracles, the fall of Israel to Assyria (722 BC), Judah's reform under Hezekiah and Josiah, and finally the Babylonian destruction of Jerusalem (586 BC) and exile."
+  },
+  "1Chr": {
+    "author": "Ezra (traditional)",
+    "date": "c. 450–400 BC",
+    "genre": "Historical narrative / Genealogy",
+    "audience": "Post-exilic Judah",
+    "theme": "Davidic covenant and temple worship — Israel's true identity",
+    "summary": "Genealogies from Adam to David, then a re-telling of David's reign focused on temple preparation. Written to remind returnees who they are: the people of David, the people of the temple."
+  },
+  "2Chr": {
+    "author": "Ezra (traditional)",
+    "date": "c. 450–400 BC",
+    "genre": "Historical narrative",
+    "audience": "Post-exilic Judah",
+    "theme": "Judah's kings measured by faithfulness to the temple",
+    "summary": "Solomon's temple, the divided kingdom told from Judah's perspective only, and the eventual exile. Closes with Cyrus's decree allowing return — a hopeful coda."
+  },
+  "Ezra": {
+    "author": "Ezra (and earlier sources)",
+    "date": "c. 450–400 BC",
+    "genre": "Historical narrative",
+    "audience": "Post-exilic Judah",
+    "theme": "Restoration of temple and covenant under Persian rule",
+    "summary": "Two return waves: Zerubbabel rebuilds the temple (c. 538–516 BC), Ezra returns to teach the Law (c. 458 BC) and confront mixed marriages. Persia funds the work — God uses pagan empires."
+  },
+  "Neh": {
+    "author": "Nehemiah",
+    "date": "c. 432–400 BC",
+    "genre": "Memoir / Historical narrative",
+    "audience": "Post-exilic Judah",
+    "theme": "Rebuilding the walls — civic and spiritual restoration",
+    "summary": "Nehemiah, cupbearer to Artaxerxes, leads the rebuilding of Jerusalem's walls in 52 days against opposition. With Ezra he calls Israel to covenant renewal."
+  },
+  "Esth": {
+    "author": "Anonymous",
+    "date": "c. 460–400 BC; events c. 483–473 BC",
+    "genre": "Historical narrative",
+    "audience": "Diaspora Jews under Persian rule",
+    "theme": "God's hidden providence — He rescues His people even when His name is unspoken",
+    "summary": "A Jewish girl becomes queen of Persia. Haman plots genocide; Esther risks her life and Mordecai is exalted. The Feast of Purim is established. God's name never appears, yet He is everywhere."
+  },
+  "Job": {
+    "author": "Anonymous (perhaps Moses or Solomon)",
+    "date": "Events possibly patriarchal era; written 2000–500 BC",
+    "genre": "Wisdom literature / Poetic dialogue",
+    "audience": "Universal — anyone wrestling with suffering",
+    "theme": "Why do the righteous suffer? — God is sovereign even in the inscrutable",
+    "summary": "A blameless man loses everything. Three friends offer wrong answers. Elihu adds a fourth voice. Then God speaks from the whirlwind, not explaining but revealing Himself — and Job worships."
+  },
+  "Ps": {
+    "author": "David (73), Asaph, sons of Korah, Solomon, Moses, anonymous",
+    "date": "c. 1410–430 BC",
+    "genre": "Hebrew poetry / Hymnody",
+    "audience": "Israel in worship",
+    "theme": "The full range of human emotion offered to God — praise, lament, repentance, hope",
+    "summary": "150 psalms in five books. Songs for every condition: anguish, joy, repentance, praise, royal coronation, Messianic prophecy. The hymnbook of Israel and the prayer-book of the church."
+  },
+  "Prov": {
+    "author": "Solomon (primarily); also Agur, Lemuel",
+    "date": "c. 970–700 BC",
+    "genre": "Wisdom literature",
+    "audience": "Young men of Israel",
+    "theme": "The fear of the LORD is the beginning of wisdom",
+    "summary": "Practical proverbs on speech, work, sex, money, friendship, and humility. Wisdom is personified as a woman calling out in the streets, set against the seductress of folly."
+  },
+  "Eccl": {
+    "author": "'Qoheleth' / The Preacher (traditionally Solomon)",
+    "date": "c. 935 BC (or post-exilic)",
+    "genre": "Wisdom literature",
+    "audience": "Universal",
+    "theme": "Vanity of vanities — life under the sun is fleeting; fear God and keep His commandments",
+    "summary": "An honest, even bleak, search for meaning in pleasure, work, wisdom, and wealth — all 'hevel' (vapor). Concludes that man's whole duty is to fear God and obey Him, with judgment ahead."
+  },
+  "Song": {
+    "author": "Solomon",
+    "date": "c. 970–930 BC",
+    "genre": "Love poetry",
+    "audience": "Israel",
+    "theme": "The beauty and intimacy of marital love — read also as God's love for His people",
+    "summary": "Eight chapters of dialogue between bride and groom, alternating courtship, longing, consummation, and wedded delight. Read literally as a celebration of marriage; read typologically as Christ and the Church."
+  },
+  "Isa": {
+    "author": "Isaiah son of Amoz",
+    "date": "c. 740–680 BC",
+    "genre": "Major prophet",
+    "audience": "Judah under Assyrian threat",
+    "theme": "The Holy One of Israel — judgment and the promised Servant",
+    "summary": "Sometimes called 'the fifth gospel.' Confronts Judah's idolatry, prophesies the virgin birth (7:14), the Suffering Servant (53), and the new heavens and new earth (65–66). Quoted more in the NT than any prophet."
+  },
+  "Jer": {
+    "author": "Jeremiah, with Baruch as scribe",
+    "date": "c. 627–580 BC",
+    "genre": "Major prophet / Lament",
+    "audience": "Judah on the eve of Babylonian exile",
+    "theme": "Covenant infidelity, certain judgment, and the New Covenant",
+    "summary": "The 'weeping prophet' watches Jerusalem fall. He prophesies seventy years of exile, the New Covenant written on hearts (31:31–34), and personally suffers for his faithful witness."
+  },
+  "Lam": {
+    "author": "Jeremiah (traditional)",
+    "date": "c. 586–585 BC",
+    "genre": "Lament poetry",
+    "audience": "Survivors of Jerusalem's fall",
+    "theme": "Grief over Jerusalem's destruction — yet 'His mercies are new every morning' (3:22–23)",
+    "summary": "Five acrostic poems (chs 1, 2, 4 are 22-verse acrostics; ch 3 is a triple acrostic of 66 verses). Total devastation gives way to a sliver of hope that anchors generations of faith."
+  },
+  "Ezek": {
+    "author": "Ezekiel son of Buzi (priest and prophet)",
+    "date": "c. 593–571 BC",
+    "genre": "Major prophet / Apocalyptic visions",
+    "audience": "Jewish exiles in Babylon",
+    "theme": "The glory of God departs — and returns",
+    "summary": "Visions of the four-faced living creatures, the dry bones, and the future temple. The glory leaves the temple before the destruction (chs 8–11), and returns to an eschatological temple (chs 40–48)."
+  },
+  "Dan": {
+    "author": "Daniel",
+    "date": "c. 605–536 BC",
+    "genre": "Narrative + apocalyptic prophecy",
+    "audience": "Exilic Jews under Babylonian/Persian rule",
+    "theme": "God rules over kingdoms — He raises and removes empires",
+    "summary": "Daniel's faithfulness in pagan courts (lions' den, fiery furnace) and his apocalyptic visions of four kingdoms, the seventy weeks (9:24–27), and the everlasting kingdom of the Son of Man (7:13–14)."
+  },
+  "Hos": {
+    "author": "Hosea son of Beeri",
+    "date": "c. 755–715 BC",
+    "genre": "Minor prophet",
+    "audience": "Northern Kingdom (Israel)",
+    "theme": "God's covenant love for an unfaithful spouse",
+    "summary": "Hosea's marriage to Gomer dramatizes God's relationship with idolatrous Israel. Despite repeated betrayal, divine love pursues her — a stunning picture of grace."
+  },
+  "Joel": {
+    "author": "Joel son of Pethuel",
+    "date": "Disputed: 9th–5th century BC",
+    "genre": "Minor prophet",
+    "audience": "Judah after a locust plague",
+    "theme": "The Day of the LORD — judgment now and outpoured Spirit later",
+    "summary": "Locusts as harbinger of the Day of the LORD. Call to repentance. Prophecy of the Spirit poured out on all flesh (2:28–32) — fulfilled at Pentecost (Acts 2)."
+  },
+  "Amos": {
+    "author": "Amos of Tekoa",
+    "date": "c. 760–750 BC",
+    "genre": "Minor prophet",
+    "audience": "Northern Kingdom at the height of prosperity",
+    "theme": "Let justice roll down like waters",
+    "summary": "A shepherd from Judah preaches in the wealthy Northern Kingdom. Indicts social injustice, religious hypocrisy, and complacency. 'The day of the LORD is darkness, and not light.'"
+  },
+  "Obad": {
+    "author": "Obadiah",
+    "date": "c. 586 BC (likely)",
+    "genre": "Minor prophet",
+    "audience": "Edom and Judah",
+    "theme": "Edom's pride brought down — God avenges His covenant brother",
+    "summary": "The shortest OT book (21 verses). Edom rejoiced at Jerusalem's fall; God will judge them in turn. 'As thou hast done, it shall be done unto thee.'"
+  },
+  "Jonah": {
+    "author": "Jonah son of Amittai",
+    "date": "c. 793–753 BC (during Jeroboam II)",
+    "genre": "Narrative / Minor prophet",
+    "audience": "Israel — confronting their ethnocentrism",
+    "theme": "God's mercy extends even to wicked Nineveh",
+    "summary": "Jonah flees God's call, is swallowed by a great fish, finally preaches to Nineveh, and pouts when they repent. Jesus cites Jonah as a sign of His own death and resurrection (Matt 12:40)."
+  },
+  "Mic": {
+    "author": "Micah of Moresheth",
+    "date": "c. 735–700 BC",
+    "genre": "Minor prophet",
+    "audience": "Both kingdoms (Israel and Judah)",
+    "theme": "What does the LORD require? — to do justice, love mercy, walk humbly (6:8)",
+    "summary": "Foretells Jerusalem's destruction, the birth of the Messiah in Bethlehem (5:2), and the future glory of Mount Zion."
+  },
+  "Nah": {
+    "author": "Nahum the Elkoshite",
+    "date": "c. 663–612 BC",
+    "genre": "Minor prophet",
+    "audience": "Judah",
+    "theme": "Nineveh's overthrow — God's judgment is sure",
+    "summary": "A century after Jonah, Nineveh has reverted to brutality. Nahum's poetic indictment foretells the city's fall to Babylon and Medes (612 BC). The Lord is jealous and just."
+  },
+  "Hab": {
+    "author": "Habakkuk",
+    "date": "c. 615–605 BC",
+    "genre": "Minor prophet / Dialogue",
+    "audience": "Judah on the cusp of Babylonian invasion",
+    "theme": "How can a holy God use a wicked nation? — 'The just shall live by faith' (2:4)",
+    "summary": "A dialogue between the prophet and God. Twice quoted in the NT, 'the just shall live by faith' becomes the Reformation watchword. Closes with one of Scripture's most beautiful confessions of trust."
+  },
+  "Zeph": {
+    "author": "Zephaniah",
+    "date": "c. 640–625 BC (during Josiah)",
+    "genre": "Minor prophet",
+    "audience": "Judah",
+    "theme": "The Day of the LORD — judgment then restoration",
+    "summary": "Universal judgment that consumes earth and Judah, but ends with one of the OT's most tender passages: 'The LORD thy God in the midst of thee... will rejoice over thee with joy... will joy over thee with singing' (3:17)."
+  },
+  "Hag": {
+    "author": "Haggai",
+    "date": "520 BC",
+    "genre": "Minor prophet",
+    "audience": "Post-exilic returnees",
+    "theme": "Rebuild the temple — put God first",
+    "summary": "Four short messages over four months stir the returnees to resume temple construction. 'Consider your ways' — they had built their own homes while God's house lay in ruins."
+  },
+  "Zech": {
+    "author": "Zechariah son of Berechiah",
+    "date": "c. 520–480 BC",
+    "genre": "Minor prophet / Apocalyptic",
+    "audience": "Post-exilic Judah",
+    "theme": "Messianic hope — the coming King and the day of His glory",
+    "summary": "Eight night visions, then prophecies of the Messiah riding on a donkey (9:9), pierced (12:10), the Shepherd struck (13:7), and reigning over all the earth (14)."
+  },
+  "Mal": {
+    "author": "Malachi",
+    "date": "c. 430 BC",
+    "genre": "Minor prophet / Disputation",
+    "audience": "Post-exilic Judah, ~100 years after the second temple",
+    "theme": "Spiritual apathy rebuked — the messenger of the covenant is coming",
+    "summary": "Six disputations between God and a complacent Judah. Closes with the promise of Elijah's return (4:5–6) — 400 years of OT silence ensue, broken by John the Baptist."
+  },
+  "Matt": {
+    "author": "Matthew (Levi), tax-collector turned apostle",
+    "date": "c. AD 50–70",
+    "genre": "Gospel",
+    "audience": "Jewish Christians",
+    "theme": "Jesus is the long-promised Messiah, Son of David, King of the Jews",
+    "summary": "Structured around five great teaching blocks (echoing Moses' Pentateuch). Heavy use of OT quotation showing fulfillment. Begins with genealogy from Abraham; ends with the Great Commission."
+  },
+  "Mark": {
+    "author": "John Mark (companion of Peter)",
+    "date": "c. AD 50–65",
+    "genre": "Gospel",
+    "audience": "Roman Christians",
+    "theme": "Jesus the suffering Servant — the Son of God in action",
+    "summary": "The shortest, fastest-paced Gospel. 'Immediately' appears 41 times. Centered on the Son of Man's mission to give His life as a ransom for many (10:45)."
+  },
+  "Luke": {
+    "author": "Luke the physician",
+    "date": "c. AD 60–62",
+    "genre": "Gospel",
+    "audience": "Theophilus and Gentile readers",
+    "theme": "Jesus the Savior of all people — especially the marginalized",
+    "summary": "The most carefully researched Gospel (1:1–4). Uniquely emphasizes women, the poor, and Gentiles. Includes the parables of the Good Samaritan and Prodigal Son."
+  },
+  "John": {
+    "author": "John the apostle, son of Zebedee",
+    "date": "c. AD 85–95",
+    "genre": "Gospel",
+    "audience": "Universal — that you may believe (20:31)",
+    "theme": "Jesus is God in flesh — believe and have eternal life",
+    "summary": "Seven 'I AM' statements, seven signs, and the deepest meditation on Christ's deity. Includes the Upper Room Discourse (chs 13–17) and Jesus' high-priestly prayer."
+  },
+  "Acts": {
+    "author": "Luke",
+    "date": "c. AD 62",
+    "genre": "Historical narrative",
+    "audience": "Theophilus, the early church",
+    "theme": "From Jerusalem to Rome — the Spirit-empowered spread of the gospel",
+    "summary": "Pentecost, the church's birth, persecution, Stephen's martyrdom, Paul's conversion and three missionary journeys, ending with Paul preaching unhindered in Rome."
+  },
+  "Rom": {
+    "author": "Paul the apostle",
+    "date": "c. AD 56–57, from Corinth",
+    "genre": "Epistle / Theological treatise",
+    "audience": "Roman Christians",
+    "theme": "The gospel of righteousness by faith — for Jew and Gentile alike",
+    "summary": "Paul's most systematic letter. Sin, justification, sanctification, predestination, Israel's future, and Christian living. The letter that converted Augustine, Luther, Wesley, and Karl Barth."
+  },
+  "1Cor": {
+    "author": "Paul",
+    "date": "c. AD 55, from Ephesus",
+    "genre": "Epistle",
+    "audience": "Corinthian church",
+    "theme": "Christ-shaped community — addressing division, immorality, worship, and resurrection",
+    "summary": "Confronts factionalism, sexual immorality, lawsuits, marriage questions, idol-meat, the Lord's Supper, spiritual gifts, and the bodily resurrection (ch 15)."
+  },
+  "2Cor": {
+    "author": "Paul",
+    "date": "c. AD 55–56, from Macedonia",
+    "genre": "Epistle",
+    "audience": "Corinthian church",
+    "theme": "Apostolic ministry — strength in weakness",
+    "summary": "Paul defends his apostleship against rivals. The most personal of his letters: his sufferings, his thorn in the flesh, and the principle that God's strength is made perfect in weakness (12:9)."
+  },
+  "Gal": {
+    "author": "Paul",
+    "date": "c. AD 48–55",
+    "genre": "Epistle",
+    "audience": "Galatian churches",
+    "theme": "Justification by faith alone — not by works of the Law",
+    "summary": "Paul's white-hot defense of the gospel against Judaizers who wanted Gentile believers circumcised. The freedom letter that ignited the Reformation."
+  },
+  "Eph": {
+    "author": "Paul",
+    "date": "c. AD 60–62, from Roman imprisonment",
+    "genre": "Epistle",
+    "audience": "Ephesian church (and circular to Asia Minor)",
+    "theme": "Our riches in Christ and our walk worthy of them",
+    "summary": "Three chapters of theology (our heavenly position) followed by three of application (our earthly walk). Includes the armor of God (ch 6) and the great prayer of 3:14–21."
+  },
+  "Phil": {
+    "author": "Paul",
+    "date": "c. AD 60–62, from Roman imprisonment",
+    "genre": "Epistle / Thank-you letter",
+    "audience": "Philippian church",
+    "theme": "Joy in Christ — through every circumstance",
+    "summary": "The most personal and joyful of Paul's letters, written from prison. Contains the Christ-hymn (2:5–11) and 'I can do all things through Christ' (4:13)."
+  },
+  "Col": {
+    "author": "Paul",
+    "date": "c. AD 60–62, from Roman imprisonment",
+    "genre": "Epistle",
+    "audience": "Colossian church",
+    "theme": "Christ's supremacy and sufficiency over every philosophy",
+    "summary": "Counters a syncretistic heresy by exalting Christ as Creator, Sustainer, Head of the church, and the fullness of deity bodily (1:15–20, 2:9). Christ is enough."
+  },
+  "1Thess": {
+    "author": "Paul",
+    "date": "c. AD 50–51, from Corinth",
+    "genre": "Epistle",
+    "audience": "Thessalonian church",
+    "theme": "Living in light of Christ's return",
+    "summary": "One of Paul's earliest letters. Mentions Christ's return in every chapter. Includes the rapture passage (4:13–18) and the Day of the Lord (5:1–11)."
+  },
+  "2Thess": {
+    "author": "Paul",
+    "date": "c. AD 51–52",
+    "genre": "Epistle",
+    "audience": "Thessalonian church",
+    "theme": "Endurance under persecution; the Day of the Lord has not yet come",
+    "summary": "Corrects the misunderstanding that the Day of the Lord had already happened. The man of lawlessness must be revealed first. Be steadfast and work."
+  },
+  "1Tim": {
+    "author": "Paul",
+    "date": "c. AD 62–64",
+    "genre": "Pastoral epistle",
+    "audience": "Timothy, Paul's protégé in Ephesus",
+    "theme": "How one ought to behave in the household of God",
+    "summary": "Instructions on church order, qualifications for elders and deacons, false teaching, prayer, and pastoral life. Practical handbook for ministry."
+  },
+  "2Tim": {
+    "author": "Paul",
+    "date": "c. AD 66–67, from Rome (final imprisonment)",
+    "genre": "Pastoral epistle / Last words",
+    "audience": "Timothy",
+    "theme": "Endure to the end — preach the Word",
+    "summary": "Paul's last letter, written facing execution. 'I have fought a good fight, I have finished my course' (4:7). Charges Timothy to preach in season and out, even when culture rejects sound doctrine."
+  },
+  "Titus": {
+    "author": "Paul",
+    "date": "c. AD 62–64",
+    "genre": "Pastoral epistle",
+    "audience": "Titus, on Crete",
+    "theme": "Sound doctrine and good works among rough churches",
+    "summary": "Brief but dense. Elder qualifications, pastoral ethics, gospel summary in 3:4–7, and the call for Christians to be 'zealous of good works.'"
+  },
+  "Phlm": {
+    "author": "Paul",
+    "date": "c. AD 60–62, from Roman imprisonment",
+    "genre": "Personal epistle",
+    "audience": "Philemon, a slave-owner",
+    "theme": "Reconciliation in Christ — receive him as a brother",
+    "summary": "A short personal letter pleading with Philemon to receive his runaway slave Onesimus back as a Christian brother. The seedling of the gospel's social transformation."
+  },
+  "Heb": {
+    "author": "Anonymous (Apollos? Barnabas? Paul? — uncertain)",
+    "date": "c. AD 60–69 (before the temple's fall in 70)",
+    "genre": "Sermon-letter",
+    "audience": "Jewish Christians tempted to revert to Judaism",
+    "theme": "Christ's superiority — He is greater than angels, Moses, the priesthood, the sacrifices",
+    "summary": "An extended argument that Christ's once-for-all sacrifice supersedes the entire Levitical system. The 'Hall of Faith' (ch 11) and 'Let us run with patience the race set before us' (12:1)."
+  },
+  "Jas": {
+    "author": "James, half-brother of Jesus, leader of the Jerusalem church",
+    "date": "c. AD 45–49 (likely the earliest NT book)",
+    "genre": "Wisdom-style epistle",
+    "audience": "Jewish Christians scattered abroad",
+    "theme": "Faith without works is dead",
+    "summary": "Practical Christian living. Confronts the rich, exhorts patience under trial, controls the tongue, and insists that genuine faith produces visible obedience."
+  },
+  "1Pet": {
+    "author": "Peter the apostle",
+    "date": "c. AD 62–64, from Rome ('Babylon')",
+    "genre": "Epistle",
+    "audience": "Christians in Asia Minor under persecution",
+    "theme": "Hope and holiness in suffering — you are an elect, royal priesthood",
+    "summary": "Encourages persecuted believers with their living hope, exhorts holy conduct, and exalts the Suffering Servant whose stripes brought our healing (2:24)."
+  },
+  "2Pet": {
+    "author": "Peter (with stylistic variation)",
+    "date": "c. AD 64–68",
+    "genre": "Epistle / Final testament",
+    "audience": "Wider church",
+    "theme": "Beware false teachers — the Day of the Lord will come",
+    "summary": "Peter's farewell. Confronts scoffers who deny Christ's return, predicts the dissolving of the heavens, and calls for godly living in light of the new heavens and new earth."
+  },
+  "1John": {
+    "author": "John the apostle",
+    "date": "c. AD 85–95",
+    "genre": "Sermon-epistle",
+    "audience": "Asia Minor churches confronting proto-gnosticism",
+    "theme": "Tests of genuine faith — light, love, and orthodoxy",
+    "summary": "Three recurring tests: doctrinal (right view of Christ), moral (obedience), and relational (love of brothers). 'God is love' (4:8). 'These things have I written... that ye may know that ye have eternal life' (5:13)."
+  },
+  "2John": {
+    "author": "John the apostle ('the elder')",
+    "date": "c. AD 85–95",
+    "genre": "Personal epistle",
+    "audience": "'The elect lady' (probably a church)",
+    "theme": "Walk in truth and love — refuse false teachers",
+    "summary": "Thirteen verses. Don't extend hospitality to those who deny Christ's incarnation. Truth and love together — never separated."
+  },
+  "3John": {
+    "author": "John the apostle",
+    "date": "c. AD 85–95",
+    "genre": "Personal epistle",
+    "audience": "Gaius",
+    "theme": "Hospitality to faithful workers vs. the selfishness of Diotrephes",
+    "summary": "Fourteen verses. Commendation of Gaius for hosting traveling missionaries; rebuke of Diotrephes for refusing them. The shortest book in the NT."
+  },
+  "Jude": {
+    "author": "Jude, half-brother of Jesus",
+    "date": "c. AD 65–80",
+    "genre": "Epistle",
+    "audience": "Wider church",
+    "theme": "Contend for the faith once delivered to the saints",
+    "summary": "A fierce warning against apostate teachers, drawing on OT examples of judgment. Closes with the great doxology: 'Now unto him that is able to keep you from falling...' (vv 24–25)."
+  },
+  "Rev": {
+    "author": "John the apostle, exiled on Patmos",
+    "date": "c. AD 95",
+    "genre": "Apocalyptic prophecy / Epistle",
+    "audience": "Seven churches in Asia Minor under Roman persecution",
+    "theme": "Jesus reigns — He is coming again, and He will make all things new",
+    "summary": "Visions of the glorified Christ, the seven churches, the Lamb who was slain, the seven seals/trumpets/bowls, the fall of Babylon, the marriage supper, the millennium, the great white throne, and the new heavens and new earth. The Bible's final word: 'Even so, come, Lord Jesus.'"
+  }
+}
