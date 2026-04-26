@@ -10,6 +10,9 @@
 <meta name="theme-color" content="#15171C" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Scripture">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%232A4D6E'/%3E%3Ctext x='50' y='68' font-family='Georgia,serif' font-size='62' fill='white' text-anchor='middle' font-weight='600'%3ES%3C/text%3E%3C/svg%3E">
 
 <!-- Open Graph -->
@@ -300,7 +303,7 @@ body.sidebar-open .bible-text {
 
 .verse-num {
   font-family: var(--sans);
-  font-size: 12px;
+  font-size: var(--verse-num-size, 12px);
   color: var(--text-muted);
   min-width: 22px;
   margin-top: 8px;
@@ -1077,7 +1080,7 @@ body.mode-inline .ref-dot::after {
   margin-bottom: 4px;
 }
 .sidebar-verse-text {
-  font-size: 14px;
+  font-size: var(--sidebar-text-size, 14px);
   line-height: 1.6;
   color: var(--text);
   font-family: var(--serif);
@@ -1150,7 +1153,7 @@ body.mode-inline .ref-dot::after {
 .ref-type-badge.quote { background: var(--quote); }
 
 .ref-card-text {
-  font-size: 14px;
+  font-size: var(--ref-card-size, 14px);
   line-height: 1.55;
   color: var(--text-muted);
   margin-bottom: 4px;
@@ -2594,7 +2597,7 @@ function init() {
     const themeLabel = themeNow === 'dark' ? 'Dark' : (themeNow === 'focus' ? 'Focus' : 'Light');
     setVal('settings-theme-value', themeLabel, 'action');
     setVal('settings-translation-value', state.translation.toUpperCase(), 'action');
-    const tsLabel = { S:'Small', M:'Medium', L:'Large', XL:'X-Large' };
+    const tsLabel = { S:'Small', M:'Medium', L:'Large', XL:'X-Large', XXL:'XX-Large', XXXL:'Huge' };
     setVal('settings-textsize-value', tsLabel[localStorage.getItem('scripture-textsize') || 'M'], 'action');
     setVal('settings-readmode-value', state.mode === 'inline' ? 'Inline' : 'Sidebar', 'action');
     setVal('settings-viewmode-value', ({sidebar:'Read',inline:'Read',arc:'Arc',graph:'Graph',timeline:'Timeline'})[state.mode] || 'Read', 'action');
@@ -2673,7 +2676,7 @@ function init() {
       else if (action === 'redletter') document.getElementById('redletter-toggle').click();
       else if (action === 'theme') document.getElementById('theme-toggle').click();
       else if (action === 'textsize') {
-        const sizes = ['S','M','L','XL'];
+        const sizes = ['S','M','L','XL','XXL','XXXL'];
         const cur = localStorage.getItem('scripture-textsize') || 'M';
         const next = sizes[(sizes.indexOf(cur) + 1) % sizes.length];
         localStorage.setItem('scripture-textsize', next);
@@ -2800,13 +2803,27 @@ function init() {
     speakNextVerse();
   });
 
-  // Share-link button
+  // Share-link button — uses Web Share API on mobile (native share sheet
+  // straight to Messages / WhatsApp / etc.) and falls back to clipboard
+  // copy on desktop.
   const shareBtn = document.getElementById('share-link');
   if (shareBtn) {
     shareBtn.addEventListener('click', async () => {
       updateHash();
       const url = location.href;
       haptic(8);
+      const book = BOOKS[state.bookIdx];
+      const ref = book ? (state.activeVerse
+        ? `${book.name} ${state.chapter}:${state.activeVerse}`
+        : `${book.name} ${state.chapter}`) : 'Scripture';
+      // Prefer the native share sheet — group leaders can text the
+      // passage to attendees in one tap.
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: ref, text: ref, url });
+          return;
+        } catch (_) { /* user cancelled — fall through to clipboard */ }
+      }
       try {
         await navigator.clipboard.writeText(url);
         showToast('Link copied to clipboard');
@@ -3591,10 +3608,18 @@ function showImagePickerModal(verseText, reference) {
 }
 
 function applyTextSize(size) {
-  const map = { S: '17px', M: '19px', L: '21px', XL: '24px' };
-  const lh = { S: '1.7', M: '1.78', L: '1.85', XL: '1.9' };
+  const map = { S: '17px', M: '19px', L: '21px', XL: '24px', XXL: '30px', XXXL: '36px' };
+  const lh = { S: '1.7', M: '1.78', L: '1.85', XL: '1.9', XXL: '1.95', XXXL: '2.0' };
+  // Cascade auxiliary sizes (verse numbers, sidebar text, ref-cards) so the
+  // text-size control affects more than just the verse body.
+  const numMap = { S: '11px', M: '12px', L: '13px', XL: '14px', XXL: '16px', XXXL: '18px' };
+  const sideMap = { S: '13px', M: '14px', L: '15px', XL: '16px', XXL: '18px', XXXL: '20px' };
+  const refMap = { S: '12px', M: '13px', L: '14px', XL: '15px', XXL: '17px', XXXL: '19px' };
   document.documentElement.style.setProperty('--verse-font-size', map[size] || '19px');
   document.documentElement.style.setProperty('--verse-line-height', lh[size] || '1.78');
+  document.documentElement.style.setProperty('--verse-num-size', numMap[size] || '12px');
+  document.documentElement.style.setProperty('--sidebar-text-size', sideMap[size] || '14px');
+  document.documentElement.style.setProperty('--ref-card-size', refMap[size] || '13px');
 }
 
 // Build a pastable, citation-ready text dump for sermon prep.
