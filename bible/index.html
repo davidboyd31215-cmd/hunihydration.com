@@ -2880,7 +2880,25 @@ function getBookAbbr3(bookIdx) {
 function renderChapter(book, verses) {
   const textEl = document.getElementById('bible-text');
 
-  let html = `
+  // First-visit welcome card (shown once, then dismissible)
+  const seenWelcome = localStorage.getItem('scripture-welcome-seen');
+  let welcomeHTML = '';
+  if (!seenWelcome) {
+    welcomeHTML = `
+      <div id="welcome-card" style="background:linear-gradient(135deg,var(--accent-soft),transparent);border:1px solid var(--accent);border-radius:8px;padding:18px 20px;margin:0 0 28px 0;font-family:var(--sans);position:relative">
+        <button onclick="localStorage.setItem('scripture-welcome-seen','1'); document.getElementById('welcome-card').remove();" style="position:absolute;top:8px;right:10px;background:none;border:none;font-size:20px;color:var(--text-dim);cursor:pointer;line-height:1" aria-label="Dismiss">&times;</button>
+        <div style="font-size:13px;font-weight:700;color:var(--accent);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Welcome</div>
+        <div style="font-family:var(--serif);font-size:15px;line-height:1.55;color:var(--text);margin-bottom:10px">A Bible reader with 344K cross-references, MacArthur-style commentary on the top 1,000 verses, Hebrew/Greek word study with Strong's, sermon links from 5 ministries, and a chronological timeline of all 66 books.</div>
+        <div style="font-family:var(--sans);font-size:12px;color:var(--text-muted);line-height:1.55">
+          <strong>Tap any verse</strong> for cross-references, commentary, theological questions, and sermons.<br>
+          <strong>Settings</strong> turns on Hebrew/Greek, commentary notes, and red-letter NT.<br>
+          <strong>Arc</strong> and <strong>Timeline</strong> show the Bible's structure visually.
+        </div>
+      </div>
+    `;
+  }
+
+  let html = welcomeHTML + `
     <div class="book-title">${book.name}</div>
     <div class="chapter-title">Chapter ${state.chapter}</div>
   `;
