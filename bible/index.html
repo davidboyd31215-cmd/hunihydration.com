@@ -139,6 +139,18 @@ select:hover { border-color: var(--border-strong); }
   text-align: center;
   text-decoration: none !important;
   pointer-events: none;
+  display: none; /* superseded by chapter-select */
+}
+#chapter-select {
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 4px 8px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  margin: 0 4px;
 }
 #chapter-display * {
   color: var(--text) !important;
@@ -1090,7 +1102,7 @@ body.mode-timeline .timeline-help { display: block; }
   }
   #book-select { max-width: 110px; }
   #chapter-select { max-width: 70px; padding-left: 8px; }
-  /* When chapter dropdown is shown, hide the chapter-display text label */
+  /* Chapter-display redundant — chapter-select shows the number */
   #chapter-display { display: none; }
   /* Settings button — keep prominent */
   #settings-toggle {
@@ -1391,6 +1403,13 @@ body.mode-timeline .timeline-help { display: block; }
       <div class="settings-search">
         <input type="text" id="settings-jump-input" placeholder="Jump to verse  (e.g. John 3:16)" autocapitalize="words" autocorrect="off" autocomplete="off" spellcheck="false" />
         <button id="settings-jump-btn">Go</button>
+      </div>
+      <div class="settings-row" data-action="random">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Random verse</div>
+          <div class="settings-row-sub">Surprise me — jump to any of the top-cited verses</div>
+        </div>
+        <div class="settings-row-value">Go</div>
       </div>
       <div class="settings-row" data-action="translation">
         <div class="settings-row-main">
@@ -1748,7 +1767,8 @@ function init() {
   });
 
   // Deep-link routing: parse #Book.Chapter[.Verse] on load and on hashchange
-  parseHash();
+  // Hash takes priority; otherwise restore last reading position from localStorage
+  if (!parseHash()) restoreLastPosition();
   window.addEventListener('hashchange', () => {
     if (parseHash()) loadChapter();
   });
@@ -1928,6 +1948,13 @@ function init() {
       else if (action === 'viewmode') {
         const next = _cycle(['sidebar','arc','graph','timeline'], state.mode === 'inline' ? 'sidebar' : state.mode);
         _setReadMode(next);
+      }
+      else if (action === 'random') {
+        // Use a curated list of top-cited / famous passages so it's always meaningful
+        const FAMOUS = ['John.3.16','Rom.8.28','Ps.23.1','Phil.4.13','Jer.29.11','Prov.3.5','Gen.1.1','Matt.6.33','Eph.2.8','Isa.40.31','Rev.21.4','Ps.1.1','1Cor.13.4','Heb.11.1','2Tim.3.16','Josh.1.9','Isa.41.10','John.14.6','Matt.11.28','Rom.12.2','Ps.46.1','Mic.6.8','Isa.53.5','Phil.4.6','Lam.3.22','Eccl.3.1','Acts.2.38','Hab.3.17','Hos.6.6','Mal.3.10','Zech.4.6','Matt.5.3','Luke.10.27','John.1.1','1John.4.19','Rev.3.20','Ps.139.23','Prov.16.9'];
+        const pick = FAMOUS[Math.floor(Math.random() * FAMOUS.length)];
+        navigateToOsis(pick);
+        closeSettings();
       }
       syncSettingsValues();
     });
@@ -2322,6 +2349,27 @@ function updateHash() {
     ? `#${osis}.${state.chapter}.${state.activeVerse}`
     : `#${osis}.${state.chapter}`;
   if (location.hash !== newHash) history.replaceState(null, '', newHash);
+  // Persist last-position so a fresh visit restores where the user left off
+  try {
+    localStorage.setItem('scripture-lastpos', JSON.stringify({
+      bookIdx: state.bookIdx, chapter: state.chapter, activeVerse: state.activeVerse
+    }));
+  } catch(e) {}
+}
+
+// Restore last reading position if no URL hash is present
+function restoreLastPosition() {
+  if (location.hash) return; // hash-based deep link wins
+  try {
+    const raw = localStorage.getItem('scripture-lastpos');
+    if (!raw) return;
+    const last = JSON.parse(raw);
+    if (typeof last.bookIdx === 'number' && last.bookIdx >= 0 && last.bookIdx < BOOKS.length) {
+      state.bookIdx = last.bookIdx;
+      state.chapter = Math.max(1, Math.min(BOOKS[last.bookIdx].chapters, last.chapter || 1));
+      state.activeVerse = last.activeVerse || null;
+    }
+  } catch(e) {}
 }
 
 function scrollToActiveVerse() {
