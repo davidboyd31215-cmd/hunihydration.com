@@ -1132,6 +1132,7 @@ body.mode-arc .sidebar { right: -420px !important; }
   pointer-events: none;
 }
 body.mode-arc .arc-help { display: block; }
+body.mode-arc #arc-legend { display: block !important; }
 
 /* Timeline mode */
 #timeline-stage {
@@ -1593,9 +1594,9 @@ body.mode-timeline .timeline-help { display: block; }
       <button data-m="inline">Inline</button>
     </div>
     <div class="pill-group" id="view-group">
-      <button data-m="arc">Arc</button>
-      <button data-m="graph">Graph</button>
-      <button data-m="timeline">Timeline</button>
+      <button data-m="arc" title="See every cross-reference in the whole Bible as a chord diagram (current chapter highlighted)">Arc</button>
+      <button data-m="graph" title="Force-directed network: connected verses cluster together">Graph</button>
+      <button data-m="timeline" title="Chronological timeline of all 66 books — when written and what era they cover">Timeline</button>
     </div>
   </div>
 
@@ -1630,7 +1631,10 @@ body.mode-timeline .timeline-help { display: block; }
   <aside class="sidebar" id="sidebar" role="dialog" aria-modal="false" aria-label="Verse details">
     <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close">&#215;</button>
     <div id="sidebar-content" class="noTag">
-      <div class="sidebar-empty">Select a verse to see its cross-references.</div>
+      <div class="sidebar-empty">
+        <div style="font-size:32px;margin-bottom:10px;opacity:0.4">↗</div>
+        <div style="font-size:14px;line-height:1.5">Tap any verse to see how it connects to the rest of Scripture, and to find sermons and commentary.</div>
+      </div>
     </div>
   </aside>
 </div>
@@ -1673,7 +1677,7 @@ body.mode-timeline .timeline-help { display: block; }
       <div class="settings-row" data-action="bookmarks">
         <div class="settings-row-main">
           <div class="settings-row-label">My saved verses</div>
-          <div class="settings-row-sub" id="settings-bookmarks-sub">No verses saved yet</div>
+          <div class="settings-row-sub" id="settings-bookmarks-sub">Save verses you love by tapping the ★ Save button when reading</div>
         </div>
         <div class="settings-row-value" id="settings-bookmarks-value">0</div>
       </div>
@@ -1786,6 +1790,16 @@ body.mode-timeline .timeline-help { display: block; }
   </div>
 </div>
 <div class="arc-help">344,799 typed cross-references · current chapter highlighted · hover/click the baseline · OpenBible.info CC-BY</div>
+<div id="arc-legend" style="display:none;position:fixed;bottom:60px;left:16px;background:rgba(20,22,28,0.92);border:1px solid #3D424F;border-radius:6px;padding:10px 14px;font-family:var(--sans);font-size:11px;color:#E8E8E6;z-index:32;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
+  <div style="font-weight:700;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#9CA0A8;margin-bottom:8px">Connection type</div>
+  <div style="display:flex;flex-direction:column;gap:5px;font-size:12px">
+    <div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:2px;background:#8B3A3A"></span> Prophecy</div>
+    <div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:2px;background:#2A5680"></span> Fulfillment</div>
+    <div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:2px;background:#3D6E36"></span> Parallel</div>
+    <div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:2px;background:#6B4080"></span> Thematic</div>
+    <div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:2px;background:#8B6B1A"></span> NT Quote</div>
+  </div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════════════
@@ -2184,7 +2198,7 @@ function init() {
     const bs = getBookmarks();
     setVal('settings-bookmarks-value', String(bs.length), 'action');
     const bsub = document.getElementById('settings-bookmarks-sub');
-    if (bsub) bsub.textContent = bs.length === 0 ? 'No verses saved yet' : `${bs.length} verse${bs.length === 1 ? '' : 's'} saved — tap to view`;
+    if (bsub) bsub.textContent = bs.length === 0 ? 'Save verses you love by tapping the ★ Save button when reading' : `${bs.length} verse${bs.length === 1 ? '' : 's'} saved — tap to view`;
   }
   // Helper: cycle to next value in a list
   function _cycle(list, current) { const i = list.indexOf(current); return list[(i+1) % list.length]; }
@@ -3162,7 +3176,7 @@ async function loadChapter() {
     else if (state.translation === 'bsb') verses = await fetchBSB(state.bookIdx, state.chapter);
 
     if (!verses || !verses.length) {
-      textEl.innerHTML = '<div class="loading">Chapter not found.</div>';
+      textEl.innerHTML = '<div class="loading" style="padding:60px 30px;text-align:center;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:10px;opacity:0.5">📖</div><div>That chapter isn\'t available right now.</div><div style="font-size:13px;margin-top:8px;opacity:0.7">Try another book or chapter from the dropdown above.</div></div>';
       return;
     }
 
