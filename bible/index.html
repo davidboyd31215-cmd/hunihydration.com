@@ -1376,8 +1376,21 @@ body.sidebar-open #sidebar-backdrop { display: block; }
   z-index: 30;
 }
 body.mode-graph #graph-stage { display: block; }
-body.mode-graph .bible-text,
-body.mode-graph .legend { display: none; }
+body.mode-graph .bible-text { display: none; }
+/* Keep the cross-ref-type legend visible in graph mode so node/edge colors are explained.
+   Float it as an overlay rather than hiding entirely. */
+body.mode-graph .legend {
+  position: fixed;
+  top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 14px);
+  left: 14px;
+  z-index: 60;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  max-width: 280px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+}
 body.mode-graph .sidebar { right: -420px !important; }
 
 #graph-canvas {
@@ -2739,7 +2752,7 @@ function init() {
       }
       else if (action === 'random') {
         // Use a curated list of top-cited / famous passages so it's always meaningful
-        const FAMOUS = ['John.3.16','Rom.8.28','Ps.23.1','Phil.4.13','Jer.29.11','Prov.3.5','Gen.1.1','Matt.6.33','Eph.2.8','Isa.40.31','Rev.21.4','Ps.1.1','1Cor.13.4','Heb.11.1','2Tim.3.16','Josh.1.9','Isa.41.10','John.14.6','Matt.11.28','Rom.12.2','Ps.46.1','Mic.6.8','Isa.53.5','Phil.4.6','Lam.3.22','Eccl.3.1','Acts.2.38','Hab.3.17','Hos.6.6','Mal.3.10','Zech.4.6','Matt.5.3','Luke.10.27','John.1.1','1John.4.19','Rev.3.20','Ps.139.23','Prov.16.9'];
+        const FAMOUS = ['John.3.16','Rom.8.28','Ps.23.1','Phil.4.13','Jer.29.11','Prov.3.5','Gen.1.1','Matt.6.33','Eph.2.8','Isa.40.31','Rev.21.4','Ps.1.1','1Cor.13.4','Heb.11.1','2Tim.3.16','Josh.1.9','Isa.41.10','John.14.6','Matt.11.28','Rom.12.2','Ps.46.1','Mic.6.8','Isa.53.5','Phil.4.6','Lam.3.22','Eccl.3.1','Acts.2.38','Hab.3.17','Hos.6.6','Mal.3.10','Zech.4.6','Matt.5.3','Luke.10.27','John.1.1','1John.4.19','Rev.3.20','Ps.139.23','Prov.16.9','Gen.1.27','Gen.50.20','Ex.14.14','Ex.20.3','Deut.6.5','Ps.19.1','Ps.51.10','Ps.91.1','Ps.121.1','Ps.139.14','Prov.22.6','Isa.9.6','Isa.55.8','Jer.17.9','Ezek.36.26','Matt.28.19','Luke.2.11','John.11.25','John.13.34','Acts.1.8','Gal.5.22','Heb.12.1','Heb.13.8','Jas.1.2','1Pet.3.15'];
         const pick = FAMOUS[Math.floor(Math.random() * FAMOUS.length)];
         navigateToOsis(pick);
         closeSettings();
@@ -3256,6 +3269,18 @@ const THEMES = [
   { name: 'Strength & courage', color: '#A03939', refs: ['Josh.1.9','Phil.4.13','Isa.40.31','Ps.46.1','2Tim.1.7','1Cor.16.13','Deut.31.6'] },
   { name: 'Forgiveness', color: '#7E445B', refs: ['1John.1.9','Eph.4.32','Col.3.13','Matt.6.14','Ps.103.12','Mic.7.19','Acts.3.19'] },
   { name: 'Worship & praise', color: '#A77B2A', refs: ['Ps.100.1','Ps.100.2','Ps.100.4','Rev.4.11','Ps.150.6','Ps.95.1','John.4.24','Ps.34.1'] },
+  { name: 'Marriage & family', color: '#B7596B', refs: ['Eph.5.25','Eph.5.33','Gen.2.24','Prov.22.6','Deut.6.7','Eph.6.4','1Cor.13.4','Mal.2.16'] },
+  { name: 'Money & generosity', color: '#A77B2A', refs: ['Mal.3.10','2Cor.9.7','Prov.3.9','Matt.6.19','Matt.6.21','1Tim.6.10','Luke.12.15','Acts.20.35'] },
+  { name: 'Suffering & trials', color: '#5B7186', refs: ['Jas.1.2','Jas.1.3','Rom.5.3','Rom.5.4','1Pet.4.12','1Pet.4.13','2Cor.4.17','Heb.12.11'] },
+  { name: 'Work & vocation', color: '#5A6E3D', refs: ['Col.3.23','Col.3.24','Eccl.9.10','Prov.16.3','1Cor.10.31','Eph.2.10','Prov.22.29','Gen.2.15'] },
+  { name: 'Justice & the poor', color: '#7A5D1F', refs: ['Mic.6.8','Prov.31.8','Prov.31.9','Isa.1.17','Matt.25.40','Jas.1.27','Prov.19.17','Amos.5.24'] },
+  { name: 'Temptation & sin', color: '#7E445B', refs: ['1Cor.10.13','Jas.1.13','Jas.1.14','Heb.4.15','Rom.6.23','1John.1.9','Ps.51.10','Rom.7.15'] },
+  { name: 'Holy Spirit', color: '#3D5A6E', refs: ['John.14.26','Acts.1.8','Rom.8.26','Gal.5.22','Gal.5.23','1Cor.6.19','Eph.4.30','John.16.13'] },
+  { name: 'Heaven & end times', color: '#7E5B96', refs: ['Rev.21.4','Rev.21.1','John.14.2','John.14.3','1Thess.4.16','1Cor.15.52','Matt.24.36','2Pet.3.10'] },
+  { name: 'Gratitude', color: '#5A8E6F', refs: ['1Thess.5.18','Col.3.15','Ps.107.1','Phil.4.6','Eph.5.20','Ps.118.24','Col.2.7','Ps.100.4'] },
+  { name: 'Doubt & faith', color: '#4A7BB7', refs: ['Heb.11.1','Mark.9.24','Jas.1.6','Matt.21.21','John.20.27','Heb.11.6','Rom.10.17','2Cor.5.7'] },
+  { name: 'Friendship', color: '#5A8E6F', refs: ['Prov.17.17','Prov.27.17','Eccl.4.9','Eccl.4.10','John.15.13','Prov.18.24','1Sam.18.1','Prov.27.6'] },
+  { name: 'Healing', color: '#A03939', refs: ['Jas.5.14','Jas.5.15','Ps.103.3','Isa.53.5','Matt.4.23','Jer.30.17','Ex.15.26','Ps.147.3'] },
 ];
 
 function showThemesModal() {
@@ -3935,7 +3960,7 @@ function showVoteInfo(votes, evt) {
   const tier = votes >= 50 ? 'Cornerstone link' : votes >= 20 ? 'Strongly attested' : votes >= 10 ? 'Notable consensus' : votes >= 5 ? 'Affirmed' : 'Sparsely attested';
   const popup = document.createElement('div');
   popup.id = 'vote-info-popup';
-  popup.style.cssText = 'position:fixed;background:var(--bg-alt);border:1px solid var(--border-strong);border-radius:6px;padding:14px 16px;font-family:var(--sans);font-size:12px;max-width:280px;box-shadow:0 6px 20px rgba(0,0,0,0.25);z-index:300;color:var(--text);line-height:1.5;cursor:default';
+  popup.style.cssText = 'position:fixed;background:var(--bg-alt);border:1px solid var(--border-strong);border-radius:6px;padding:14px 16px;font-family:var(--sans);font-size:12px;max-width:280px;box-shadow:0 6px 20px rgba(0,0,0,0.25);z-index:700;color:var(--text);line-height:1.5;cursor:default';
   popup.innerHTML = `
     <div style="font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
       <span>Cross-reference strength</span>
