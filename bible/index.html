@@ -391,12 +391,14 @@ body.mode-inline .ref-dot::after {
 
 /* Page footer */
 .page-footer {
-  margin-top: 56px;
-  padding: 24px 0 32px;
+  margin: 56px -22px 0;
+  padding: 28px 22px 36px;
   border-top: 1px solid var(--border);
+  background: var(--bg-alt);
   text-align: center;
   font-family: var(--sans);
 }
+@media (max-width: 1100px) { .page-footer { margin: 40px -18px 0; padding: 22px 18px 28px; } }
 .page-footer .footer-line {
   font-family: var(--serif);
   font-size: 13px;
@@ -421,6 +423,45 @@ body.mode-inline .ref-dot::after {
   letter-spacing: 0.02em;
   margin-top: 6px;
 }
+
+/* Verse highlighting (long-press or right-click) */
+.verse.hl-yellow { background: rgba(255,193,7,0.18) !important; border-left-color: #FFC107 !important; }
+.verse.hl-pink   { background: rgba(236,64,122,0.18) !important; border-left-color: #EC407A !important; }
+.verse.hl-green  { background: rgba(76,175,80,0.18) !important; border-left-color: #4CAF50 !important; }
+.verse.hl-blue   { background: rgba(66,133,244,0.18) !important; border-left-color: #4285F4 !important; }
+[data-theme="dark"] .verse.hl-yellow { background: rgba(255,193,7,0.22) !important; }
+[data-theme="dark"] .verse.hl-pink   { background: rgba(236,64,122,0.22) !important; }
+[data-theme="dark"] .verse.hl-green  { background: rgba(76,175,80,0.22) !important; }
+[data-theme="dark"] .verse.hl-blue   { background: rgba(66,133,244,0.22) !important; }
+.hl-palette {
+  position: fixed; z-index: 800;
+  background: var(--bg-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: 28px;
+  padding: 6px;
+  display: flex;
+  gap: 6px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  animation: fade 0.14s ease;
+}
+.hl-palette button {
+  width: 32px; height: 32px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  font-size: 14px;
+  color: rgba(0,0,0,0.6);
+}
+.hl-palette button:hover { transform: scale(1.12); }
+.hl-palette button:active { transform: scale(0.95); }
+.hl-palette button.active { border-color: var(--text); }
+.hl-palette .hl-y { background: #FFE082; }
+.hl-palette .hl-p { background: #F8BBD0; }
+.hl-palette .hl-g { background: #C5E1A5; }
+.hl-palette .hl-b { background: #BBDEFB; }
+.hl-palette .hl-clear { background: var(--bg); border-color: var(--border-strong); color: var(--text-muted); font-size: 16px; }
 
 /* Skeleton loader (verse-shaped) */
 .verse-skeleton {
@@ -3509,6 +3550,7 @@ async function loadChapter() {
 
     state.verses = verses;
     renderChapter(book, verses);
+    applyAllHighlights();
     updateHash();
     if (window._refreshChapterSelect) window._refreshChapterSelect();
     if (state.mode === 'graph') { stopGraph(); startGraph(); }
@@ -4076,6 +4118,105 @@ async function compareTranslations(osisKey, btn) {
 function haptic(pattern = 8) {
   if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} }
 }
+
+// ── Verse highlighting (long-press / right-click) ──────────────
+const HL_KEY = 'scripture-highlights';
+function getHighlights() { try { return JSON.parse(localStorage.getItem(HL_KEY) || '{}'); } catch(e) { return {}; } }
+function saveHighlights(h) { localStorage.setItem(HL_KEY, JSON.stringify(h)); }
+function applyHighlight(verseEl, color) {
+  ['hl-yellow','hl-pink','hl-green','hl-blue'].forEach(c => verseEl.classList.remove(c));
+  if (color) verseEl.classList.add('hl-' + color);
+}
+function applyAllHighlights() {
+  const h = getHighlights();
+  document.querySelectorAll('.verse[data-key]').forEach(v => {
+    const c = h[v.dataset.key];
+    if (c) applyHighlight(v, c);
+  });
+}
+function showHighlightPalette(verseEl, x, y) {
+  document.querySelectorAll('.hl-palette').forEach(p => p.remove());
+  const key = verseEl.dataset.key;
+  const h = getHighlights();
+  const cur = h[key];
+  const p = document.createElement('div');
+  p.className = 'hl-palette';
+  const colors = [['yellow','y'],['pink','p'],['green','g'],['blue','b']];
+  colors.forEach(([name, suf]) => {
+    const b = document.createElement('button');
+    b.className = `hl-${suf}` + (cur === name ? ' active' : '');
+    b.title = name;
+    b.textContent = cur === name ? '✓' : '';
+    b.onclick = (e) => {
+      e.stopPropagation();
+      const hh = getHighlights();
+      if (hh[key] === name) { delete hh[key]; applyHighlight(verseEl, null); }
+      else { hh[key] = name; applyHighlight(verseEl, name); }
+      saveHighlights(hh);
+      haptic(8);
+      p.remove();
+      showToast(hh[key] ? 'Highlighted' : 'Highlight removed');
+    };
+    p.appendChild(b);
+  });
+  // Clear button
+  if (cur) {
+    const c = document.createElement('button');
+    c.className = 'hl-clear';
+    c.title = 'Remove highlight';
+    c.textContent = '×';
+    c.onclick = (e) => {
+      e.stopPropagation();
+      const hh = getHighlights();
+      delete hh[key];
+      saveHighlights(hh);
+      applyHighlight(verseEl, null);
+      p.remove();
+      haptic(6);
+      showToast('Highlight removed');
+    };
+    p.appendChild(c);
+  }
+  document.body.appendChild(p);
+  // Position above the verse, clamped to viewport
+  const pw = p.offsetWidth, ph = p.offsetHeight;
+  let px = Math.max(8, Math.min(window.innerWidth - pw - 8, x - pw / 2));
+  let py = Math.max(8, y - ph - 12);
+  p.style.left = px + 'px';
+  p.style.top = py + 'px';
+  setTimeout(() => {
+    document.addEventListener('click', function close(e) {
+      if (!p.contains(e.target)) { p.remove(); document.removeEventListener('click', close); }
+    });
+  }, 50);
+}
+// Long-press handler (mobile)
+(function() {
+  let timer = null, target = null, startX = 0, startY = 0;
+  document.addEventListener('touchstart', (e) => {
+    const v = e.target.closest('.verse[data-key]');
+    if (!v) return;
+    target = v;
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+    timer = setTimeout(() => {
+      if (target) showHighlightPalette(target, startX, startY);
+    }, 500);
+  }, { passive: true });
+  document.addEventListener('touchmove', (e) => {
+    if (!timer) return;
+    const dx = Math.abs(e.touches[0].clientX - startX);
+    const dy = Math.abs(e.touches[0].clientY - startY);
+    if (dx > 10 || dy > 10) { clearTimeout(timer); timer = null; }
+  }, { passive: true });
+  document.addEventListener('touchend', () => { clearTimeout(timer); timer = null; });
+  // Right-click (desktop)
+  document.addEventListener('contextmenu', (e) => {
+    const v = e.target.closest('.verse[data-key]');
+    if (!v) return;
+    e.preventDefault();
+    showHighlightPalette(v, e.clientX, e.clientY);
+  });
+})();
 
 // Verse-tap ripple — set CSS var to tap point
 document.addEventListener('click', (e) => {
