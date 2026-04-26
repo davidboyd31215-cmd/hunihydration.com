@@ -304,10 +304,11 @@ body.sidebar-open .bible-text {
 }
 
 .verse-text {
-  font-size: 18px;
-  line-height: 1.7;
+  font-size: 19px;
+  line-height: 1.78;
   color: var(--text);
   flex: 1;
+  letter-spacing: -0.005em;
 }
 
 /* Mobile-friendly hit areas (visual size kept small, expanded touch via padding) */
@@ -3690,7 +3691,33 @@ function renderChapter(book, verses) {
     `;
   }
 
-  let html = welcomeHTML + `
+  // Verse of the Day — deterministic, date-seeded, only on book 0 ch 1 (home)
+  let votdHTML = '';
+  const dayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const votdDismissed = localStorage.getItem('scripture-votd-dismissed-' + dayKey);
+  if (state.bookIdx === 0 && state.chapter === 1 && THEOLOGY_Q && !votdDismissed) {
+    const keys = Object.keys(THEOLOGY_Q);
+    if (keys.length > 0) {
+      const today = new Date();
+      const startOfYear = new Date(today.getFullYear(), 0, 0);
+      const dayOfYear = Math.floor((today - startOfYear) / 86400000);
+      const verseRef = keys[dayOfYear % keys.length];
+      const safeRef = verseRef.replace(/[^A-Za-z0-9.\-]/g, '');
+      const human = osisToHuman(verseRef);
+      const question = THEOLOGY_Q[verseRef];
+      votdHTML = `
+        <div id="votd-banner" style="background:linear-gradient(135deg,var(--accent-soft),transparent);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:0 0 18px 0;font-family:var(--sans);display:flex;align-items:center;gap:14px;position:relative">
+          <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:var(--accent);text-transform:uppercase;flex-shrink:0;writing-mode:horizontal-tb">Today's verse</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:var(--serif);font-size:14px;color:var(--text);font-style:italic;line-height:1.45">${question}</div>
+            <a href="#${safeRef}" onclick="document.getElementById('votd-banner').remove(); navigateToOsis('${safeRef}'); return false" style="display:inline-block;margin-top:6px;font-size:12px;color:var(--accent);font-weight:600;text-decoration:none">Read ${human} →</a>
+          </div>
+          <button onclick="localStorage.setItem('scripture-votd-dismissed-${dayKey}','1'); document.getElementById('votd-banner').remove()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px 8px;font-size:18px;line-height:1;flex-shrink:0" aria-label="Dismiss for today">&times;</button>
+        </div>`;
+    }
+  }
+
+  let html = welcomeHTML + votdHTML + `
     <div class="book-title">${book.name}</div>
     <div class="chapter-title">Chapter ${state.chapter}</div>
   `;
