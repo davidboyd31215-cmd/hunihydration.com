@@ -323,6 +323,16 @@ body.sidebar-open .bible-text {
   -webkit-tap-highlight-color: transparent;
 }
 .verse-num:hover { color: var(--accent); }
+/* Verses with commentary / theological-Q / sermons get a subtle accent
+   underline on the number — tells the reader which verses have something
+   extra waiting in the sidebar without adding another icon to the layout. */
+.verse-num.has-extra {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--accent);
+  color: var(--text-muted);
+}
 /* Screen-reader-only utility for live regions */
 .sr-only {
   position: absolute !important;
@@ -2346,6 +2356,13 @@ body.mode-timeline .timeline-help { display: block; }
         </div>
         <div class="settings-row-value">View</div>
       </div>
+      <div class="settings-row" data-action="tour">
+        <div class="settings-row-main">
+          <div class="settings-row-label">Show welcome tour again</div>
+          <div class="settings-row-sub">Re-display the intro card with feature highlights</div>
+        </div>
+        <div class="settings-row-value">Show</div>
+      </div>
       <div class="settings-row" data-action="about">
         <div class="settings-row-main">
           <div class="settings-row-label">About Scripture Link</div>
@@ -3060,6 +3077,14 @@ function init() {
       else if (action === 'about') {
         closeSettings();
         showAboutModal();
+      }
+      else if (action === 'tour') {
+        // Re-show the welcome card (clear the dismissed flag, then re-render
+        // the chapter so renderChapter rebuilds the card at the top).
+        localStorage.removeItem('scripture-welcome-seen');
+        if (state.verses && state.verses.length) renderChapter(BOOKS[state.bookIdx], state.verses);
+        closeSettings();
+        showToast('Welcome tour shown — scroll up');
       }
       syncSettingsValues();
     });
@@ -5371,9 +5396,14 @@ function renderChapter(book, verses) {
     }
 
     const isRed = isRedLetter(bookOsis, state.chapter, v.verse);
+    // Subtle visual indicator on the verse number when this verse has
+    // commentary, a theological question, or one or more sermons mapped to it.
+    const hasExtra = !!((COMMENTARY && COMMENTARY[key])
+      || (THEOLOGY_Q && THEOLOGY_Q[key])
+      || (typeof getSermonsForVerse === 'function' && getSermonsForVerse(bookOsis, state.chapter, v.verse).length > 0));
     html += `
       <div class="verse ${hasRefs?'has-refs':''}${isRed?' red-letter':''}" id="v-${v.verse}" data-verse="${v.verse}" data-key="${key}" onclick="onVerseClick(this)">
-        <span class="verse-num" onclick="event.stopPropagation(); copyCitation('${book.name} ${state.chapter}:${v.verse}')" title="Copy reference (${book.name} ${state.chapter}:${v.verse})">${v.verse}</span>
+        <span class="verse-num${hasExtra?' has-extra':''}" onclick="event.stopPropagation(); copyCitation('${book.name} ${state.chapter}:${v.verse}')" title="${hasExtra ? 'Has commentary or sermons — tap verse for details' : ''}Copy reference (${book.name} ${state.chapter}:${v.verse})">${v.verse}</span>
         <span class="verse-text">${v.text.trim()}${dotsHtml}</span>
       </div>
     `;
