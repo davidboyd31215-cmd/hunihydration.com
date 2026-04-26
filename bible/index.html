@@ -134,9 +134,16 @@ select:hover { border-color: var(--border-strong); }
   font-family: var(--serif);
   font-size: 14px;
   font-weight: 500;
-  color: var(--text);
+  color: var(--text) !important;
   min-width: 100px;
   text-align: center;
+  text-decoration: none !important;
+  pointer-events: none;
+}
+#chapter-display * {
+  color: var(--text) !important;
+  text-decoration: none !important;
+  background: transparent !important;
 }
 
 /* Layout */
@@ -262,6 +269,77 @@ body.mode-inline .ref-dot::after {
 /* Red-letter Jesus' words */
 .verse.red-letter .verse-text { color: #B43232; }
 [data-theme="dark"] .verse.red-letter .verse-text { color: #E47373; }
+
+/* Book background card */
+.book-bg-card {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 0;
+  margin: 0 0 28px 0;
+  font-family: var(--sans);
+  overflow: hidden;
+}
+.book-bg-summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.book-bg-summary::-webkit-details-marker { display: none; }
+.book-bg-summary-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+.book-bg-summary-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.book-bg-card[open] .book-bg-summary-hint { display: none; }
+.book-bg-body {
+  padding: 4px 16px 16px;
+  border-top: 1px solid var(--border);
+}
+.book-bg-row {
+  display: flex;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  border-bottom: 1px dashed var(--border);
+}
+.book-bg-row:last-of-type { border-bottom: none; }
+.book-bg-key {
+  flex: 0 0 80px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 600;
+  padding-top: 2px;
+}
+.book-bg-val {
+  flex: 1;
+  color: var(--text);
+}
+.book-bg-summary-text {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-family: var(--serif);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  font-style: italic;
+}
 
 /* Mobile/Desktop visibility helpers */
 .mobile-only { display: none; }
@@ -426,7 +504,32 @@ body.mode-inline .ref-dot::after {
   width: 32px; height: 32px; border-radius: 50%;
 }
 .ws-modal-close:hover { background: var(--border); color: var(--text); }
-.ws-modal-orig { font-size: 28px; color: var(--text); font-weight: 600; margin-bottom: 4px; }
+.ws-modal-orig { font-size: 32px; color: var(--text); font-weight: 600; margin-bottom: 6px; line-height: 1.2; }
+.ws-modal-translit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-family: var(--serif);
+  font-size: 18px;
+  color: var(--accent);
+  font-style: italic;
+}
+.ws-pronunciation { letter-spacing: 0.5px; }
+.ws-speak-btn {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  width: 36px; height: 36px;
+  cursor: pointer;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.ws-speak-btn:hover { background: var(--accent); color: white; }
+.ws-speak-btn:active { transform: scale(0.92); }
 .ws-modal-meta { font-family: var(--sans); font-size: 11px; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 14px; }
 .ws-modal-section-title { font-family: var(--sans); font-size: 10px; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; font-weight: 600; margin-top: 16px; margin-bottom: 6px; }
 .ws-modal-text { font-family: var(--serif); font-size: 14px; line-height: 1.55; color: var(--text); }
@@ -1065,6 +1168,7 @@ body.mode-arc .arc-help { display: block; }
   BLB.Tagger.TargetNewWindow = true;
   BLB.Tagger.Style = 'par';
   BLB.Tagger.NoSearchClassNames = 'noTag verse-text ref-card-address inline-ref-address ws-conc-link';
+  BLB.Tagger.NoSearchTagNames = 'a button input select textarea h1 h2 h3 h4 h5 h6 nav header';
 </script>
 <script src="https://www.blueletterbible.org/assets/scripts/blbToolTip/BLB_ScriptTagger-min.js" type="text/javascript" async></script>
 </head>
@@ -1105,7 +1209,7 @@ body.mode-arc .arc-help { display: block; }
     <button id="share-link" class="theme-toggle" aria-label="Copy share link" title="Copy direct link to this verse/chapter">🔗</button>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">☾</button>
     <button id="prev-ch" aria-label="Previous chapter">&#8592;</button>
-    <span id="chapter-display">Genesis 1</span>
+    <span id="chapter-display" class="noTag">Genesis 1</span>
     <button id="next-ch" aria-label="Next chapter">&#8594;</button>
   </div>
 </header>
@@ -1612,6 +1716,7 @@ function init() {
   loadCrossRefs();
   loadTheologyQuestions();
   loadRedLetter();
+  loadBookBackgrounds();
 }
 
 function applyTheme(theme) {
@@ -1656,6 +1761,47 @@ async function loadRedLetter() {
   } catch(e) {}
 }
 
+let BOOK_BG = null;
+async function loadBookBackgrounds() {
+  try {
+    const r = await fetch('book_backgrounds.json');
+    if (r.ok) BOOK_BG = await r.json();
+  } catch(e) {}
+}
+
+// Hebrew/Greek transliteration (pronunciation guide)
+const _HEB_TRANSLIT = {
+  'א':"'",'ב':'b','ג':'g','ד':'d','ה':'h','ו':'v','ז':'z','ח':'ḥ','ט':'ṭ','י':'y','כ':'k','ך':'k','ל':'l','מ':'m','ם':'m','נ':'n','ן':'n','ס':'s','ע':"'",'פ':'p','ף':'p','צ':'ts','ץ':'ts','ק':'q','ר':'r','שׁ':'sh','שׂ':'s','ש':'sh','ת':'t',
+  'ַ':'a','ָ':'a','ֲ':'a','ֱ':'e','ֵ':'e','ֶ':'e','ִ':'i','ֹ':'o','ֳ':'o','ֻ':'u','ְ':'',
+};
+const _GRK_TRANSLIT = {
+  'α':'a','β':'b','γ':'g','δ':'d','ε':'e','ζ':'z','η':'ē','θ':'th','ι':'i','κ':'k','λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','π':'p','ρ':'r','σ':'s','ς':'s','τ':'t','υ':'u','φ':'ph','χ':'ch','ψ':'ps','ω':'ō',
+  'Α':'A','Β':'B','Γ':'G','Δ':'D','Ε':'E','Ζ':'Z','Η':'Ē','Θ':'Th','Ι':'I','Κ':'K','Λ':'L','Μ':'M','Ν':'N','Ξ':'X','Ο':'O','Π':'P','Ρ':'R','Σ':'S','Τ':'T','Υ':'U','Φ':'Ph','Χ':'Ch','Ψ':'Ps','Ω':'Ō',
+  '́':'','̀':'','̃':'','̔':'h','̓':'','ͅ':'i','͂':'',
+};
+function transliterate(word, isHebrew) {
+  if (!word) return '';
+  const map = isHebrew ? _HEB_TRANSLIT : _GRK_TRANSLIT;
+  let out = '';
+  for (const ch of word) {
+    out += (map[ch] !== undefined ? map[ch] : (ch.match(/[̀-֑ͯ-ׇ]/) ? '' : ch));
+  }
+  // For Hebrew, reverse since it reads right-to-left (display LTR)
+  if (isHebrew) out = out.split('').reverse().join('');
+  return out;
+}
+
+function speakWord(word, isHebrew) {
+  if (!('speechSynthesis' in window) || !word) return;
+  try {
+    const utter = new SpeechSynthesisUtterance(word);
+    utter.lang = isHebrew ? 'he-IL' : 'el-GR';
+    utter.rate = 0.7;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utter);
+  } catch(e) {}
+}
+
 function isRedLetter(bookOsis, chapter, verse) {
   if (!RED_LETTER || !state.redLetterOn) return false;
   const ch = (RED_LETTER[bookOsis] || {})[String(chapter)];
@@ -1697,9 +1843,29 @@ async function openWordStudy(strong) {
   }).join('');
   const moreCount = concList.length > 60 ? concList.length - 60 : 0;
 
+  // Find original-language form from any cached interlinear (so we can show it + pronounce)
+  let origWord = '';
+  for (const bk in INTERLINEAR_CACHE) {
+    const ch = INTERLINEAR_CACHE[bk];
+    for (const c in ch) {
+      for (const v in ch[c]) {
+        const found = ch[c][v].find(w => w.s === strong);
+        if (found && found.w) { origWord = found.w; break; }
+      }
+      if (origWord) break;
+    }
+    if (origWord) break;
+  }
+  const isHeb = strong.startsWith('h');
+  const translit = origWord ? transliterate(origWord, isHeb) : '';
+
   body.innerHTML = `
-    <div class="ws-modal-orig" lang="${lang === 'Hebrew' ? 'he' : 'el'}">${entry.g || ''}</div>
-    <div class="ws-modal-meta">${lang} · Strong's ${strong.toUpperCase()}${entry.d ? ' · ' + entry.d : ''}</div>
+    <div class="ws-modal-orig" lang="${lang === 'Hebrew' ? 'he' : 'el'}" dir="${isHeb ? 'rtl' : 'ltr'}">${origWord || entry.g || ''}</div>
+    ${translit ? `<div class="ws-modal-translit">
+      <span class="ws-pronunciation">${translit}</span>
+      <button class="ws-speak-btn" onclick="speakWord('${(origWord||'').replace(/'/g,"\\'")}', ${isHeb})" aria-label="Pronounce" title="Hear pronunciation (uses your device's voice)">🔊</button>
+    </div>` : ''}
+    <div class="ws-modal-meta">${lang} · Strong's ${strong.toUpperCase()}${entry.g ? ' · "' + entry.g + '"' : ''}${entry.d ? ' · ' + entry.d : ''}</div>
     ${entry.s ? `<div class="ws-modal-section-title">Definition</div><div class="ws-modal-text">${entry.s}</div>` : ''}
     ${longDefs.length ? `<div class="ws-modal-section-title">Detailed senses</div><ul class="ws-modal-list" style="padding-left:18px;line-height:1.6">${longDefs.map(d => `<li>${d}</li>`).join('')}</ul>` : ''}
     ${entry.c ? `<div class="ws-modal-section-title">Notes</div><div class="ws-modal-list" style="font-style:italic;line-height:1.55">${entry.c}</div>` : ''}
@@ -2201,6 +2367,28 @@ function renderChapter(book, verses) {
     <div class="book-title">${book.name}</div>
     <div class="chapter-title">Chapter ${state.chapter}</div>
   `;
+
+  // Show book-background card on chapter 1 only
+  const osisBook = OSIS_BY_IDX[state.bookIdx];
+  if (state.chapter === 1 && BOOK_BG && BOOK_BG[osisBook]) {
+    const bg = BOOK_BG[osisBook];
+    html += `
+      <details class="book-bg-card" ${state.bookIdx === 0 ? 'open' : ''}>
+        <summary class="book-bg-summary">
+          <span class="book-bg-summary-label">About ${book.name}</span>
+          <span class="book-bg-summary-hint">tap to expand</span>
+        </summary>
+        <div class="book-bg-body">
+          <div class="book-bg-row"><span class="book-bg-key">Author</span><span class="book-bg-val">${bg.author}</span></div>
+          <div class="book-bg-row"><span class="book-bg-key">Date</span><span class="book-bg-val">${bg.date}</span></div>
+          <div class="book-bg-row"><span class="book-bg-key">Genre</span><span class="book-bg-val">${bg.genre}</span></div>
+          <div class="book-bg-row"><span class="book-bg-key">Audience</span><span class="book-bg-val">${bg.audience}</span></div>
+          <div class="book-bg-row"><span class="book-bg-key">Theme</span><span class="book-bg-val">${bg.theme}</span></div>
+          <div class="book-bg-summary-text">${bg.summary}</div>
+        </div>
+      </details>
+    `;
+  }
 
   const bookOsis = OSIS_BY_IDX[state.bookIdx];
 
