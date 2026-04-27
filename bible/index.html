@@ -2315,7 +2315,10 @@ body.mode-timeline .timeline-help { display: block; }
   </div>
 
   <div class="chapter-nav">
-    <span class="status-pill" id="xrefs-status" title="OpenBible.info cross-references">…</span>
+    <!-- Iter 97: '29.4k verses linked' status pill removed per user. The
+         user doesn't need a runtime metrics readout in the chrome. Element
+         kept (display:none-able) but render path emptied. -->
+    <span class="status-pill" id="xrefs-status" style="display:none" hidden></span>
     <!-- These four toggles are kept in DOM (handlers still wire to them) but
          hidden — the Settings drawer covers them on every breakpoint, and
          the desktop header was getting too crowded. -->
