@@ -2479,13 +2479,12 @@ body.mode-timeline .timeline-help { display: block; }
         </div>
         <div class="settings-row-value" id="settings-readmode-value">Sidebar</div>
       </div>
-      <div class="settings-row" data-action="readermode">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Reader mode</div>
-          <div class="settings-row-sub">Hide cross-ref dots, word study, header — pure reading flow</div>
-        </div>
-        <div class="settings-row-value" id="settings-readermode-value">Off</div>
-      </div>
+      <!-- Iter 88: Reader mode row removed. Discoverability was zero (buried
+           in Settings); the post-iter-78-86 default chrome is already minimal
+           enough that the toggle was solving a problem most users don't
+           perceive. body.reader-mode CSS preserved + handler kept callable
+           via console for any tester who wants it. -->
+
       <div class="settings-row" data-action="viewmode">
         <div class="settings-row-main">
           <div class="settings-row-label">Special views</div>
