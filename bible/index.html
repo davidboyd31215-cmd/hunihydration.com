@@ -4094,25 +4094,24 @@ function showBookmarksModal() {
   if (list.length === 0) {
     body.innerHTML = `
       <div style="padding:20px;text-align:center">
-        <div style="font-size:48px;line-height:1;margin-bottom:10px;color:var(--text-dim)">☆</div>
-        <div style="font-family:var(--serif);font-size:16px;color:var(--text);margin-bottom:6px">No bookmarks yet</div>
-        <div style="font-family:var(--sans);font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">No passages bookmarked. Use the <strong>Bookmark</strong> button while reading to add one.</div>
-        <button onclick="startClozePractice()" style="background:var(--accent);border:none;color:white;padding:8px 16px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer">Practice with 6 sample passages</button>
+        <div style="font-family:var(--serif);font-size:18px;color:var(--text);margin-bottom:6px">No bookmarks yet</div>
+        <div style="font-family:var(--sans);font-size:13px;color:var(--text-muted);line-height:1.5">Use the <strong>Bookmark</strong> button while reading a verse to add it here.</div>
       </div>
     `;
   } else {
+    // Iter 86: removed both Practice buttons (header global + per-row) per
+    // simplification pass. Cloze SRS feature is being phased out — code paths
+    // stay alive for now but no longer surfaced from the bookmarks modal.
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:10px;flex-wrap:wrap">
         <div class="ws-modal-orig" style="font-size:24px;margin:0">Bookmarks</div>
-        <button onclick="startClozePractice()" style="background:var(--accent);border:none;color:white;padding:7px 14px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Practice memorizing all saved verses (fill-in-the-blank)">Practice${(window._getClozeDueCount && window._getClozeDueCount() > 0) ? ` (${window._getClozeDueCount()} due)` : ' all bookmarks'}</button>
       </div>
-      <div class="ws-modal-meta">${list.length} verse${list.length === 1 ? '' : 's'} saved · tap to open, or Practice to test your memory${(window._getClozeDueCount && window._getClozeDueCount() > 0) ? ` (${window._getClozeDueCount()} due today)` : ''}</div>
+      <div class="ws-modal-meta">${list.length} verse${list.length === 1 ? '' : 's'} saved · tap to open</div>
       ${list.map((b, i) => `
         <div style="padding:12px 14px;margin:8px 0;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid #D4B870;border-radius:4px;font-family:var(--sans);position:relative">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:8px">
             <span onclick="navigateToOsis('${b.ref}'); closeWordStudy(); closeSettings();" style="font-weight:600;font-size:14px;color:var(--accent);cursor:pointer;flex:1">${osisToHuman(b.ref)}</span>
             <button onclick="event.stopPropagation(); shareBookmark(${i});" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:3px 9px;border-radius:11px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Share this verse">Share</button>
-            <button onclick="event.stopPropagation(); startClozePractice(${i});" style="background:transparent;border:1px solid var(--accent);color:var(--accent);padding:3px 9px;border-radius:11px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Practice this verse">Practice</button>
             <button onclick="event.stopPropagation(); removeBookmark('${b.ref}'); showBookmarksModal();" style="background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;padding:0 4px;line-height:1" aria-label="Remove">&times;</button>
           </div>
           <div onclick="navigateToOsis('${b.ref}'); closeWordStudy(); closeSettings();" style="font-family:var(--serif);font-size:13px;color:var(--text);font-style:italic;line-height:1.45;cursor:pointer">${b.snippet || ''}</div>
