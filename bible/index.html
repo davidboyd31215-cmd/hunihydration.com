@@ -3071,10 +3071,19 @@ function init() {
   // Helper: cycle to next value in a list
   function _cycle(list, current) { const i = list.indexOf(current); return list[(i+1) % list.length]; }
   function _setReadMode(m) {
+    const prev = state.mode;
     state.mode = m;
     document.body.className = 'mode-' + m;
     document.querySelectorAll('#mode-group button, #view-group button').forEach(b => b.classList.toggle('active', b.dataset.m === m));
     if (m !== 'sidebar') document.getElementById('sidebar').classList.remove('open');
+    // Iter 95 fix: inline-refs DOM is only rendered when mode === 'inline'
+    // (perf optimization from iter 85). _setReadMode was bypassing the
+    // re-render trigger that setMode() got — toggling Settings 'Where related
+    // verses appear' was leaving inline mode broken (state changed, DOM stale).
+    const wasInlineToggle = (prev === 'inline') !== (m === 'inline');
+    if (wasInlineToggle && typeof loadChapter === 'function') {
+      loadChapter();
+    }
     if (m !== 'graph') stopGraph(); else startGraph();
     if (m !== 'arc') stopArc(); else startArc();
     if (m !== 'timeline') stopTimeline(); else startTimeline();
