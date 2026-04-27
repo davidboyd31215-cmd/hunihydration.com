@@ -255,6 +255,40 @@ button.ch-arrow-inline {
   flex-shrink: 0;
 }
 button.ch-arrow-inline:hover { color: var(--text); border-color: var(--text-muted); background: var(--bg-alt); }
+
+/* Verse-action More menu — boxed grid layout */
+button.more-box {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--sans);
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.12s, background 0.12s, transform 0.08s;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-height: 52px;
+  justify-content: center;
+}
+button.more-box:hover { border-color: var(--border-strong); background: var(--bg); }
+button.more-box:active { transform: scale(0.98); }
+button.more-box .mb-title {
+  font-family: var(--serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+button.more-box .mb-sub {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  line-height: 1.35;
+  margin-top: 2px;
+}
+
 #chapter-display * {
   color: var(--text) !important;
   text-decoration: none !important;
@@ -2217,14 +2251,9 @@ body.mode-timeline .timeline-help { display: block; }
     <select id="book-select"></select>
     <select id="chapter-select" aria-label="Chapter" title="Jump to chapter"></select>
     <!-- Prev/next chapter arrows live RIGHT next to the chapter selector
-         so the cluster reads as one navigation unit. (User feedback —
-         was previously stranded on the far right of the header.) -->
-    <!-- Hidden — the user-facing prev/next chapter arrows now live inline in
-         the chapter-title row inside the reading column. These #prev-ch /
-         #next-ch buttons are kept in DOM because handlers + keyboard shortcuts
-         + chapter-end nav all click them programmatically. -->
-    <button id="prev-ch" class="ch-arrow" hidden aria-label="Previous chapter" title="Previous chapter">&#8592;</button>
-    <button id="next-ch" class="ch-arrow" hidden aria-label="Next chapter" title="Next chapter">&#8594;</button>
+         so the cluster reads as one navigation unit. -->
+    <button id="prev-ch" class="ch-arrow" aria-label="Previous chapter" title="Previous chapter">&#8592;</button>
+    <button id="next-ch" class="ch-arrow" aria-label="Next chapter" title="Next chapter">&#8594;</button>
 
     <span class="ctrl-label" style="margin-left:8px">Translation</span>
     <div class="pill-group" id="translation-group">
@@ -5529,8 +5558,9 @@ window._toggleMoreMenu = function(moreId, forceState) {
   const menu = document.getElementById(moreId + '-menu');
   const btn = document.getElementById(moreId);
   if (!menu) return;
-  const willOpen = (typeof forceState === 'boolean') ? forceState : (menu.style.display !== 'flex');
-  menu.style.display = willOpen ? 'flex' : 'none';
+  // Menu uses grid layout; treat any non-'none' display as open.
+  const willOpen = (typeof forceState === 'boolean') ? forceState : (menu.style.display === 'none' || !menu.style.display);
+  menu.style.display = willOpen ? 'grid' : 'none';
   if (btn) btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
   if (willOpen) {
     // Close on next outside-click. Wrapped in setTimeout so the toggle's
@@ -6223,11 +6253,23 @@ function showSidebar(key, verseNum, refs) {
         <button onclick="copyVerseLink('${key}', ${_vts}, '${_vref}')" style="background:var(--accent);border:none;color:white;padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy verse text + link to share">Copy + link</button>
         <button id="${moreId}" onclick="window._toggleMoreMenu('${moreId}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="More verse actions" aria-expanded="false" aria-haspopup="true" aria-controls="${moreId}-menu">More ▾</button>
       </div>
-      <div id="${moreId}-menu" role="menu" style="display:none;flex-wrap:wrap;gap:5px;margin-top:6px;padding:8px;background:var(--bg-alt);border:1px solid var(--border);border-radius:8px">
-        <button role="menuitem" onclick="copyVerseText(${_vts}, '${_vref}'); window._toggleMoreMenu('${moreId}', false)" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Copy text only</button>
-        <button role="menuitem" onclick="showImagePickerModal(${_vts}, '${_vref}'); window._toggleMoreMenu('${moreId}', false)" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Save as image</button>
-        <button role="menuitem" id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this); window._toggleMoreMenu('${moreId}', false)" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Compare translations</button>
-        <button role="menuitem" onclick="startClozePractice(0, {ref:'${key}', snippet:${_vts}}); window._toggleMoreMenu('${moreId}', false)" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Practice memorizing</button>
+      <div id="${moreId}-menu" role="menu" style="display:none;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;padding:0">
+        <button class="more-box" role="menuitem" onclick="copyVerseText(${_vts}, '${_vref}'); window._toggleMoreMenu('${moreId}', false)">
+          <div class="mb-title">Copy text</div>
+          <div class="mb-sub">Verse text only, no link</div>
+        </button>
+        <button class="more-box" role="menuitem" onclick="showImagePickerModal(${_vts}, '${_vref}'); window._toggleMoreMenu('${moreId}', false)">
+          <div class="mb-title">Save as image</div>
+          <div class="mb-sub">Shareable verse card</div>
+        </button>
+        <button class="more-box" role="menuitem" id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this); window._toggleMoreMenu('${moreId}', false)">
+          <div class="mb-title">Compare translations</div>
+          <div class="mb-sub">KJV / ESV / BSB side-by-side</div>
+        </button>
+        <button class="more-box" role="menuitem" onclick="startClozePractice(0, {ref:'${key}', snippet:${_vts}}); window._toggleMoreMenu('${moreId}', false)">
+          <div class="mb-title">Memorize</div>
+          <div class="mb-sub">Fill-in-the-blank practice</div>
+        </button>
       </div>
       <div id="${cmpId}" style="margin-top:8px"></div>
     </div>
