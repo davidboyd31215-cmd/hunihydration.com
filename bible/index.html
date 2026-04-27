@@ -5220,10 +5220,14 @@ function restoreLastPosition() {
   } catch(e) {}
   // Iter 89: cold first-load default is John 3:16 (was Genesis 1:1).
   // Welcome card was removed; the verse itself is the onboarding.
+  // Iter 92: cold-load lands at the TOP of John 3 (no centered v16) so the
+  // chapter byline + verse 1 sit above the fold and orient the visitor.
+  // Verse 16 is just highlighted (active class), not auto-scrolled-to and
+  // sidebar does NOT auto-open. Audit: auto-open felt 'imposed' on first contact.
   const johnIdx = (typeof IDX_BY_OSIS !== 'undefined' && IDX_BY_OSIS.John != null) ? IDX_BY_OSIS.John : 42;
   state.bookIdx = johnIdx;
   state.chapter = 3;
-  state.activeVerse = 16;
+  state.activeVerse = null; // no auto-scroll, no auto-sidebar — let the user explore
 }
 
 function scrollToActiveVerse() {
