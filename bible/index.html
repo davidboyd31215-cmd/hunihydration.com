@@ -3236,7 +3236,7 @@ function init() {
         applyTextSize(next);
       }
       else if (action === 'translation') {
-        state.translation = _cycle(['kjv','esv','bsb'], state.translation);
+        state.translation = _cycle(['kjv','esv'], state.translation); // BSB removed iter 78; was bleeding through cycler
         document.querySelectorAll('#translation-group button').forEach(b => b.classList.toggle('active', b.dataset.t === state.translation));
         loadChapter();
       }
