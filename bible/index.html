@@ -2426,13 +2426,10 @@ body.mode-timeline .timeline-help { display: block; }
         </div>
         <div class="settings-row-value" id="settings-translation-value">KJV</div>
       </div>
-      <div class="settings-row" data-action="commentary">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Verse explanations</div>
-          <div class="settings-row-sub">Short notes that explain each verse</div>
-        </div>
-        <div class="settings-row-value" id="settings-commentary-value">Off</div>
-      </div>
+      <!-- Iter 93: 'Verse explanations' row removed. Commentary now always
+           renders in the sidebar (was gated on a toggle defaulting to off —
+           most users never saw the editorial notes we wrote). -->
+
       <div class="settings-row" data-action="redletter">
         <div class="settings-row-main">
           <div class="settings-row-label">Jesus's words in red</div>
@@ -6095,8 +6092,13 @@ function showSidebar(key, verseNum, refs) {
 
   // Commentary section — verse-level note first, chapter-level fallback,
   // then a generic 'no commentary yet' card with a MacArthur link.
+  // Iter 93: commentary is now ALWAYS rendered. Previous behavior used a
+  // toggle (state.commentaryOn) that defaulted to OFF, meaning new users
+  // never saw the editorial commentary we spent effort writing — discovery
+  // required finding a Settings drawer toggle. Sidebar commentary IS the
+  // value-add over a generic Bible reader; hiding it by default was a bug.
   let commentaryHTML = '';
-  if (state.commentaryOn) {
+  if (true) {
     const noteEntry = (typeof getCommentaryFor === 'function') ? getCommentaryFor(key) : null;
     const refStr = encodeURIComponent(book.name + ' ' + state.chapter + ':' + verseNum);
     const gtyURL = `https://www.gty.org/search?q=${refStr}`;
