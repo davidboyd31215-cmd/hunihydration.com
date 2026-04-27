@@ -5735,7 +5735,7 @@ function renderChapter(book, verses) {
         <div class="wc-section-label" style="margin-top:14px">Try a feature</div>
         <div class="wc-row" style="gap:6px">
           <a class="wc-chip" href="#John.3.16" onclick="setTimeout(()=>{const v=document.querySelector('[data-verse=\&quot;16\&quot;]');v&&v.click();},700)">See cross-references</a>
-          <a class="wc-chip" href="javascript:void(0)" onclick="(function(){state.wordStudyOn=true;localStorage.setItem('scripture-ws-on','1');location.hash='#Gen.1.1';loadChapter();document.getElementById('welcome-card')?.remove();})()">Show Hebrew &amp; Greek</a>
+          <a class="wc-chip" href="javascript:void(0)" onclick="(function(){state.wordStudyOn=true;localStorage.setItem('scripture-ws-on','1');loadChapter();document.getElementById('welcome-card')?.remove();})()">Show Hebrew &amp; Greek</a>
           <a class="wc-chip" href="javascript:void(0)" onclick="document.getElementById('settings-toggle')?.click();setTimeout(()=>document.querySelector('[data-action=themes]')?.click(),200)">Browse themes</a>
         </div>
         <div class="wc-tip">
@@ -5752,7 +5752,14 @@ function renderChapter(book, verses) {
   try {
     const streakDays = (window._getReadingStreak && window._getReadingStreak()) || 0;
     const dismissedToday = localStorage.getItem('scripture-streak-dismissed-' + new Date().toISOString().slice(0, 10));
-    if (streakDays >= 2 && !dismissedToday) {
+    // Session-scope: render the streak banner at most once per browser session.
+    // Without this, navigating across many chapters re-injects the banner on
+    // every loadChapter() until the user clicks × on each one. The localStorage
+    // dismissedToday gate persists 'don't show again today' across sessions.
+    let shownThisSession = false;
+    try { shownThisSession = sessionStorage.getItem('scripture-streak-shown-session') === '1'; } catch(e) {}
+    if (streakDays >= 2 && !dismissedToday && !shownThisSession) {
+      try { sessionStorage.setItem('scripture-streak-shown-session', '1'); } catch(e) {}
       const msg = `${streakDays} consecutive days of reading.`;
       streakHTML = `<div id="streak-banner" style="background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:6px;padding:8px 12px;margin:0 0 14px 0;font-family:var(--sans);font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:10px">
         <span style="flex:1">${msg}</span>
