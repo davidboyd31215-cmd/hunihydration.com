@@ -1837,6 +1837,14 @@ body.mode-timeline .timeline-help { display: block; }
   --quote: #C09E3A;
 }
 [data-theme="dark"] .pill-group button.active { background: var(--accent); color: #15171C; }
+/* Iter 87: dark-theme accent buttons need DARK text on the light-blue accent
+   to clear WCAG AA. Default 'color: white' was ~1.7:1 — failed badly.
+   Targets: 'Copy verse' sidebar button + welcome-card CTA + back-pill. */
+[data-theme="dark"] .sidebar-header button[onclick^="copyVerseLink"],
+[data-theme="dark"] #welcome-card .wc-cta { color: #15171C !important; }
+/* --text-dim bumped from #7F8490 to #8E94A0 in dark theme to clear AA 4.5:1
+   on byline/verse-num/sidebar-section-title/etc. */
+[data-theme="dark"] { --text-dim: #8E94A0; }
 [data-theme="dark"] .legend,
 [data-theme="dark"] .graph-help { background: rgba(30, 33, 40, 0.96); }
 [data-theme="dark"] .ref-card { background: var(--bg-alt); }
@@ -4870,7 +4878,7 @@ function showAboutModal() {
 
       <div style="font-size:11px;letter-spacing:0.08em;font-weight:700;color:var(--accent);text-transform:uppercase;margin-bottom:8px">Data sources</div>
       <ul style="font-size:13px;color:var(--text-muted);line-height:1.7;padding-left:18px;margin-bottom:16px">
-        <li><strong style="color:var(--text)">Bible text:</strong> KJV (public domain via bible-api.com &amp; bolls.life), ESV (esv.org API), BSB (bolls.life)</li>
+        <li><strong style="color:var(--text)">Bible text:</strong> KJV (public domain via bible-api.com &amp; bolls.life), ESV (esv.org API)</li>
         <li><strong style="color:var(--text)">Cross-references:</strong> 344,799 from <a href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener" style="color:var(--accent)">OpenBible.info</a> (CC-BY)</li>
         <li><strong style="color:var(--text)">Hebrew &amp; Greek:</strong> 14,197-entry Strong's lexicon (public domain) via <a href="https://github.com/tahmmee/interlinear_bibledata" target="_blank" rel="noopener" style="color:var(--accent)">interlinear_bibledata</a></li>
         <li><strong style="color:var(--text)">Sermons:</strong> RSS feeds from Grace to You (MacArthur), The Church of Eleven22 (Joby Martin), Dial In (Jonny Ardavanis), Becoming Something (JP Pokluda / Harris Creek), Watermark</li>

@@ -1,7 +1,7 @@
 // Scripture Link service worker
 // Bump CACHE_VERSION on every deploy so old caches are evicted by the
 // activate handler and users pick up the latest assets.
-const CACHE_VERSION = 'scripture-v3-iter86';
+const CACHE_VERSION = 'scripture-v3-iter87';
 const DATA_CACHE = 'scripture-data-v1';
 
 const SHELL = [
