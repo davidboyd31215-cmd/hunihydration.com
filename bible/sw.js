@@ -1,14 +1,20 @@
 // Scripture Link service worker
 // Bump CACHE_VERSION on every deploy so old caches are evicted by the
 // activate handler and users pick up the latest assets.
-const CACHE_VERSION = 'scripture-v3-iter90';
+const CACHE_VERSION = 'scripture-v3-iter91';
 const DATA_CACHE = 'scripture-data-v1';
 
+// SHELL is what gets precached on service-worker install. Keep this MINIMAL —
+// every byte here is shipped to 100% of installs whether the user uses the
+// feature or not. JSON data files (red_letter, book_backgrounds, sermons,
+// cross_refs, commentary, commentary_chapter) are runtime-cached by the fetch
+// handler below the first time they are requested. red_letter.json moved out
+// of SHELL iter 91 — only ~15% of users enable Jesus's-words-in-red.
+// book_backgrounds.json also dropped — only used for the chapter byline,
+// runtime-cache covers that on first chapter load.
 const SHELL = [
   '/bible/',
   '/bible/index.html',
-  '/bible/red_letter.json',
-  '/bible/book_backgrounds.json',
 ];
 
 self.addEventListener('install', e => {
