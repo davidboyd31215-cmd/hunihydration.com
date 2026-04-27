@@ -5742,7 +5742,11 @@ function renderChapter(book, verses) {
   // Composes Author + Date + Genre + Theme into a single sentence.
   if (BOOK_BG && BOOK_BG[osisBook]) {
     const bg = BOOK_BG[osisBook];
-    const byline = `${bg.author} · ${bg.date} · ${bg.genre} — ${bg.theme}`;
+    // Use ' · ' as the genre→theme joiner (was ' — ') because many themes
+    // already embed their own em-dash, which created two em-dashes per line.
+    // Author is also clamped to 28 chars for Psalms-class long-author cases.
+    const author = bg.author.length > 28 ? bg.author.slice(0, 26).replace(/[,\s]+$/, '') + '…' : bg.author;
+    const byline = `${author} · ${bg.date} · ${bg.genre} · ${bg.theme}`;
     html += `<div class="book-byline" style="font-family:var(--serif);font-size:13px;font-style:italic;color:var(--text-dim);margin:0 0 14px 0;line-height:1.45">${byline}</div>`;
   }
 
@@ -6145,21 +6149,14 @@ function showSidebar(key, verseNum, refs) {
         <button class="bookmark-btn ${isBkmk ? 'active' : ''}" onclick="onBookmarkClick('${key}', this)" aria-label="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" title="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" style="padding:4px 10px;font-size:12px;border-radius:12px;line-height:1.2;flex-shrink:0">${isBkmk ? '★ Bookmarked' : '☆ Bookmark'}</button>
       </div>
       <div class="sidebar-verse-text" style="margin-top:6px">${verseText}</div>
+      <!-- Iter 82: collapsed the entire More menu. Compare-translations modal
+           is redundant now that KJV/ESV pills are in the mobile header (one
+           tap switches translation, one tap to switch back = manual compare).
+           'Copy text only' was redundant with 'Copy verse'. Single primary
+           action remains. -->
       <div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
         <button onclick="copyVerseLink('${key}', ${_vts}, '${_vref}')" style="background:var(--accent);border:none;color:white;padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy verse text + link to share">Copy verse</button>
-        <button id="${moreId}" onclick="window._toggleMoreMenu('${moreId}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="More verse actions" aria-expanded="false" aria-haspopup="true" aria-controls="${moreId}-menu">More ▾</button>
       </div>
-      <div id="${moreId}-menu" role="menu" style="display:none;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;padding:0">
-        <button class="more-box" role="menuitem" onclick="copyVerseText(${_vts}, '${_vref}'); window._toggleMoreMenu('${moreId}', false)">
-          <div class="mb-title">Copy text</div>
-          <div class="mb-sub">Verse text only, no link</div>
-        </button>
-        <button class="more-box" role="menuitem" id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this); window._toggleMoreMenu('${moreId}', false)">
-          <div class="mb-title">Compare translations</div>
-          <div class="mb-sub">KJV / ESV side-by-side</div>
-        </button>
-      </div>
-      <div id="${cmpId}" style="margin-top:8px"></div>
     </div>
     ${tqHTML}
     ${refHTML}
