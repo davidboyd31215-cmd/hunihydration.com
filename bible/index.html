@@ -2442,12 +2442,12 @@ body.mode-timeline .timeline-help { display: block; }
           <div class="settings-row-label" id="settings-streak-label">Reading streak</div>
           <div class="settings-row-sub" id="settings-streak-sub">Show up every day to keep your streak alive</div>
         </div>
-        <div class="settings-row-value" id="settings-streak-value" style="font-variant-numeric:tabular-nums">0🔥</div>
+        <div class="settings-row-value" id="settings-streak-value" style="font-variant-numeric:tabular-nums">0</div>
       </div>
       <div class="settings-row" data-action="bookmarks">
         <div class="settings-row-main">
           <div class="settings-row-label">My saved verses</div>
-          <div class="settings-row-sub" id="settings-bookmarks-sub">Save verses you love by tapping the ★ Save button when reading</div>
+          <div class="settings-row-sub" id="settings-bookmarks-sub">Use the Bookmark button while reading a verse to add it here.</div>
         </div>
         <div class="settings-row-value" id="settings-bookmarks-value">0</div>
       </div>
@@ -2992,7 +2992,7 @@ function init() {
     const bs = getBookmarks();
     setVal('settings-bookmarks-value', String(bs.length), 'action');
     const bsub = document.getElementById('settings-bookmarks-sub');
-    if (bsub) bsub.textContent = bs.length === 0 ? 'Save verses you love by tapping the ★ Save button when reading' : `${bs.length} verse${bs.length === 1 ? '' : 's'} saved — open to review`;
+    if (bsub) bsub.textContent = bs.length === 0 ? 'Use the Bookmark button while reading a verse to add it here.' : `${bs.length} bookmarked passage${bs.length === 1 ? '' : 's'} — open to review.`;
     const hls = Object.keys(getHighlights());
     setVal('settings-highlights-value', String(hls.length), 'action');
     const hsub = document.getElementById('settings-highlights-sub');
@@ -3005,9 +3005,9 @@ function init() {
     const streakVal = document.getElementById('settings-streak-value');
     if (streakRow && streak > 0) {
       streakRow.style.display = '';
-      if (streakLabel) streakLabel.textContent = streak === 1 ? 'Reading streak — Day 1' : `Reading streak — ${streak} days`;
-      if (streakVal) streakVal.textContent = streak + '🔥';
-      if (streakSub) streakSub.textContent = streak === 1 ? 'Come back tomorrow to keep it going' : streak >= 7 ? `${streak} days in a row — keep it up!` : 'Come back daily to grow the streak';
+      if (streakLabel) streakLabel.textContent = 'Reading streak';
+      if (streakVal) streakVal.textContent = String(streak);
+      if (streakSub) streakSub.textContent = streak === 1 ? '1 consecutive day of reading.' : `${streak} consecutive days of reading.`;
     } else if (streakRow) {
       streakRow.style.display = 'none';
     }
@@ -4029,15 +4029,15 @@ function showBookmarksModal() {
       <div style="padding:20px;text-align:center">
         <div style="font-size:48px;line-height:1;margin-bottom:10px;color:var(--text-dim)">☆</div>
         <div style="font-family:var(--serif);font-size:16px;color:var(--text);margin-bottom:6px">No bookmarks yet</div>
-        <div style="font-family:var(--sans);font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Tap the <strong>☆ Save</strong> button on any verse's sidebar to save it here.</div>
-        <button onclick="startClozePractice()" style="background:var(--accent);border:none;color:white;padding:8px 16px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer">✎ Try Practice with 6 famous verses</button>
+        <div style="font-family:var(--sans);font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">No passages bookmarked. Use the <strong>Bookmark</strong> button while reading to add one.</div>
+        <button onclick="startClozePractice()" style="background:var(--accent);border:none;color:white;padding:8px 16px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer">Practice with 6 sample passages</button>
       </div>
     `;
   } else {
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:10px;flex-wrap:wrap">
         <div class="ws-modal-orig" style="font-size:24px;margin:0">Bookmarks</div>
-        <button onclick="startClozePractice()" style="background:var(--accent);border:none;color:white;padding:7px 14px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Practice memorizing all saved verses (fill-in-the-blank)">🧠 Practice${(window._getClozeDueCount && window._getClozeDueCount() > 0) ? ` · ${window._getClozeDueCount()} due` : ' all'}</button>
+        <button onclick="startClozePractice()" style="background:var(--accent);border:none;color:white;padding:7px 14px;border-radius:14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Practice memorizing all saved verses (fill-in-the-blank)">Practice${(window._getClozeDueCount && window._getClozeDueCount() > 0) ? ` (${window._getClozeDueCount()} due)` : ' all bookmarks'}</button>
       </div>
       <div class="ws-modal-meta">${list.length} verse${list.length === 1 ? '' : 's'} saved · tap to open, or Practice to test your memory${(window._getClozeDueCount && window._getClozeDueCount() > 0) ? ` (${window._getClozeDueCount()} due today)` : ''}</div>
       ${list.map((b, i) => `
@@ -5500,6 +5500,31 @@ window._VERSE_BACK_STACK_CAP = 5;
 // origin we're trying to return TO.
 window._suppressVerseBackPush = false;
 
+// Toggle the verse-action 'More' overflow menu and sync aria-expanded.
+// Pass false to force-close (used after each menu item activates).
+window._toggleMoreMenu = function(moreId, forceState) {
+  const menu = document.getElementById(moreId + '-menu');
+  const btn = document.getElementById(moreId);
+  if (!menu) return;
+  const willOpen = (typeof forceState === 'boolean') ? forceState : (menu.style.display !== 'flex');
+  menu.style.display = willOpen ? 'flex' : 'none';
+  if (btn) btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  if (willOpen) {
+    // Close on next outside-click. Wrapped in setTimeout so the toggle's
+    // own click doesn't immediately close it.
+    setTimeout(() => {
+      const closer = (e) => {
+        if (!menu.contains(e.target) && e.target !== btn) {
+          menu.style.display = 'none';
+          if (btn) btn.setAttribute('aria-expanded', 'false');
+          document.removeEventListener('click', closer, true);
+        }
+      };
+      document.addEventListener('click', closer, true);
+    }, 0);
+  }
+};
+
 window.popVerseStack = function() {
   if (!window._verseBackStack || !window._verseBackStack.length) return;
   const origin = window._verseBackStack.pop();
@@ -5675,10 +5700,8 @@ function renderChapter(book, verses) {
     const streakDays = (window._getReadingStreak && window._getReadingStreak()) || 0;
     const dismissedToday = localStorage.getItem('scripture-streak-dismissed-' + new Date().toISOString().slice(0, 10));
     if (streakDays >= 2 && !dismissedToday) {
-      const msg = streakDays >= 7
-        ? `${streakDays} days in a row 🔥 — keep it up!`
-        : `Day ${streakDays} 🔥 — keep going`;
-      streakHTML = `<div id="streak-banner" style="background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid #B43232;border-radius:6px;padding:8px 12px;margin:0 0 14px 0;font-family:var(--sans);font-size:12px;color:var(--text);display:flex;align-items:center;gap:10px">
+      const msg = `${streakDays} consecutive days of reading.`;
+      streakHTML = `<div id="streak-banner" style="background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:6px;padding:8px 12px;margin:0 0 14px 0;font-family:var(--sans);font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:10px">
         <span style="flex:1">${msg}</span>
         <button onclick="localStorage.setItem('scripture-streak-dismissed-${new Date().toISOString().slice(0,10)}','1');document.getElementById('streak-banner').remove()" aria-label="Dismiss" style="background:none;border:none;color:var(--text-dim);font-size:18px;line-height:1;padding:0 4px;cursor:pointer">&times;</button>
       </div>`;
@@ -5726,8 +5749,9 @@ function renderChapter(book, verses) {
   // Inline chapter-overview card — sits between the chapter title and the
   // first verse so the reader gets a 1-line setup of what's coming. Pulls
   // from commentary_chapter.json (the same source the sidebar fallback uses).
-  // Dismissible per-chapter; remembered in scripture-overview-dismissed.
-  if (typeof COMMENTARY_CHAPTER !== 'undefined' && COMMENTARY_CHAPTER) {
+  // Suppressed on chapter 1 because the book-background <details> card
+  // already sits in that slot — two editorial cards back-to-back compete.
+  if (state.chapter !== 1 && typeof COMMENTARY_CHAPTER !== 'undefined' && COMMENTARY_CHAPTER) {
     const chKey = `${osisBook}.${state.chapter}`;
     const overview = COMMENTARY_CHAPTER[chKey];
     let dismissed = {};
@@ -6165,18 +6189,18 @@ function showSidebar(key, verseNum, refs) {
       ${backPillHTML}
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <div class="sidebar-verse-address" style="flex:1;min-width:0">${_vref}</div>
-        <button class="bookmark-btn ${isBkmk ? 'active' : ''}" onclick="onBookmarkClick('${key}', this)" aria-label="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" title="${isBkmk ? 'Remove from bookmarks' : 'Save to bookmarks'}" style="padding:4px 10px;font-size:12px;border-radius:12px;line-height:1.2;flex-shrink:0">${isBkmk ? '★ Saved' : '☆ Save'}</button>
+        <button class="bookmark-btn ${isBkmk ? 'active' : ''}" onclick="onBookmarkClick('${key}', this)" aria-label="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" title="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" style="padding:4px 10px;font-size:12px;border-radius:12px;line-height:1.2;flex-shrink:0">${isBkmk ? 'Bookmarked' : 'Bookmark'}</button>
       </div>
       <div class="sidebar-verse-text" style="margin-top:6px">${verseText}</div>
       <div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
-        <button onclick="copyVerseLink('${key}', ${_vts}, '${_vref}')" style="background:var(--accent);border:none;color:white;padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy verse text + link to share">Copy</button>
-        <button id="${moreId}" onclick="(function(b){const m=document.getElementById('${moreId}-menu');m.style.display=m.style.display==='flex'?'none':'flex';})(this)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="More verse actions" aria-expanded="false">More ▾</button>
+        <button onclick="copyVerseLink('${key}', ${_vts}, '${_vref}')" style="background:var(--accent);border:none;color:white;padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy verse text + link to share">Copy + link</button>
+        <button id="${moreId}" onclick="window._toggleMoreMenu('${moreId}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="More verse actions" aria-expanded="false" aria-haspopup="true" aria-controls="${moreId}-menu">More ▾</button>
       </div>
-      <div id="${moreId}-menu" style="display:none;flex-wrap:wrap;gap:5px;margin-top:6px;padding:8px;background:var(--bg-alt);border:1px solid var(--border);border-radius:8px">
-        <button onclick="copyVerseText(${_vts}, '${_vref}')" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Copy text only</button>
-        <button onclick="showImagePickerModal(${_vts}, '${_vref}')" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Save as image</button>
-        <button id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this)" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Compare translations</button>
-        <button onclick="startClozePractice(0, {ref:'${key}', snippet:${_vts}})" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Practice memorizing</button>
+      <div id="${moreId}-menu" role="menu" style="display:none;flex-wrap:wrap;gap:5px;margin-top:6px;padding:8px;background:var(--bg-alt);border:1px solid var(--border);border-radius:8px">
+        <button role="menuitem" onclick="copyVerseText(${_vts}, '${_vref}'); window._toggleMoreMenu('${moreId}', false)" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Copy text only</button>
+        <button role="menuitem" onclick="showImagePickerModal(${_vts}, '${_vref}'); window._toggleMoreMenu('${moreId}', false)" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Save as image</button>
+        <button role="menuitem" id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this); window._toggleMoreMenu('${moreId}', false)" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Compare translations</button>
+        <button role="menuitem" onclick="startClozePractice(0, {ref:'${key}', snippet:${_vts}}); window._toggleMoreMenu('${moreId}', false)" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Practice memorizing</button>
       </div>
       <div id="${cmpId}" style="margin-top:8px"></div>
     </div>
@@ -6270,7 +6294,7 @@ function onBookmarkClick(key, btn) {
   const nowBookmarked = toggleBookmark(key, snippet);
   if (btn) {
     btn.classList.toggle('active', nowBookmarked);
-    btn.textContent = nowBookmarked ? '★ Saved' : '☆ Save';
+    btn.textContent = nowBookmarked ? 'Bookmarked' : 'Bookmark';
     btn.setAttribute('aria-label', nowBookmarked ? 'Remove bookmark' : 'Add bookmark');
     btn.classList.remove('just-saved'); void btn.offsetWidth; // restart animation
     if (nowBookmarked) {
