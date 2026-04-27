@@ -4228,7 +4228,7 @@ function renderCloze() {
          (10 min). Stored in scripture-cloze-srs by ref. -->
     <div style="display:flex;gap:8px;margin-top:14px;justify-content:space-between">
       <button onclick="_clozeGrade('${v.ref}', 'again')" style="flex:1;background:transparent;border:1px solid #B43232;color:#B43232;padding:10px;border-radius:14px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer">Try later</button>
-      <button onclick="_clozeGrade('${v.ref}', 'good')" style="flex:1;background:#5A8E6F;border:none;color:white;padding:10px;border-radius:14px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer">Got it ✓</button>
+      <button onclick="_clozeGrade('${v.ref}', 'good')" style="flex:1;background:#5A8E6F;border:none;color:white;padding:10px;border-radius:14px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer">Recalled</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:8px;justify-content:space-between">
       <button onclick="if(_clozeState.idx>0){_clozeState.idx--;renderCloze()}" ${_clozeState.idx === 0 ? 'disabled' : ''} style="flex:1;background:transparent;border:1px solid var(--border-strong);color:${_clozeState.idx === 0 ? 'var(--text-dim)' : 'var(--text)'};padding:8px;border-radius:14px;font-family:var(--sans);font-size:12px;cursor:${_clozeState.idx === 0 ? 'default' : 'pointer'}">← Previous</button>
@@ -5598,7 +5598,7 @@ async function loadChapter() {
     else if (state.translation === 'rvr') verses = await fetchRVR(state.bookIdx, state.chapter);
 
     if (!verses || !verses.length) {
-      textEl.innerHTML = `<div class="loading" style="padding:60px 30px;text-align:center;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:10px;opacity:0.5">📖</div><div>This chapter isn't in the ${(state.translation || 'kjv').toUpperCase()} yet.</div><div style="font-size:13px;margin-top:8px;opacity:0.7">Try switching translations above (KJV/ESV/BSB/RVR), or pick another chapter.</div></div>`;
+      textEl.innerHTML = `<div class="loading" style="padding:60px 30px;text-align:center;color:var(--text-muted)"><div style="font-family:var(--serif);font-size:18px;font-style:italic;margin-bottom:10px;color:var(--text-dim)">Not available</div><div>This chapter isn't in the ${(state.translation || 'kjv').toUpperCase()} yet.</div><div style="font-size:13px;margin-top:8px;opacity:0.7">Try switching translations above, or pick another chapter.</div></div>`;
       return;
     }
 
@@ -5785,10 +5785,10 @@ function renderChapter(book, verses) {
     try { dismissed = JSON.parse(localStorage.getItem('scripture-overview-dismissed') || '{}'); } catch(e) {}
     if (overview && !dismissed[chKey]) {
       const safeKey = chKey.replace(/[^A-Za-z0-9.]/g, '');
-      html += `<div id="chapter-overview-card" data-key="${safeKey}" style="margin:0 0 18px;padding:11px 14px;background:linear-gradient(135deg,rgba(212,184,112,0.08),transparent);border:1px solid var(--border);border-left:3px solid #6B4D00;border-radius:6px;font-family:var(--sans);font-size:13px;line-height:1.5;color:var(--text);display:flex;gap:10px;align-items:flex-start">
+      html += `<div id="chapter-overview-card" data-key="${safeKey}" style="margin:0 0 18px;padding:12px 14px;background:linear-gradient(135deg,rgba(212,184,112,0.06),transparent);border:1px solid var(--border);border-left:3px solid #6B4D00;border-radius:6px;font-family:var(--serif);font-size:14px;line-height:1.55;color:var(--text);display:flex;gap:10px;align-items:flex-start">
         <div style="flex:1">
-          <div style="font-size:9.5px;letter-spacing:0.1em;color:#A07A20;text-transform:uppercase;margin-bottom:3px;font-weight:600">Chapter overview</div>
-          <div style="color:var(--text-muted)">${overview}</div>
+          <div style="font-family:var(--sans);font-size:10.5px;color:#8A6818;margin-bottom:4px;font-weight:600;font-style:normal">Overview</div>
+          <div style="color:var(--text-muted);font-style:italic">${overview}</div>
         </div>
         <button onclick="(function(b){const k=b.parentElement.dataset.key;let d={};try{d=JSON.parse(localStorage.getItem('scripture-overview-dismissed')||'{}');}catch(e){}d[k]=1;try{localStorage.setItem('scripture-overview-dismissed',JSON.stringify(d));}catch(e){}b.parentElement.remove();})(this)" aria-label="Dismiss overview" title="Dismiss for this chapter" style="background:none;border:none;color:var(--text-dim);font-size:18px;line-height:1;padding:0 4px;cursor:pointer;-webkit-tap-highlight-color:transparent;flex-shrink:0">&times;</button>
       </div>`;
@@ -6371,7 +6371,7 @@ async function compareTranslations(osisKey, btn) {
   // Use session cache if available
   if (_compareCache[osisKey]) {
     const c = _compareCache[osisKey];
-    container.innerHTML = renderCompareHTML(c.kjv, c.esv, c.bsb, c.rvr, book.name, ch, v);
+    container.innerHTML = renderCompareHTML(c.kjv, c.esv, c.bsb, null, book.name, ch, v);
     return;
   }
   container.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-style:italic;font-size:12px">Loading translations...</div>';
@@ -6404,22 +6404,15 @@ async function compareTranslations(osisKey, btn) {
           const v2 = d.find(x => x.verse === v);
           return v2 ? (v2.text || '').replace(/<[^>]+>/g, '').trim() : '';
         }
-      } else if (translation === 'rvr') {
-        const r = await fetch(`https://bolls.life/get-text/RVR60/${bookIdx + 1}/${ch}/`);
-        if (r.ok) {
-          const d = await r.json();
-          const v2 = d.find(x => x.verse === v);
-          return v2 ? (v2.text || '').replace(/<[^>]+>/g, '').trim() : '';
-        }
       }
     } catch (e) { return ''; }
     return '';
   }
 
-  const [kjv, esv, bsb, rvr] = await Promise.all([fetchVerse('kjv'), fetchVerse('esv'), fetchVerse('bsb'), fetchVerse('rvr')]);
-  _compareCache[osisKey] = { kjv, esv, bsb, rvr, ts: Date.now() };
+  const [kjv, esv, bsb] = await Promise.all([fetchVerse('kjv'), fetchVerse('esv'), fetchVerse('bsb')]);
+  _compareCache[osisKey] = { kjv, esv, bsb, ts: Date.now() };
   _saveCompareCache();
-  container.innerHTML = renderCompareHTML(kjv, esv, bsb, rvr, book.name, ch, v);
+  container.innerHTML = renderCompareHTML(kjv, esv, bsb, null, book.name, ch, v);
 }
 
 function _diffHighlight(kjv, esv, bsb) {
@@ -6447,9 +6440,8 @@ function _diffHighlight(kjv, esv, bsb) {
 
 function renderCompareHTML(kjv, esv, bsb, rvr, bookName, ch, v) {
   const h = _diffHighlight(kjv, esv, bsb);
-  // RVR is in a different language so the diff doesn't apply — render plainly.
+  // RVR removed per user request (Spanish translation no longer surfaced).
   const rows = [['KJV', h.kjv, '#3D5A6E'], ['ESV', h.esv, '#3D6E36'], ['BSB', h.bsb, '#7B5C3F']];
-  if (rvr) rows.push(['RVR', rvr, '#7A5D1F']);
   return `<div style="padding:0;display:flex;flex-direction:column;gap:10px">
     ${rows.map(([label, text, color]) => `
       <div style="background:var(--bg-alt);border-left:3px solid ${color};border-radius:4px;padding:10px 12px">
