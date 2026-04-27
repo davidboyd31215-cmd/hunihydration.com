@@ -6253,15 +6253,6 @@ function showSidebar(key, verseNum, refs) {
     ${refHTML}
     ${obHTML}
     ${commentaryHTML}
-    <div class="blb-section">
-      <div class="blb-title">Study tools</div>
-      <div class="blb-links">
-        <a class="blb-btn" href="${blbURL}" target="_blank" rel="noopener">Verse</a>
-        <a class="blb-btn" href="${blbURL}t_conc_1" target="_blank" rel="noopener">Interlinear</a>
-        <a class="blb-btn" href="https://www.blueletterbible.org/search/preSearch.cfm?Criteria=${encodeURIComponent(book.name+'%20'+state.chapter+'%3A'+verseNum)}&t=KJV" target="_blank" rel="noopener">Commentaries</a>
-        <a class="blb-btn" href="${gqURL}" target="_blank" rel="noopener" style="background:#FFF3D6;color:#6B4D00;border-color:#D4B870">GotQuestions ↗</a>
-      </div>
-    </div>
     ${(() => {
       const sermons = getSermonsForVerse(OSIS_BY_IDX[state.bookIdx], state.chapter, verseNum);
       // Optional sermon-index freshness stamp — picked up from sermons.json
@@ -6307,6 +6298,15 @@ function showSidebar(key, verseNum, refs) {
         </div>
       </div>`;
     })()}
+    <div class="blb-section" style="margin-top:14px">
+      <div class="blb-title">Study tools</div>
+      <div class="blb-links">
+        <a class="blb-btn" href="${blbURL}" target="_blank" rel="noopener">Verse</a>
+        <a class="blb-btn" href="${blbURL}t_conc_1" target="_blank" rel="noopener">Interlinear</a>
+        <a class="blb-btn" href="https://www.blueletterbible.org/search/preSearch.cfm?Criteria=${encodeURIComponent(book.name+'%20'+state.chapter+'%3A'+verseNum)}&t=KJV" target="_blank" rel="noopener">Commentaries</a>
+        <a class="blb-btn" href="${gqURL}" target="_blank" rel="noopener" style="background:#FFF3D6;color:#6B4D00;border-color:#D4B870">GotQuestions ↗</a>
+      </div>
+    </div>
   `;
 
   // Reset scroll on every re-open so a new verse starts at the top
