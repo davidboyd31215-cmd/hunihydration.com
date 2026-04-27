@@ -56,7 +56,7 @@
   --bg-alt: #F2F0E8;
   --text: #1A1A1A;
   --text-muted: #5C5C58;
-  --text-dim: #6E6E66;
+  --text-dim: #5A5A52; /* Darkened from #6E6E66 to clear WCAG AA 4.5:1 against parchment bg for accessibility (vision-impaired users) */
   --border: #E4E1D7;
   --border-strong: #C9C5B8;
   --accent: #2A4D6E;
@@ -856,7 +856,7 @@ mark.thl-blue   { background: rgba(66,133,244,0.32); color: inherit; padding: 0;
   position: relative;
 }
 .verse.speaking::before {
-  content: '🔊';
+  content: '▶';
   position: absolute;
   left: -28px;
   top: 6px;
@@ -2056,9 +2056,11 @@ body.mode-timeline .timeline-help { display: block; }
     justify-content: space-between;
     padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px));
     z-index: 40;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    background: rgba(20, 20, 24, 0.88);
+    /* Reduced from blur(20) to blur(8) — heavy backdrop blur tanks scroll FPS
+       on mid-range Android Chrome (Snapdragon 8 Gen 1 sustained scroll). */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    background: rgba(20, 20, 24, 0.92);
     border-top: 1px solid var(--border);
   }
   /* Toast and arc legend should clear the bottom-nav by default on mobile */
@@ -2412,12 +2414,12 @@ body.mode-timeline .timeline-help { display: block; }
       </div>
     </div>
 
-    <div class="settings-group-title">How it looks</div>
+    <div class="settings-group-title">Display</div>
     <div class="settings-section">
       <div class="settings-row" data-action="theme">
         <div class="settings-row-main">
-          <div class="settings-row-label">Background color</div>
-          <div class="settings-row-sub">Light, Dark, or Focus (sepia)</div>
+          <div class="settings-row-label">Theme</div>
+          <div class="settings-row-sub">Light, Dark (night mode), or Focus (sepia)</div>
         </div>
         <div class="settings-row-value" id="settings-theme-value">Dark</div>
       </div>
@@ -5059,7 +5061,7 @@ function showToast(msg, kind) {
 function parseHash() {
   let hash = (location.hash || '').replace(/^#/, '');
   if (!hash) return false;
-  // Optional ?t=esv|kjv|bsb|rvr suffix lets shared links carry the sender's
+  // Optional ?t=esv|kjv|bsb suffix lets shared links carry the sender's
   // translation choice. Accept it and apply before the chapter loads.
   let translationOverride = null;
   const qIdx = hash.indexOf('?');
@@ -5077,7 +5079,7 @@ function parseHash() {
   if (translationOverride) {
     state.translation = translationOverride;
     document.querySelectorAll('#translation-group button').forEach(b => b.classList.toggle('active', b.dataset.t === translationOverride));
-    document.documentElement.lang = (translationOverride === 'rvr') ? 'es' : 'en';
+    document.documentElement.lang = 'en';
   }
   const idx = IDX_BY_OSIS[m[1]];
   if (idx == null) {
@@ -5529,14 +5531,7 @@ async function fetchBSB(bookIdx, chapter) {
   return data.map(v => ({ verse: v.verse, text: (v.text || '').replace(/<[^>]+>/g, '').trim() }));
 }
 
-// Spanish — Reina-Valera 1960 via bolls.life (same provider as BSB)
-async function fetchRVR(bookIdx, chapter) {
-  const bookNum = bookIdx + 1;
-  const res = await fetch(`https://bolls.life/get-text/RVR60/${bookNum}/${chapter}/`);
-  if (!res.ok) throw new Error(`RVR HTTP ${res.status}`);
-  const data = await res.json();
-  return data.map(v => ({ verse: v.verse, text: (v.text || '').replace(/<[^>]+>/g, '').trim() }));
-}
+// (RVR Spanish translation removed per user request — fetchRVR was dropped.)
 
 // Monotonically increasing load token so concurrent loadChapter() calls
 // (rapid arrow-key presses) don't let a slow stale fetch overwrite a newer one.
@@ -5799,38 +5794,12 @@ function renderChapter(book, verses) {
     }
   }
 
-  let html = welcomeHTML + streakHTML + votdHTML + `
-    <div class="book-title">${book.name}</div>
-    <div class="chapter-title-row" style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-      <button class="ch-arrow ch-arrow-inline" onclick="document.getElementById('prev-ch').click()" aria-label="Previous chapter" title="Previous chapter" ${state.chapter === 1 && state.bookIdx === 0 ? 'disabled' : ''}>&#8592;</button>
-      <div class="chapter-title" style="margin:0;flex:1">Chapter ${state.chapter}</div>
-      <button class="ch-arrow ch-arrow-inline" onclick="document.getElementById('next-ch').click()" aria-label="Next chapter" title="Next chapter" ${state.chapter === book.chapters && state.bookIdx === BOOKS.length - 1 ? 'disabled' : ''}>&#8594;</button>
-    </div>
-  `;
+  // Per user request: book-title, inline chapter-arrows row, and chapter-overview
+  // card all dropped from the chapter top. Header (book/chapter selector + arrows)
+  // already shows what chapter you're on. The reading column starts straight at verses.
+  let html = welcomeHTML + streakHTML + votdHTML + '';
 
   const osisBook = OSIS_BY_IDX[state.bookIdx];
-
-  // Inline chapter-overview card — sits between the chapter title and the
-  // first verse so the reader gets a 1-line setup of what's coming. Pulls
-  // from commentary_chapter.json (the same source the sidebar fallback uses).
-  // Suppressed on chapter 1 because the book-background <details> card
-  // already sits in that slot — two editorial cards back-to-back compete.
-  if (state.chapter !== 1 && typeof COMMENTARY_CHAPTER !== 'undefined' && COMMENTARY_CHAPTER) {
-    const chKey = `${osisBook}.${state.chapter}`;
-    const overview = COMMENTARY_CHAPTER[chKey];
-    let dismissed = {};
-    try { dismissed = JSON.parse(localStorage.getItem('scripture-overview-dismissed') || '{}'); } catch(e) {}
-    if (overview && !dismissed[chKey]) {
-      const safeKey = chKey.replace(/[^A-Za-z0-9.]/g, '');
-      html += `<div id="chapter-overview-card" data-key="${safeKey}" style="margin:0 0 18px;padding:12px 14px;background:linear-gradient(135deg,rgba(212,184,112,0.06),transparent);border:1px solid var(--border);border-left:3px solid #6B4D00;border-radius:6px;font-family:var(--serif);font-size:14px;line-height:1.55;color:var(--text);display:flex;gap:10px;align-items:flex-start">
-        <div style="flex:1">
-          <div style="font-family:var(--sans);font-size:10.5px;color:#8A6818;margin-bottom:4px;font-weight:600;font-style:normal">Overview</div>
-          <div style="color:var(--text-muted);font-style:italic">${overview}</div>
-        </div>
-        <button onclick="(function(b){const k=b.parentElement.dataset.key;let d={};try{d=JSON.parse(localStorage.getItem('scripture-overview-dismissed')||'{}');}catch(e){}d[k]=1;try{localStorage.setItem('scripture-overview-dismissed',JSON.stringify(d));}catch(e){}b.parentElement.remove();})(this)" aria-label="Dismiss overview" title="Dismiss for this chapter" style="background:none;border:none;color:var(--text-dim);font-size:18px;line-height:1;padding:0 4px;cursor:pointer;-webkit-tap-highlight-color:transparent;flex-shrink:0">&times;</button>
-      </div>`;
-    }
-  }
 
   // Show book-background card on chapter 1 only
   if (state.chapter === 1 && BOOK_BG && BOOK_BG[osisBook]) {
@@ -5839,7 +5808,7 @@ function renderChapter(book, verses) {
       <details class="book-bg-card">
         <summary class="book-bg-summary">
           <span class="book-bg-summary-label">About ${book.name}</span>
-          <span class="book-bg-summary-hint">tap to expand</span>
+          <span class="book-bg-summary-hint">expand</span>
         </summary>
         <div class="book-bg-body">
           <div class="book-bg-row"><span class="book-bg-key">Author</span><span class="book-bg-val">${bg.author}</span></div>
