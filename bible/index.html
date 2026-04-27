@@ -1870,9 +1870,19 @@ body.mode-timeline .timeline-help { display: block; }
     align-items: center;
   }
   .ctrl-label { display: none; }
-  /* Hide everything except essentials in the header bar; rest goes to Settings */
-  #mode-group, #view-group, #translation-group, #depth-toggle, #commentary-toggle, #wordstudy-toggle, #redletter-toggle {
+  /* Hide everything except essentials in the header bar; rest goes to Settings.
+     Iter 81: #translation-group revealed on mobile per audit P1 — without it,
+     KJV→ESV switch was buried two taps deep in Settings. Pills made tighter. */
+  #mode-group, #view-group, #depth-toggle, #commentary-toggle, #wordstudy-toggle, #redletter-toggle {
     display: none !important;
+  }
+  #translation-group {
+    margin-left: 4px;
+  }
+  #translation-group button {
+    font-size: 11px;
+    padding: 4px 8px;
+    min-width: 0;
   }
   /* Book + chapter selects — native iOS style */
   #book-select, #chapter-select {
@@ -5675,16 +5685,20 @@ function getBookAbbr3(bookIdx) {
 function renderChapter(book, verses) {
   const textEl = document.getElementById('bible-text');
 
-  // First-visit welcome card (shown once, then dismissible)
+  // First-visit welcome card. Suppressed when arriving via a deep-link (URL
+   // already has #Book.X.Y) — the visitor was sent here for a specific verse;
+   // a generic welcome above the fold pushes their target below.
   const seenWelcome = localStorage.getItem('scripture-welcome-seen');
+  const arrivedViaDeepLink = !!(location.hash && location.hash.length > 1);
   let welcomeHTML = '';
-  if (!seenWelcome) {
+  if (!seenWelcome && !arrivedViaDeepLink) {
     welcomeHTML = `
       <div id="welcome-card">
         <button class="wc-dismiss" onclick="localStorage.setItem('scripture-welcome-seen','1'); document.getElementById('welcome-card').remove();" aria-label="Dismiss welcome">&times;</button>
-        <!-- Welcome card trimmed in iter 78. Title + body + CTA blocks
-             removed; the four famous-verse jump chips were the only piece
-             that actually moved users. Tap-to-explore tip preserved. -->
+        <!-- Iter 81: restored a brief title line so the card reads as
+             onboarding rather than decoration. Audit P0 finding. -->
+        <div class="wc-title" style="font-family:var(--serif);font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px">A Bible reader with cross-references, original-language notes, and sermons.</div>
+        <div class="wc-section-label" style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Jump to a famous verse</div>
         <div class="wc-row">
           <a class="wc-pill" href="#John.3.16">John 3:16</a>
           <a class="wc-pill" href="#Ps.23.1">Psalm 23</a>
@@ -5692,7 +5706,7 @@ function renderChapter(book, verses) {
           <a class="wc-pill" href="#Matt.5.3">Beatitudes</a>
         </div>
         <div class="wc-tip" style="margin-top:10px;font-size:11px">
-          Tap any verse for cross-references, original-language notes, and sermons.
+          Tap any verse to open the study sidebar.
         </div>
       </div>
     `;
@@ -5722,25 +5736,14 @@ function renderChapter(book, verses) {
 
   const osisBook = OSIS_BY_IDX[state.bookIdx];
 
-  // Show book-background card on chapter 1 only
-  if (state.chapter === 1 && BOOK_BG && BOOK_BG[osisBook]) {
+  // Iter 81: collapsible 'About this book' card replaced with one inline
+  // italic byline on EVERY chapter (was chapter-1-only). One-line, no click
+  // required, gives Habakkuk-cold-open visitors enough context to orient.
+  // Composes Author + Date + Genre + Theme into a single sentence.
+  if (BOOK_BG && BOOK_BG[osisBook]) {
     const bg = BOOK_BG[osisBook];
-    html += `
-      <details class="book-bg-card">
-        <summary class="book-bg-summary">
-          <span class="book-bg-summary-label">About ${book.name}</span>
-          <span class="book-bg-summary-hint">expand</span>
-        </summary>
-        <div class="book-bg-body">
-          <div class="book-bg-row"><span class="book-bg-key">Author</span><span class="book-bg-val">${bg.author}</span></div>
-          <div class="book-bg-row"><span class="book-bg-key">Date</span><span class="book-bg-val">${bg.date}</span></div>
-          <div class="book-bg-row"><span class="book-bg-key">Genre</span><span class="book-bg-val">${bg.genre}</span></div>
-          <div class="book-bg-row"><span class="book-bg-key">Audience</span><span class="book-bg-val">${bg.audience}</span></div>
-          <div class="book-bg-row"><span class="book-bg-key">Theme</span><span class="book-bg-val">${bg.theme}</span></div>
-          <div class="book-bg-summary-text">${bg.summary}</div>
-        </div>
-      </details>
-    `;
+    const byline = `${bg.author} · ${bg.date} · ${bg.genre} — ${bg.theme}`;
+    html += `<div class="book-byline" style="font-family:var(--serif);font-size:13px;font-style:italic;color:var(--text-dim);margin:0 0 14px 0;line-height:1.45">${byline}</div>`;
   }
 
   const bookOsis = OSIS_BY_IDX[state.bookIdx];
@@ -6143,7 +6146,7 @@ function showSidebar(key, verseNum, refs) {
       </div>
       <div class="sidebar-verse-text" style="margin-top:6px">${verseText}</div>
       <div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
-        <button onclick="copyVerseLink('${key}', ${_vts}, '${_vref}')" style="background:var(--accent);border:none;color:white;padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy verse text + link to share">Copy + link</button>
+        <button onclick="copyVerseLink('${key}', ${_vts}, '${_vref}')" style="background:var(--accent);border:none;color:white;padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy verse text + link to share">Copy verse</button>
         <button id="${moreId}" onclick="window._toggleMoreMenu('${moreId}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="More verse actions" aria-expanded="false" aria-haspopup="true" aria-controls="${moreId}-menu">More ▾</button>
       </div>
       <div id="${moreId}-menu" role="menu" style="display:none;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;padding:0">
