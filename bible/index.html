@@ -5219,14 +5219,22 @@ function restoreLastPosition() {
   if (location.hash) return; // hash-based deep link wins
   try {
     const raw = localStorage.getItem('scripture-lastpos');
-    if (!raw) return;
-    const last = JSON.parse(raw);
-    if (typeof last.bookIdx === 'number' && last.bookIdx >= 0 && last.bookIdx < BOOKS.length) {
-      state.bookIdx = last.bookIdx;
-      state.chapter = Math.max(1, Math.min(BOOKS[last.bookIdx].chapters, last.chapter || 1));
-      state.activeVerse = last.activeVerse || null;
+    if (raw) {
+      const last = JSON.parse(raw);
+      if (typeof last.bookIdx === 'number' && last.bookIdx >= 0 && last.bookIdx < BOOKS.length) {
+        state.bookIdx = last.bookIdx;
+        state.chapter = Math.max(1, Math.min(BOOKS[last.bookIdx].chapters, last.chapter || 1));
+        state.activeVerse = last.activeVerse || null;
+        return;
+      }
     }
   } catch(e) {}
+  // Iter 89: cold first-load default is John 3:16 (was Genesis 1:1).
+  // Welcome card was removed; the verse itself is the onboarding.
+  const johnIdx = (typeof IDX_BY_OSIS !== 'undefined' && IDX_BY_OSIS.John != null) ? IDX_BY_OSIS.John : 42;
+  state.bookIdx = johnIdx;
+  state.chapter = 3;
+  state.activeVerse = 16;
 }
 
 function scrollToActiveVerse() {
@@ -5726,32 +5734,12 @@ function getBookAbbr3(bookIdx) {
 function renderChapter(book, verses) {
   const textEl = document.getElementById('bible-text');
 
-  // First-visit welcome card. Suppressed when arriving via a deep-link (URL
-   // already has #Book.X.Y) — the visitor was sent here for a specific verse;
-   // a generic welcome above the fold pushes their target below.
-  const seenWelcome = localStorage.getItem('scripture-welcome-seen');
-  const arrivedViaDeepLink = !!(location.hash && location.hash.length > 1);
-  let welcomeHTML = '';
-  if (!seenWelcome && !arrivedViaDeepLink) {
-    welcomeHTML = `
-      <div id="welcome-card">
-        <button class="wc-dismiss" onclick="localStorage.setItem('scripture-welcome-seen','1'); document.getElementById('welcome-card').remove();" aria-label="Dismiss welcome">&times;</button>
-        <!-- Iter 81: restored a brief title line so the card reads as
-             onboarding rather than decoration. Audit P0 finding. -->
-        <div class="wc-title" style="font-family:var(--serif);font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px">A Bible reader with cross-references, original-language notes, and sermons.</div>
-        <div class="wc-section-label" style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Jump to a famous verse</div>
-        <div class="wc-row">
-          <a class="wc-pill" href="#John.3.16">John 3:16</a>
-          <a class="wc-pill" href="#Ps.23.1">Psalm 23</a>
-          <a class="wc-pill" href="#Rom.8.28">Romans 8:28</a>
-          <a class="wc-pill" href="#Matt.5.3">Beatitudes</a>
-        </div>
-        <div class="wc-tip" style="margin-top:10px;font-size:11px">
-          Tap any verse to open the study sidebar.
-        </div>
-      </div>
-    `;
-  }
+  // Welcome card removed entirely iter 89. The first-visit experience now
+  // uses content as onboarding: cold load defaults to John 3:16 instead of
+  // Genesis 1:1 (state.bookIdx + state.chapter both reset on no-hash entry,
+  // see DOMContentLoaded handler). The verse itself — recognizable, complete
+  // — teaches what the app is faster than a chrome card ever did.
+  const welcomeHTML = '';
 
   // Inline streak pill — surfaces at the top of every chapter once the user
   // has shown up >=2 days in a row. The streak counter was previously hidden
