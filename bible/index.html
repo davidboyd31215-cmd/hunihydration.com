@@ -289,6 +289,29 @@ button.more-box .mb-sub {
   margin-top: 2px;
 }
 
+/* Book byline — italic subtitle that orients cold-open visitors. On mobile
+   the long Theme field can wrap into 2-3 lines and start to compete with
+   verse 1 visually; line-clamp to one line keeps it as metadata. */
+.book-byline {
+  font-family: var(--serif);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--text-dim);
+  margin: 0 0 14px 0;
+  line-height: 1.45;
+}
+@media (max-width: 720px) {
+  .book-byline {
+    font-size: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 #chapter-display * {
   color: var(--text) !important;
   text-decoration: none !important;
@@ -304,7 +327,10 @@ button.more-box .mb-sub {
 
 .bible-text {
   flex: 1;
-  padding: 56px 32px 96px;
+  /* Reduced from 56px to 28px — book-title/arrows/overview-card removals
+     made the upper padding over-spec'd. Audit caught a 67px void above the
+     byline. */
+  padding: 28px 32px 96px;
   max-width: 680px;
   margin: 0 auto;
   /* Animate horizontal POSITION (transform — no layout), and animate
@@ -5747,7 +5773,7 @@ function renderChapter(book, verses) {
     // Author is also clamped to 28 chars for Psalms-class long-author cases.
     const author = bg.author.length > 28 ? bg.author.slice(0, 26).replace(/[,\s]+$/, '') + '…' : bg.author;
     const byline = `${author} · ${bg.date} · ${bg.genre} · ${bg.theme}`;
-    html += `<div class="book-byline" style="font-family:var(--serif);font-size:13px;font-style:italic;color:var(--text-dim);margin:0 0 14px 0;line-height:1.45">${byline}</div>`;
+    html += `<div class="book-byline">${byline}</div>`;
   }
 
   const bookOsis = OSIS_BY_IDX[state.bookIdx];
@@ -6109,7 +6135,8 @@ function showSidebar(key, verseNum, refs) {
   const gqURL = `https://www.gotquestions.org/?s=${encodeURIComponent(book.name + ' ' + state.chapter)}`;
 
   const isBkmk = isBookmarked(key);
-  const cmpId = 'translation-compare-' + key.replace(/\./g, '-');
+  // cmpId/moreId removed iter 83 — no longer needed after Compare modal
+  // and More menu were collapsed in iter 82.
 
   // "← Back to {origin}" pill — only when the back-stack has an entry whose
   // top is NOT the verse we're already viewing. (After popVerseStack returns
@@ -6140,7 +6167,6 @@ function showSidebar(key, verseNum, refs) {
   // the default surface stays calm and study-focused.
   const _vts = JSON.stringify(verseText).replace(/"/g, '&quot;');
   const _vref = `${book.name} ${state.chapter}:${verseNum}`;
-  const moreId = `more-${cmpId}`;
   document.getElementById('sidebar-content').innerHTML = `
     <div class="sidebar-header">
       ${backPillHTML}
