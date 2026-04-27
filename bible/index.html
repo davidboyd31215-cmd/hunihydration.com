@@ -364,6 +364,10 @@ select:hover { border-color: var(--border-strong); }
   color: var(--text);
   flex: 1;
   letter-spacing: -0.005em;
+  /* Suppress iOS native long-press callout so it doesn't collide with the
+     in-app highlight palette. Text selection (drag) still works because the
+     selectionchange handler runs anyway — we only kill the long-press menu. */
+  -webkit-touch-callout: none;
 }
 
 /* iOS Safari polish — prevent zoom on input focus, no tap-flash on touchables */
@@ -1936,8 +1940,17 @@ body.mode-timeline .timeline-help { display: block; }
     transition: width 0.18s ease, background 0.18s ease;
   }
   .sidebar-handle:active span { width: 60px; background: var(--text-muted); }
-  /* Tighter mobile sheet — was eating ~30% of the viewport in whitespace */
-  .sidebar-header { padding-top: 8px; padding-bottom: 8px; }
+  /* Tighter mobile sheet — was eating ~30% of the viewport in whitespace.
+     Header is sticky-top on mobile so the back-stack pill + verse address
+     stay visible after the user scrolls into cross-refs. */
+  .sidebar-header {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    position: sticky;
+    top: 24px; /* clears the .sidebar-handle (height: 24px) */
+    background: var(--bg);
+    z-index: 5;
+  }
   .sidebar { /* sidebar already overflows; tighten the body padding */ }
 
   /* Larger tap targets in sidebar (kept) */
@@ -3613,7 +3626,13 @@ function init() {
       }, 4000); // delay so it doesn't compete with the welcome card
     }
   } catch (e) {}
-  loadSermons();
+  // Defer sermons.json (370KB) — only needed when the sidebar opens.
+  // Idle-load so verse-extras underline indicators populate post-paint.
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => loadSermons(), { timeout: 4000 });
+  } else {
+    setTimeout(() => loadSermons(), 2500);
+  }
 }
 
 function applyTheme(theme) {
@@ -3714,11 +3733,26 @@ function getCommentaryFor(key) {
 }
 
 let SERMONS = null;
+let _sermonsPromise = null;
 async function loadSermons() {
-  try {
-    const r = await fetch('sermons.json');
-    if (r.ok) SERMONS = await r.json();
-  } catch(e) {}
+  if (SERMONS) return SERMONS;
+  if (_sermonsPromise) return _sermonsPromise;
+  _sermonsPromise = (async () => {
+    try {
+      const r = await fetch('sermons.json');
+      if (r.ok) SERMONS = await r.json();
+    } catch(e) {}
+    return SERMONS;
+  })();
+  return _sermonsPromise;
+}
+// Lazy-trigger sermons load on first sidebar interaction. Saves ~370KB
+// from the initial-paint fetch contention; sidebar render reads SERMONS
+// synchronously and gracefully no-ops when it's null (the verse-extras
+// underline indicator just won't show until the file lands).
+function ensureSermons() {
+  if (!SERMONS && !_sermonsPromise) loadSermons();
+  return _sermonsPromise || Promise.resolve(SERMONS);
 }
 
 const PASTOR_COLORS = {
@@ -6155,8 +6189,9 @@ function showSidebar(key, verseNum, refs) {
   sidebar.scrollTop = 0;
   sidebar.classList.add('open');
   document.body.classList.add('sidebar-open');
-  // Lazy-trigger cross-refs load on first sidebar interaction
+  // Lazy-trigger cross-refs + sermons load on first sidebar interaction
   ensureCrossRefs();
+  ensureSermons();
 }
 
 function closeSidebar() {
