@@ -303,12 +303,9 @@ button.more-box .mb-sub {
 @media (max-width: 720px) {
   .book-byline {
     font-size: 12px;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* Iter 95: line-clamp removed per user feedback ('liked this how it was
+       before'). Full byline now wraps freely on mobile so all four fields
+       (author / date / genre / theme) stay visible. */
   }
 }
 
@@ -5768,11 +5765,10 @@ function renderChapter(book, verses) {
   // Composes Author + Date + Genre + Theme into a single sentence.
   if (BOOK_BG && BOOK_BG[osisBook]) {
     const bg = BOOK_BG[osisBook];
-    // Use ' · ' as the genre→theme joiner (was ' — ') because many themes
-    // already embed their own em-dash, which created two em-dashes per line.
-    // Author is also clamped to 28 chars for Psalms-class long-author cases.
-    const author = bg.author.length > 28 ? bg.author.slice(0, 26).replace(/[,\s]+$/, '') + '…' : bg.author;
-    const byline = `${author} · ${bg.date} · ${bg.genre} · ${bg.theme}`;
+    // Iter 95: author truncation removed per user feedback (they liked the
+    // full byline). The 28-char clamp was producing "Moses (traditional);
+    // compi…" which they preferred to see whole.
+    const byline = `${bg.author} · ${bg.date} · ${bg.genre} · ${bg.theme}`;
     html += `<div class="book-byline">${byline}</div>`;
   }
 
@@ -6027,12 +6023,13 @@ function showSidebar(key, verseNum, refs) {
     });
   }
 
-  // OpenBible refs (obHTML) suppressed iter 80. Two stacked cross-ref lists
-  // create decision fatigue; the typed cross_refs.json wins on interpretive
-  // labels (PROPHECY/FULFILLMENT/PARALLEL/THEMATIC/QUOTE) vs OpenBible's flat
-  // popularity-ranked list. Code preserved if-block kept dead.
+  // OpenBible refs (obHTML) RESTORED iter 95. Iter 80 cut these thinking the
+  // curated REFS object would cover everything — wrong: curated REFS is small,
+  // OpenBible has 344K typed refs covering far more verses. Cutting it left
+  // most verses (esp. Psalms) with no cross-refs at all. OB entries DO carry
+  // type info (PROPHECY/FULFILLMENT/etc) so the 'flat list' critique was wrong.
   let obHTML = '';
-  if (false && obList.length) {
+  if (obList.length) {
     const obByType = {};
     obList.forEach(r => {
       const t = r.t || 'THEMATIC';
