@@ -3165,13 +3165,99 @@ function init() {
     const ref = (rawValue || '').trim();
     if (!ref) return false;
     haptic(8);
-    const oneWord = ref.toLowerCase();
-    if (!/[\d:.]/.test(oneWord) && /^[a-z]+$/i.test(oneWord) && FAMOUS_WORDS[oneWord]) {
-      showKeywordPicker(oneWord, FAMOUS_WORDS[oneWord]);
+    const lower = ref.toLowerCase();
+    // Single-word famous-keyword lookup (existing path)
+    if (!/[\d:.]/.test(lower) && /^[a-z]+$/i.test(lower) && FAMOUS_WORDS[lower]) {
+      showKeywordPicker(lower, FAMOUS_WORDS[lower]);
       return true;
     }
-    navigateHumanRef(ref);
+    // Verse reference (e.g., "John 3:16", "Heb 4:14") — try parsing
+    if (/[\d:.]/.test(ref) || /^[\d]?[A-Za-z]+\s+\d/.test(ref)) {
+      const handled = navigateHumanRef(ref);
+      if (handled !== false) return true;
+    }
+    // Iter 98: full text-search fallback for multi-word queries like "new day"
+    // that don't match a famous keyword OR a verse reference. Searches the
+    // verse-level commentary corpus (1100+ entries) + chapter-level commentary
+    // + FAMOUS_WORDS keys, scores by phrase + word-token hits.
+    return runFullTextSearch(ref);
+  };
+
+  // Build a search corpus on demand from commentary + chapter-commentary text
+  // and run a simple BM25-ish scorer. Free, fast, no LLM needed.
+  function runFullTextSearch(query) {
+    const q = query.toLowerCase().trim();
+    const tokens = q.split(/\s+/).filter(t => t.length > 1);
+    if (!tokens.length) return false;
+    const results = [];
+    const seen = new Set();
+    const consider = (key, text, source) => {
+      if (!text || seen.has(key)) return;
+      const t = text.toLowerCase();
+      let score = 0;
+      // Phrase match — strongest signal
+      if (t.includes(q)) score += 100;
+      // Per-token matches
+      for (const tok of tokens) {
+        const idx = t.indexOf(tok);
+        if (idx !== -1) score += 10 + Math.max(0, 5 - Math.floor(idx / 50));
+      }
+      if (score > 0) {
+        seen.add(key);
+        results.push({ key, text, score, source });
+      }
+    };
+    // Search FAMOUS_WORDS keys first
+    for (const w of Object.keys(FAMOUS_WORDS)) {
+      for (const tok of tokens) {
+        if (w.startsWith(tok) || tok.startsWith(w)) {
+          for (const ref of FAMOUS_WORDS[w]) {
+            consider(ref, `Topic: ${w}`, 'topic');
+          }
+          break;
+        }
+      }
+    }
+    // Verse-level commentary
+    if (typeof COMMENTARY === 'object' && COMMENTARY) {
+      for (const k in COMMENTARY) consider(k, COMMENTARY[k], 'verse-commentary');
+    }
+    // Chapter-level commentary
+    if (typeof COMMENTARY_CHAPTER === 'object' && COMMENTARY_CHAPTER) {
+      for (const k in COMMENTARY_CHAPTER) consider(k + '.1', COMMENTARY_CHAPTER[k], 'chapter-commentary');
+    }
+    results.sort((a, b) => b.score - a.score);
+    if (!results.length) {
+      showToast(`No matches for "${query}"`, 'error');
+      return true;
+    }
+    showSearchResults(query, results.slice(0, 30));
     return true;
+  }
+
+  window.showSearchResults = function(query, results) {
+    const modal = document.getElementById('ws-modal');
+    const body = document.getElementById('ws-modal-body');
+    if (!modal || !body) return;
+    const cards = results.map(r => {
+      const human = (typeof osisToHuman === 'function') ? osisToHuman(r.key) : r.key;
+      const snippet = r.text.length > 180 ? r.text.slice(0, 180) + '…' : r.text;
+      const tag = r.source === 'topic' ? 'Topic' : (r.source === 'chapter-commentary' ? 'Chapter note' : 'Verse note');
+      return `<div onclick="navigateToOsis('${r.key}'); closeWordStudy()" style="padding:11px 13px;margin:8px 0;background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:4px;cursor:pointer;font-family:var(--sans)">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+          <div style="font-weight:600;font-size:14px;color:var(--accent)">${human}</div>
+          <div style="font-size:9.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em">${tag}</div>
+        </div>
+        <div style="font-family:var(--serif);font-size:13px;color:var(--text-muted);font-style:italic;line-height:1.45;margin-top:4px">${snippet}</div>
+      </div>`;
+    }).join('');
+    body.innerHTML = `
+      <div class="ws-modal-orig" style="font-size:22px;margin-bottom:4px">Results for "${query}"</div>
+      <div class="ws-modal-meta">${results.length} match${results.length === 1 ? '' : 'es'} across commentary + topics</div>
+      ${cards}
+    `;
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
   };
   function doJump() {
     const inp = document.getElementById('settings-jump-input');
@@ -3971,12 +4057,14 @@ async function openWordStudy(strong) {
 
   const lang = strong.startsWith('h') ? 'Hebrew' : 'Greek';
   const longDefs = (entry.l || []).filter(Boolean);
-  const concHTML = concList.slice(0, 60).map(loc => {
+  const renderConcLink = (loc) => {
     const [bIdx, ch, v] = loc;
     const bName = BOOKS[bIdx]?.name || '?';
     const osis = `${OSIS_BY_IDX[bIdx]}.${ch}.${v}`;
     return `<a class="ws-conc-link" onclick="navigateToOsis('${osis}'); closeWordStudy(); return false">${bName} ${ch}:${v}</a>`;
-  }).join('');
+  };
+  const concHTML = concList.slice(0, 60).map(renderConcLink).join('');
+  const allConcRefs = concList.map(renderConcLink).join('');
   const moreCount = concList.length > 60 ? concList.length - 60 : 0;
 
   // Find original-language form from any cached interlinear (so we can show it + pronounce)
@@ -4001,11 +4089,11 @@ async function openWordStudy(strong) {
       <span class="ws-pronunciation">${translit}</span>
       <button class="ws-speak-btn" onclick="speakWord('${(origWord||'').replace(/'/g,"\\'")}', ${isHeb})" aria-label="Pronounce" title="Hear pronunciation (uses your device's voice)">Speak</button>
     </div>` : ''}
-    <div class="ws-modal-meta">${lang} · Strong's ${strong.toUpperCase()}${entry.g ? ' · "' + entry.g + '"' : ''}${entry.d ? ' · ' + entry.d : ''}</div>
+    <div class="ws-modal-meta">${lang} · Strong's ${strong.toUpperCase()}${entry.g && !/unrepresented in english|n\/a|untranslated|not translated/i.test(entry.g) ? ' · "' + entry.g + '"' : ''}${entry.d && !/^apparent contracted|^a primitive root|^prim\.\s*root|^primitive root|of unknown derivation|of foreign origin/i.test(entry.d) ? ' · ' + entry.d : ''}</div>
     ${entry.s ? `<div class="ws-modal-section-title">Definition</div><div class="ws-modal-text">${entry.s}</div>` : ''}
     ${longDefs.length ? `<div class="ws-modal-section-title">Detailed senses</div><ul class="ws-modal-list" style="padding-left:18px;line-height:1.6">${longDefs.map(d => `<li>${d}</li>`).join('')}</ul>` : ''}
     ${entry.c ? `<div class="ws-modal-section-title">Notes</div><div class="ws-modal-list" style="font-style:italic;line-height:1.55">${entry.c}</div>` : ''}
-    ${concList.length ? `<div class="ws-modal-section-title">Concordance — ${concList.length}${concList.length >= 200 ? '+' : ''} occurrences</div><div class="ws-conc-grid">${concHTML}</div>${moreCount ? `<div style="font-size:11px;color:var(--text-dim);margin-top:8px">+ ${moreCount} more not shown</div>` : ''}` : ''}
+    ${concList.length ? `<div class="ws-modal-section-title">Concordance — ${concList.length}${concList.length >= 200 ? '+' : ''} occurrences</div><div id="ws-conc-grid" class="ws-conc-grid">${concHTML}</div>${moreCount ? `<template id="ws-conc-all-tpl">${allConcRefs}</template><button id="ws-conc-more-btn" type="button" onclick="(function(b){const tpl=document.getElementById('ws-conc-all-tpl');if(tpl){document.getElementById('ws-conc-grid').innerHTML=tpl.innerHTML;tpl.remove();}b.remove();})(this)" style="display:block;width:100%;background:var(--bg-alt);border:1px solid var(--border);color:var(--text);padding:8px 12px;margin:8px 0 0 0;border-radius:6px;font-family:var(--sans);font-size:12px;cursor:pointer;-webkit-tap-highlight-color:transparent">Show all ${concList.length} occurrences</button>` : ''}` : ''}
   `;
 }
 
