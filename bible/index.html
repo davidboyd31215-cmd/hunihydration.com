@@ -240,6 +240,21 @@ button.ch-arrow {
 }
 button.ch-arrow:hover { background: var(--bg); border-color: var(--border-strong); }
 button.ch-arrow:active { transform: scale(0.96); }
+button.ch-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+/* Inline variant — sits in the chapter-title row inside the reading column.
+   Larger tap target (40x40), softer outline, scholarly tone. */
+button.ch-arrow-inline {
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  margin: 0;
+  flex-shrink: 0;
+}
+button.ch-arrow-inline:hover { color: var(--text); border-color: var(--text-muted); background: var(--bg-alt); }
 #chapter-display * {
   color: var(--text) !important;
   text-decoration: none !important;
@@ -1900,7 +1915,11 @@ body.mode-timeline .timeline-help { display: block; }
   #book-select, #translation-group { flex-shrink: 0; }
   .status-pill { display: none; }
 
-  .bible-text { padding: 22px 18px 24vh; max-width: none; }
+  .bible-text { padding: 16px 10px 24vh; max-width: none; }
+  /* Tighter verse padding on mobile — was leaving ~22px of whitespace
+     either side of the verse text. */
+  .verse { padding: 4px 4px 4px 2px; gap: 8px; margin-bottom: 6px; }
+  .verse:hover, .verse.active { padding-left: 4px; }
   body.sidebar-open .bible-text {
     padding: 22px 18px 60vh;
     margin: 0;
@@ -2200,8 +2219,12 @@ body.mode-timeline .timeline-help { display: block; }
     <!-- Prev/next chapter arrows live RIGHT next to the chapter selector
          so the cluster reads as one navigation unit. (User feedback —
          was previously stranded on the far right of the header.) -->
-    <button id="prev-ch" class="ch-arrow" aria-label="Previous chapter" title="Previous chapter">&#8592;</button>
-    <button id="next-ch" class="ch-arrow" aria-label="Next chapter" title="Next chapter">&#8594;</button>
+    <!-- Hidden — the user-facing prev/next chapter arrows now live inline in
+         the chapter-title row inside the reading column. These #prev-ch /
+         #next-ch buttons are kept in DOM because handlers + keyboard shortcuts
+         + chapter-end nav all click them programmatically. -->
+    <button id="prev-ch" class="ch-arrow" hidden aria-label="Previous chapter" title="Previous chapter">&#8592;</button>
+    <button id="next-ch" class="ch-arrow" hidden aria-label="Next chapter" title="Next chapter">&#8594;</button>
 
     <span class="ctrl-label" style="margin-left:8px">Translation</span>
     <div class="pill-group" id="translation-group">
@@ -5741,7 +5764,11 @@ function renderChapter(book, verses) {
 
   let html = welcomeHTML + streakHTML + votdHTML + `
     <div class="book-title">${book.name}</div>
-    <div class="chapter-title">Chapter ${state.chapter}</div>
+    <div class="chapter-title-row" style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button class="ch-arrow ch-arrow-inline" onclick="document.getElementById('prev-ch').click()" aria-label="Previous chapter" title="Previous chapter" ${state.chapter === 1 && state.bookIdx === 0 ? 'disabled' : ''}>&#8592;</button>
+      <div class="chapter-title" style="margin:0;flex:1">Chapter ${state.chapter}</div>
+      <button class="ch-arrow ch-arrow-inline" onclick="document.getElementById('next-ch').click()" aria-label="Next chapter" title="Next chapter" ${state.chapter === book.chapters && state.bookIdx === BOOKS.length - 1 ? 'disabled' : ''}>&#8594;</button>
+    </div>
   `;
 
   const osisBook = OSIS_BY_IDX[state.bookIdx];
@@ -6189,7 +6216,7 @@ function showSidebar(key, verseNum, refs) {
       ${backPillHTML}
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <div class="sidebar-verse-address" style="flex:1;min-width:0">${_vref}</div>
-        <button class="bookmark-btn ${isBkmk ? 'active' : ''}" onclick="onBookmarkClick('${key}', this)" aria-label="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" title="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" style="padding:4px 10px;font-size:12px;border-radius:12px;line-height:1.2;flex-shrink:0">${isBkmk ? 'Bookmarked' : 'Bookmark'}</button>
+        <button class="bookmark-btn ${isBkmk ? 'active' : ''}" onclick="onBookmarkClick('${key}', this)" aria-label="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" title="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" style="padding:4px 10px;font-size:12px;border-radius:12px;line-height:1.2;flex-shrink:0">${isBkmk ? '★ Bookmarked' : '☆ Bookmark'}</button>
       </div>
       <div class="sidebar-verse-text" style="margin-top:6px">${verseText}</div>
       <div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
@@ -6294,7 +6321,7 @@ function onBookmarkClick(key, btn) {
   const nowBookmarked = toggleBookmark(key, snippet);
   if (btn) {
     btn.classList.toggle('active', nowBookmarked);
-    btn.textContent = nowBookmarked ? 'Bookmarked' : 'Bookmark';
+    btn.textContent = nowBookmarked ? '★ Bookmarked' : '☆ Bookmark';
     btn.setAttribute('aria-label', nowBookmarked ? 'Remove bookmark' : 'Add bookmark');
     btn.classList.remove('just-saved'); void btn.offsetWidth; // restart animation
     if (nowBookmarked) {
