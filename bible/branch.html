@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f1e7">
+<title>Branch Out — Scripture Link</title>
+<link rel="preconnect" href="https://bible-api.com" crossorigin>
+<link rel="preconnect" href="https://bolls.life" crossorigin>
+<style>
+  :root {
+    --bg: #f6f1e7;
+    --bg-alt: #ede4d3;
+    --card: #fffdf7;
+    --text: #1f1a13;
+    --text-dim: #6b5e48;
+    --border: #d8ccb1;
+    --accent: #2a5680;
+    --serif: 'Iowan Old Style', 'Charter', 'Georgia', 'Cambria', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+    --shadow: 0 1px 3px rgba(40,30,10,.08), 0 8px 24px rgba(40,30,10,.06);
+
+    --c-PROPHECY:    #8B3A3A;
+    --c-FULFILLMENT: #2A5680;
+    --c-PARALLEL:    #3D6E36;
+    --c-THEMATIC:    #6B4080;
+    --c-QUOTE:       #8B6B1A;
+    --c-OB:          #9A8C70;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--serif); -webkit-text-size-adjust: 100%; }
+  a { color: var(--accent); }
+
+  /* ─────── top bar ─────── */
+  .topbar {
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    background: rgba(246,241,231,.92); backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 20;
+    font-family: var(--sans); font-size: 13px;
+    flex-wrap: wrap;
+  }
+  .topbar a.back { text-decoration: none; color: var(--text); font-weight: 600; }
+  .topbar a.back:hover { color: var(--accent); }
+  .topbar .title { font-family: var(--serif); font-style: italic; color: var(--text-dim); flex: 1; min-width: 100px; }
+  .topbar .center-input {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px 8px;
+  }
+  .topbar .center-input label { color: var(--text-dim); font-size: 12px; }
+  .topbar .center-input input {
+    border: 0; outline: 0; background: transparent; font-family: var(--sans); font-size: 13px;
+    color: var(--text); width: 140px;
+  }
+  .topbar .center-input button {
+    border: 0; background: var(--accent); color: #fff; padding: 3px 10px; border-radius: 4px;
+    font-family: var(--sans); font-size: 12px; cursor: pointer;
+  }
+
+  /* ─────── stage ─────── */
+  .stage {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 50px);
+    overflow: hidden;
+  }
+  @media (max-width: 720px) {
+    .stage { height: auto; min-height: calc(100vh - 50px); overflow: visible; }
+  }
+  svg.arcs {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  @media (max-width: 720px) {
+    svg.arcs { display: none; }
+  }
+
+  /* ─────── center card ─────── */
+  .center-card {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(440px, 78vw);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+    z-index: 5;
+  }
+  .center-card .ref {
+    font-family: var(--sans); font-size: 12px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--accent); font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .center-card .text {
+    font-family: var(--serif); font-size: 19px; line-height: 1.55; color: var(--text);
+  }
+  .center-card .text .verse-num {
+    font-family: var(--sans); font-size: 11px; vertical-align: super;
+    color: var(--text-dim); margin-right: 3px;
+  }
+  .center-card .meta {
+    font-family: var(--sans); font-size: 11px; color: var(--text-dim);
+    margin-top: 12px;
+  }
+
+  /* ─────── branch cards ─────── */
+  .branch-card {
+    position: absolute;
+    width: 200px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+    z-index: 4;
+    border-left: 3px solid var(--c-OB);
+  }
+  .branch-card:hover {
+    transform: translate(-50%, -50%) scale(1.04);
+    box-shadow: 0 2px 6px rgba(40,30,10,.12), 0 14px 32px rgba(40,30,10,.10);
+  }
+  .branch-card.PROPHECY    { border-left-color: var(--c-PROPHECY); }
+  .branch-card.FULFILLMENT { border-left-color: var(--c-FULFILLMENT); }
+  .branch-card.PARALLEL    { border-left-color: var(--c-PARALLEL); }
+  .branch-card.THEMATIC    { border-left-color: var(--c-THEMATIC); }
+  .branch-card.QUOTE       { border-left-color: var(--c-QUOTE); }
+
+  .branch-card .b-ref {
+    font-family: var(--sans); font-size: 11.5px; font-weight: 600;
+    color: var(--text); margin-bottom: 4px;
+    display: flex; justify-content: space-between; align-items: baseline; gap: 6px;
+  }
+  .branch-card .b-type {
+    font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .branch-card .b-text {
+    font-family: var(--serif); font-size: 12.5px; line-height: 1.4;
+    color: var(--text-dim); font-style: italic;
+  }
+
+  /* ─────── mobile column fallback ─────── */
+  @media (max-width: 720px) {
+    .center-card {
+      position: static; transform: none; margin: 18px auto; width: calc(100% - 32px);
+    }
+    .branch-card {
+      position: static; transform: none; margin: 0 auto 10px; width: calc(100% - 32px);
+    }
+    .branch-card:hover { transform: none; }
+    #branches-mobile-label {
+      display: block; text-align: center; font-family: var(--sans); font-size: 11px;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim);
+      margin: 18px 0 10px;
+    }
+  }
+  @media (min-width: 721px) {
+    #branches-mobile-label { display: none; }
+  }
+
+  /* ─────── status / overlay ─────── */
+  .status {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    font-family: var(--sans); font-size: 11px; color: var(--text-dim);
+    background: rgba(255,253,247,.85); padding: 4px 10px; border-radius: 4px;
+    border: 1px solid var(--border);
+    pointer-events: none;
+  }
+  .legend {
+    position: absolute; top: 10px; right: 14px;
+    font-family: var(--sans); font-size: 10px; color: var(--text-dim);
+    display: flex; gap: 10px; flex-wrap: wrap; max-width: 280px; justify-content: flex-end;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .legend i { width: 10px; height: 2px; display: inline-block; border-radius: 1px; }
+  @media (max-width: 720px) { .legend { position: static; padding: 6px 16px 0; justify-content: center; max-width: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back" href="/bible/">&larr; Back to Scripture Link</a>
+  <span class="title">Branch Out — experimental</span>
+  <form class="center-input" id="ref-form">
+    <label for="ref-input">Center on</label>
+    <input id="ref-input" type="text" placeholder="John 3:16" autocomplete="off" />
+    <button type="submit">Go</button>
+  </form>
+</div>
+
+<div class="stage" id="stage">
+  <svg class="arcs" id="arcs" preserveAspectRatio="none"></svg>
+  <div class="legend" id="legend"></div>
+  <!-- center + branches injected here -->
+  <div id="branches-mobile-label">Cross-references</div>
+  <div class="status" id="status">Loading…</div>
+</div>
+
+<script>
+//==========================================================
+// constants
+//==========================================================
+const OSIS_BY_IDX = ['Gen','Exod','Lev','Num','Deut','Josh','Judg','Ruth','1Sam','2Sam','1Kgs','2Kgs','1Chr','2Chr','Ezra','Neh','Esth','Job','Ps','Prov','Eccl','Song','Isa','Jer','Lam','Ezek','Dan','Hos','Joel','Amos','Obad','Jonah','Mic','Nah','Hab','Zeph','Hag','Zech','Mal','Matt','Mark','Luke','John','Acts','Rom','1Cor','2Cor','Gal','Eph','Phil','Col','1Thess','2Thess','1Tim','2Tim','Titus','Phlm','Heb','Jas','1Pet','2Pet','1John','2John','3John','Jude','Rev'];
+const BOOK_NAMES = ['Genesis','Exodus','Leviticus','Numbers','Deuteronomy','Joshua','Judges','Ruth','1 Samuel','2 Samuel','1 Kings','2 Kings','1 Chronicles','2 Chronicles','Ezra','Nehemiah','Esther','Job','Psalms','Proverbs','Ecclesiastes','Song of Solomon','Isaiah','Jeremiah','Lamentations','Ezekiel','Daniel','Hosea','Joel','Amos','Obadiah','Jonah','Micah','Nahum','Habakkuk','Zephaniah','Haggai','Zechariah','Malachi','Matthew','Mark','Luke','John','Acts','Romans','1 Corinthians','2 Corinthians','Galatians','Ephesians','Philippians','Colossians','1 Thessalonians','2 Thessalonians','1 Timothy','2 Timothy','Titus','Philemon','Hebrews','James','1 Peter','2 Peter','1 John','2 John','3 John','Jude','Revelation'];
+const IDX_BY_OSIS = {};
+OSIS_BY_IDX.forEach((o,i) => IDX_BY_OSIS[o] = i);
+// also accept the human book name (lowercased, no spaces) as input
+const IDX_BY_HUMAN = {};
+BOOK_NAMES.forEach((n,i) => IDX_BY_HUMAN[n.toLowerCase().replace(/\s+/g,'')] = i);
+// common aliases
+const ALIAS = { 'psalm':'Ps','psalms':'Ps','song':'Song','songofsolomon':'Song','songofsongs':'Song','revelation':'Rev','rev':'Rev' };
+
+const TYPE_COLORS = {
+  PROPHECY: '#8B3A3A',
+  FULFILLMENT: '#2A5680',
+  PARALLEL: '#3D6E36',
+  THEMATIC: '#6B4080',
+  QUOTE: '#8B6B1A',
+  OB: '#9A8C70',
+};
+
+const MAX_BRANCHES = 9; // visual cap
+const verseTextCache = new Map();
+let CROSS_REFS = null;
+let crossRefsPromise = null;
+
+//==========================================================
+// ref parsing
+//==========================================================
+// Accepts: "John.3.16", "John 3:16", "1 Cor 13:4", "Rev.21.1", "Gen.3.15"
+function parseRef(input) {
+  if (!input) return null;
+  const s = String(input).trim();
+  // OSIS form: Book.Chap.Verse  (allow ranges Book.C.V-Book.C.V → take first)
+  let m = s.match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)/);
+  if (m) {
+    const osisBook = canonicalOsisBook(m[1]);
+    if (osisBook) return { osis: osisBook, ch: +m[2], v: +m[3] };
+  }
+  // Human form: Book Chap:Verse  (book may include a leading digit + space)
+  m = s.match(/^([1-3]?\s*[A-Za-z]+(?:\s+of\s+[A-Za-z]+)?)\s+(\d+)[:\.](\d+)/);
+  if (m) {
+    const osisBook = canonicalOsisBook(m[1]);
+    if (osisBook) return { osis: osisBook, ch: +m[2], v: +m[3] };
+  }
+  return null;
+}
+function canonicalOsisBook(raw) {
+  const k = String(raw).toLowerCase().replace(/\s+/g,'');
+  if (ALIAS[k]) return ALIAS[k];
+  // already-OSIS lookup (case-insensitive)
+  const direct = OSIS_BY_IDX.find(o => o.toLowerCase() === k);
+  if (direct) return direct;
+  // human-name lookup
+  if (IDX_BY_HUMAN[k] != null) return OSIS_BY_IDX[IDX_BY_HUMAN[k]];
+  // prefix match against human names (e.g. "rom" → Romans)
+  for (let i = 0; i < BOOK_NAMES.length; i++) {
+    const cmp = BOOK_NAMES[i].toLowerCase().replace(/\s+/g,'');
+    if (cmp.startsWith(k) && k.length >= 3) return OSIS_BY_IDX[i];
+  }
+  return null;
+}
+function refToOsisKey(r) { return `${r.osis}.${r.ch}.${r.v}`; }
+function refToHuman(r) {
+  const idx = IDX_BY_OSIS[r.osis];
+  const name = idx != null ? BOOK_NAMES[idx] : r.osis;
+  return `${name} ${r.ch}:${r.v}`;
+}
+function refToCompact(r) {
+  return `${r.osis}.${r.ch}.${r.v}`;
+}
+
+// Targets in cross_refs.json may be ranges: "John.1.1-John.1.3"
+function targetFirstVerse(targetStr) {
+  const first = String(targetStr).split('-')[0];
+  const m = first.match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)/);
+  if (!m) return null;
+  return { osis: m[1], ch: +m[2], v: +m[3] };
+}
+
+//==========================================================
+// data loading
+//==========================================================
+async function ensureCrossRefs() {
+  if (CROSS_REFS) return CROSS_REFS;
+  if (crossRefsPromise) return crossRefsPromise;
+  crossRefsPromise = (async () => {
+    try {
+      const r = await fetch('cross_refs.json');
+      if (r.ok) {
+        CROSS_REFS = await r.json();
+        return CROSS_REFS;
+      }
+    } catch (e) { /* fall through */ }
+    // Fallback: empty object → branches will be empty but page still works.
+    // (Live OpenBible.info has no JSON CDN; main app expects local copy.)
+    CROSS_REFS = {};
+    return CROSS_REFS;
+  })();
+  return crossRefsPromise;
+}
+
+async function fetchVerseText(ref) {
+  const key = refToOsisKey(ref);
+  if (verseTextCache.has(key)) return verseTextCache.get(key);
+  const idx = IDX_BY_OSIS[ref.osis];
+  if (idx == null) return null;
+  const bookName = BOOK_NAMES[idx];
+  // Primary: bible-api.com (full book name → required, per main app's iter-65)
+  try {
+    const r = await fetch(`https://bible-api.com/${encodeURIComponent(bookName)}+${ref.ch}:${ref.v}?translation=kjv`);
+    if (r.ok) {
+      const d = await r.json();
+      const text = (d.verses || []).map(v => v.text.trim()).join(' ');
+      if (text) { verseTextCache.set(key, text); return text; }
+    }
+  } catch (e) { /* fall through */ }
+  // Fallback: bolls.life
+  try {
+    const r2 = await fetch(`https://bolls.life/get-text/KJV/${idx + 1}/${ref.ch}/`);
+    if (r2.ok) {
+      const d = await r2.json();
+      const hit = d.find(v => v.verse === ref.v);
+      if (hit) {
+        const text = (hit.text || '').replace(/<[^>]+>/g, '').trim();
+        verseTextCache.set(key, text);
+        return text;
+      }
+    }
+  } catch (e) { /* swallow */ }
+  return null;
+}
+
+//==========================================================
+// branch selection
+//==========================================================
+function getBranches(centerRef) {
+  if (!CROSS_REFS) return [];
+  const key = refToOsisKey(centerRef);
+  const raw = CROSS_REFS[key] || [];
+  // sort by votes (already sorted in source, but be defensive)
+  const sorted = raw.slice().sort((a,b) => (b.v||0) - (a.v||0));
+  const out = [];
+  const seen = new Set();
+  for (const entry of sorted) {
+    const tgt = targetFirstVerse(entry.r);
+    if (!tgt) continue;
+    const k = refToOsisKey(tgt);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push({ ref: tgt, type: entry.t || 'OB', votes: entry.v || 0 });
+    if (out.length >= MAX_BRANCHES) break;
+  }
+  return out;
+}
+
+//==========================================================
+// rendering
+//==========================================================
+const stage = document.getElementById('stage');
+const svg = document.getElementById('arcs');
+const status = document.getElementById('status');
+const mobileLabel = document.getElementById('branches-mobile-label');
+
+function clearStage() {
+  // remove old cards (everything that is .branch-card or .center-card)
+  stage.querySelectorAll('.branch-card, .center-card').forEach(n => n.remove());
+  svg.innerHTML = '';
+}
+
+function setStatus(msg) {
+  if (status) status.textContent = msg || '';
+}
+
+async function render(centerRef) {
+  clearStage();
+  setStatus('Loading…');
+
+  // 1. center card scaffold
+  const centerCard = document.createElement('div');
+  centerCard.className = 'center-card';
+  centerCard.id = 'center-card';
+  centerCard.innerHTML = `
+    <div class="ref">${refToHuman(centerRef)}</div>
+    <div class="text" id="center-text">Loading verse…</div>
+    <div class="meta" id="center-meta">KJV · bible-api.com</div>
+  `;
+  stage.appendChild(centerCard);
+
+  // 2. wait for cross-refs (might already be cached)
+  await ensureCrossRefs();
+  const branches = getBranches(centerRef);
+
+  if (!branches.length) {
+    setStatus(CROSS_REFS && Object.keys(CROSS_REFS).length === 0
+      ? 'Cross-reference index not available — center verse only.'
+      : `No cross-references indexed for ${refToHuman(centerRef)}.`);
+  } else {
+    setStatus(`${branches.length} branch${branches.length === 1 ? '' : 'es'} from ${refToHuman(centerRef)} · click any to re-center`);
+  }
+
+  // 3. branch card scaffolds
+  const branchEls = [];
+  branches.forEach((b, i) => {
+    const el = document.createElement('div');
+    el.className = `branch-card ${b.type}`;
+    el.dataset.idx = i;
+    el.innerHTML = `
+      <div class="b-ref">
+        <span>${refToHuman(b.ref)}</span>
+        <span class="b-type" style="color:${TYPE_COLORS[b.type] || TYPE_COLORS.OB}">${b.type}</span>
+      </div>
+      <div class="b-text" data-loaded="0">…</div>
+    `;
+    el.addEventListener('click', () => {
+      navigate(b.ref);
+    });
+    stage.appendChild(el);
+    branchEls.push({ el, branch: b });
+  });
+
+  // 4. layout (skip absolute layout on mobile — CSS handles columnar fallback)
+  layoutBranches(centerCard, branchEls, branches.length);
+
+  // 5. fetch verse texts (center first, then branches in parallel)
+  fetchVerseText(centerRef).then(t => {
+    const el = document.getElementById('center-text');
+    if (el) el.textContent = t || '(verse text unavailable)';
+  });
+  branchEls.forEach(({ el, branch }) => {
+    const txtEl = el.querySelector('.b-text');
+    fetchVerseText(branch.ref).then(t => {
+      const trimmed = t ? (t.length > 90 ? t.slice(0,87).trim() + '…' : t) : '(text unavailable)';
+      txtEl.textContent = trimmed;
+      txtEl.dataset.loaded = '1';
+    });
+  });
+
+  // 6. legend
+  renderLegend(branches);
+}
+
+function layoutBranches(centerCard, branchEls, count) {
+  if (window.innerWidth <= 720) return; // CSS handles columnar mobile fallback
+  const stageRect = stage.getBoundingClientRect();
+  const cx = stageRect.width / 2;
+  const cy = stageRect.height / 2;
+
+  // ring radius scales with stage size
+  const radius = Math.min(stageRect.width, stageRect.height) * 0.36;
+  const minRadius = 240;
+  const r = Math.max(radius, minRadius);
+
+  // start at top, spread evenly
+  const start = -Math.PI / 2;
+  const span = Math.PI * 2;
+
+  branchEls.forEach(({ el, branch }, i) => {
+    const angle = start + (count <= 1 ? 0 : (span * i) / count);
+    const x = cx + Math.cos(angle) * r;
+    const y = cy + Math.sin(angle) * r;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.transform = 'translate(-50%, -50%)';
+  });
+
+  // arcs
+  drawArcs(centerCard, branchEls);
+}
+
+function drawArcs(centerCard, branchEls) {
+  if (window.innerWidth <= 720) return;
+  const stageRect = stage.getBoundingClientRect();
+  svg.setAttribute('viewBox', `0 0 ${stageRect.width} ${stageRect.height}`);
+  svg.innerHTML = '';
+  const cRect = centerCard.getBoundingClientRect();
+  const cx = cRect.left - stageRect.left + cRect.width / 2;
+  const cy = cRect.top  - stageRect.top  + cRect.height / 2;
+
+  branchEls.forEach(({ el, branch }) => {
+    const r = el.getBoundingClientRect();
+    const bx = r.left - stageRect.left + r.width / 2;
+    const by = r.top  - stageRect.top  + r.height / 2;
+    // quadratic bezier with control point pulled toward center (gentle arc)
+    const mx = (cx + bx) / 2;
+    const my = (cy + by) / 2;
+    // perpendicular offset for the curve
+    const dx = bx - cx, dy = by - cy;
+    const len = Math.hypot(dx, dy) || 1;
+    const ox = -dy / len * 30;
+    const oy =  dx / len * 30;
+    const cxC = mx + ox;
+    const cyC = my + oy;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M ${cx} ${cy} Q ${cxC} ${cyC} ${bx} ${by}`);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', TYPE_COLORS[branch.type] || TYPE_COLORS.OB);
+    path.setAttribute('stroke-width', '1.5');
+    path.setAttribute('stroke-opacity', '0.55');
+    path.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(path);
+  });
+}
+
+function renderLegend(branches) {
+  const legend = document.getElementById('legend');
+  const types = Array.from(new Set(branches.map(b => b.type)));
+  legend.innerHTML = types.map(t =>
+    `<span><i style="background:${TYPE_COLORS[t] || TYPE_COLORS.OB}"></i>${t}</span>`
+  ).join('');
+}
+
+//==========================================================
+// navigation
+//==========================================================
+function navigate(ref) {
+  const compact = refToCompact(ref);
+  const url = new URL(window.location.href);
+  url.searchParams.set('ref', compact);
+  history.pushState({ ref: compact }, '', url.toString());
+  document.getElementById('ref-input').value = refToHuman(ref);
+  render(ref);
+}
+
+window.addEventListener('popstate', () => {
+  const ref = currentRefFromUrl();
+  document.getElementById('ref-input').value = refToHuman(ref);
+  render(ref);
+});
+
+function currentRefFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get('ref') || 'John.3.16';
+  return parseRef(raw) || { osis: 'John', ch: 3, v: 16 };
+}
+
+//==========================================================
+// input form
+//==========================================================
+document.getElementById('ref-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const v = document.getElementById('ref-input').value.trim();
+  const parsed = parseRef(v);
+  if (!parsed) {
+    setStatus(`Could not parse "${v}" — try e.g. "John 3:16" or "Gen.1.1"`);
+    return;
+  }
+  navigate(parsed);
+});
+
+//==========================================================
+// resize handling
+//==========================================================
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const ref = currentRefFromUrl();
+    render(ref);
+  }, 120);
+});
+
+//==========================================================
+// boot
+//==========================================================
+(function boot() {
+  const ref = currentRefFromUrl();
+  document.getElementById('ref-input').value = refToHuman(ref);
+  render(ref);
+})();
+</script>
+</body>
+</html>
