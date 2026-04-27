@@ -2378,7 +2378,7 @@ body.mode-timeline .timeline-help { display: block; }
       <div class="settings-row" data-action="translation">
         <div class="settings-row-main">
           <div class="settings-row-label">Bible version</div>
-          <div class="settings-row-sub">King James, ESV, or Berean Standard</div>
+          <div class="settings-row-sub">King James or ESV</div>
         </div>
         <div class="settings-row-value" id="settings-translation-value">KJV</div>
       </div>
@@ -5991,8 +5991,12 @@ function showSidebar(key, verseNum, refs) {
     });
   }
 
+  // OpenBible refs (obHTML) suppressed iter 80. Two stacked cross-ref lists
+  // create decision fatigue; the typed cross_refs.json wins on interpretive
+  // labels (PROPHECY/FULFILLMENT/PARALLEL/THEMATIC/QUOTE) vs OpenBible's flat
+  // popularity-ranked list. Code preserved if-block kept dead.
   let obHTML = '';
-  if (obList.length) {
+  if (false && obList.length) {
     const obByType = {};
     obList.forEach(r => {
       const t = r.t || 'THEMATIC';
@@ -6091,18 +6095,10 @@ function showSidebar(key, verseNum, refs) {
     }
   }
 
-  const tq = THEOLOGY_Q && THEOLOGY_Q[key];
-  const ta = THEOLOGY_A && THEOLOGY_A[key];
-  const tqHTML = tq ? `
-    <div class="sidebar-section" style="background:linear-gradient(135deg, var(--accent-soft), transparent);border-left:3px solid var(--accent);padding:14px 16px;margin-bottom:8px">
-      <div style="font-size:10px;letter-spacing:0.1em;color:var(--accent);text-transform:uppercase;margin-bottom:6px;font-weight:600">Theological question</div>
-      <div style="font-family:var(--serif);font-size:16px;line-height:1.45;color:var(--text);font-weight:500;margin-bottom:${ta ? '10px' : '0'}">${tq}</div>
-      ${ta ? `<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:6px">
-        <div style="font-size:10px;letter-spacing:0.1em;color:var(--accent);text-transform:uppercase;margin-bottom:6px;font-weight:600">Answer</div>
-        <div style="font-family:var(--serif);font-size:14px;line-height:1.55;color:var(--text-muted)">${ta}</div>
-      </div>` : ''}
-    </div>
-  ` : '';
+  // Top theological question (tqHTML) suppressed iter 80. The questions
+  // editorialize the text — users tapped a verse to read it, not to be quizzed.
+  // Cross-refs are neutral infrastructure; questions are opinion. Data preserved.
+  const tqHTML = '';
   const gqURL = `https://www.gotquestions.org/?s=${encodeURIComponent(book.name + ' ' + state.chapter)}`;
 
   const isBkmk = isBookmarked(key);
@@ -6199,9 +6195,13 @@ function showSidebar(key, verseNum, refs) {
           }).join('')}
           ${sermonScraped ? `<div style="font-size:10px;color:var(--text-dim);margin-top:6px;font-style:italic;text-align:right">Sermon index scraped ${formatSermonDate(sermonScraped)}</div>` : ''}
         </div>` : '';
-      return sermonsHTML + `
-      <div class="blb-section" style="margin-top:${sermons.length ? '6px' : '14px'}">
-        <div class="blb-title">${sermons.length ? 'Browse more' : 'Search ministries'}</div>
+      // 'Browse more / Search ministries' footer trimmed iter 80: only render
+      // when there are NO sermon hits for this verse. When sermons exist, five
+      // always-on ministry buttons added visual weight that competed with the
+      // actual results; let the curated hits stand alone.
+      const browseHTML = sermons.length ? '' : `
+      <div class="blb-section" style="margin-top:14px">
+        <div class="blb-title">Search ministries</div>
         <div class="blb-links">
           <a class="blb-btn" href="https://www.gty.org/search?q=${encodeURIComponent(book.name + ' ' + state.chapter + ':' + verseNum)}" target="_blank" rel="noopener" title="John MacArthur — Grace to You">MacArthur</a>
           <a class="blb-btn" href="https://stonebridgebible.org/sermons" target="_blank" rel="noopener" title="Jonny Ardavanis — Stonebridge / Dial In">Ardavanis</a>
@@ -6210,6 +6210,7 @@ function showSidebar(key, verseNum, refs) {
           <a class="blb-btn" href="https://www.coe22.com/sermons" target="_blank" rel="noopener" title="Joby Martin — The Church of Eleven22">Joby Martin</a>
         </div>
       </div>`;
+      return sermonsHTML + browseHTML;
     })()}
     <div class="blb-section" style="margin-top:14px">
       <div class="blb-title">Study tools</div>
