@@ -2562,13 +2562,9 @@ body.mode-timeline .timeline-help { display: block; }
         </div>
         <div class="settings-row-value">View</div>
       </div>
-      <div class="settings-row" data-action="tour">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Show welcome tour again</div>
-          <div class="settings-row-sub">Re-display the intro card with feature highlights</div>
-        </div>
-        <div class="settings-row-value">Show</div>
-      </div>
+      <!-- Iter 90: 'Show welcome tour again' row removed. Welcome card itself
+           was deleted in iter 89, so this row could not show anything. -->
+
       <div class="settings-row" data-action="about">
         <div class="settings-row-main">
           <div class="settings-row-label">About Scripture Link</div>
@@ -3334,14 +3330,7 @@ function init() {
         closeSettings();
         showAboutModal();
       }
-      else if (action === 'tour') {
-        // Re-show the welcome card (clear the dismissed flag, then re-render
-        // the chapter so renderChapter rebuilds the card at the top).
-        localStorage.removeItem('scripture-welcome-seen');
-        if (state.verses && state.verses.length) renderChapter(BOOKS[state.bookIdx], state.verses);
-        closeSettings();
-        showToast('Welcome tour shown — scroll up');
-      }
+      // 'tour' action removed iter 90 — welcome card no longer exists.
       syncSettingsValues();
     });
   });
