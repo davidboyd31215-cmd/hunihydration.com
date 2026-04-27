@@ -2261,18 +2261,16 @@ body.mode-timeline .timeline-help { display: block; }
     <div class="pill-group" id="translation-group">
       <button class="active" data-t="kjv" title="King James Version (1611) — classical English with thee/thou/begat" aria-label="King James Version">KJV</button>
       <button data-t="esv" title="English Standard Version — modern, readable, literal" aria-label="English Standard Version">ESV</button>
-      <button data-t="bsb" title="Berean Standard Bible — modern, free to copy, literal" aria-label="Berean Standard Bible">BSB</button>
+      <!-- BSB pill removed per simplification pass (iter 78). KJV+ESV cover
+           the classical+modern axis; BSB was a third near-duplicate of ESV.
+           data-t="bsb" still works as a URL param if anyone has a saved link. -->
     </div>
 
-    <div class="pill-group" id="mode-group" role="group" aria-label="Where related verses appear">
-      <button class="active" data-m="sidebar" title="Show cross-references in a side panel" aria-label="Show related verses in a sidebar">Sidebar</button>
-      <button data-m="inline" title="Show cross-references right under each verse" aria-label="Show related verses inline under each verse">Inline</button>
-    </div>
-    <div class="pill-group" id="view-group" role="group" aria-label="Visualization mode">
-      <button data-m="arc" title="See every cross-reference in the whole Bible as a chord diagram (current chapter highlighted)" aria-label="Arc chord diagram">Arc</button>
-      <button data-m="graph" title="Force-directed network: connected verses cluster together" aria-label="Force-directed graph">Graph</button>
-      <button data-m="timeline" title="Chronological timeline of all 66 books — when written and what era they cover" aria-label="Chronological book timeline">Timeline</button>
-    </div>
+    <!-- Mode pills (Sidebar/Inline) and visualization pills (Arc/Graph/Timeline)
+         removed from header per simplification pass (iter 78). Sidebar mode is
+         the default and reads cleanest. The visualizations were curiosity toys
+         that ate ~25% of header real estate. Code paths kept; reachable via
+         Settings drawer or URL hash. -->
   </div>
 
   <div class="chapter-nav">
@@ -5714,27 +5712,17 @@ function renderChapter(book, verses) {
     welcomeHTML = `
       <div id="welcome-card">
         <button class="wc-dismiss" onclick="localStorage.setItem('scripture-welcome-seen','1'); document.getElementById('welcome-card').remove();" aria-label="Dismiss welcome">&times;</button>
-        <div class="wc-title">Welcome to Scripture Link</div>
-        <div class="wc-body">A free Bible reader that links every verse to related passages, original-language meanings, and sermons.</div>
-        <div class="wc-section-label">Start with a Gospel</div>
-        <div class="wc-row">
-          <a class="wc-cta" href="#John.1.1">Read John →</a>
-        </div>
-        <div class="wc-section-label">Or jump to a famous verse</div>
+        <!-- Welcome card trimmed in iter 78. Title + body + CTA blocks
+             removed; the four famous-verse jump chips were the only piece
+             that actually moved users. Tap-to-explore tip preserved. -->
         <div class="wc-row">
           <a class="wc-pill" href="#John.3.16">John 3:16</a>
           <a class="wc-pill" href="#Ps.23.1">Psalm 23</a>
           <a class="wc-pill" href="#Rom.8.28">Romans 8:28</a>
           <a class="wc-pill" href="#Matt.5.3">Beatitudes</a>
         </div>
-        <div class="wc-section-label" style="margin-top:14px">Try a feature</div>
-        <div class="wc-row" style="gap:6px">
-          <a class="wc-chip" href="#John.3.16" onclick="setTimeout(()=>{const v=document.querySelector('[data-verse=\&quot;16\&quot;]');v&&v.click();},700)">See cross-references</a>
-          <a class="wc-chip" href="javascript:void(0)" onclick="(function(){state.wordStudyOn=true;localStorage.setItem('scripture-ws-on','1');loadChapter();document.getElementById('welcome-card')?.remove();})()">Show Hebrew &amp; Greek</a>
-          <a class="wc-chip" href="javascript:void(0)" onclick="document.getElementById('settings-toggle')?.click();setTimeout(()=>document.querySelector('[data-action=themes]')?.click(),200)">Browse themes</a>
-        </div>
-        <div class="wc-tip">
-          <strong style="color:var(--text-muted)">Tap any verse</strong> to see its connections. Open <strong style="color:var(--text-muted)">Menu</strong> for read-aloud, commentary, and more. On a keyboard, press <kbd style="background:var(--bg);border:1px solid var(--border-strong);border-radius:3px;padding:1px 5px;font-family:monospace;color:var(--text-muted)">?</kbd> for shortcuts.
+        <div class="wc-tip" style="margin-top:10px;font-size:11px">
+          Tap any verse for cross-references, original-language notes, and sermons.
         </div>
       </div>
     `;
@@ -5743,25 +5731,11 @@ function renderChapter(book, verses) {
   // Inline streak pill — surfaces at the top of every chapter once the user
   // has shown up >=2 days in a row. The streak counter was previously hidden
   // inside Settings (only visible after they opened the menu).
+  // Streak BANNER suppressed per simplification pass (iter 78). The streak
+  // counter still tracks days for the Settings drawer display, but the
+  // gamification-style "X consecutive days of reading" banner is brand-
+  // incongruent (calm scholarly tool vs. Duolingo nag). State is preserved.
   let streakHTML = '';
-  try {
-    const streakDays = (window._getReadingStreak && window._getReadingStreak()) || 0;
-    const dismissedToday = localStorage.getItem('scripture-streak-dismissed-' + new Date().toISOString().slice(0, 10));
-    // Session-scope: render the streak banner at most once per browser session.
-    // Without this, navigating across many chapters re-injects the banner on
-    // every loadChapter() until the user clicks × on each one. The localStorage
-    // dismissedToday gate persists 'don't show again today' across sessions.
-    let shownThisSession = false;
-    try { shownThisSession = sessionStorage.getItem('scripture-streak-shown-session') === '1'; } catch(e) {}
-    if (streakDays >= 2 && !dismissedToday && !shownThisSession) {
-      try { sessionStorage.setItem('scripture-streak-shown-session', '1'); } catch(e) {}
-      const msg = `${streakDays} consecutive days of reading.`;
-      streakHTML = `<div id="streak-banner" style="background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:6px;padding:8px 12px;margin:0 0 14px 0;font-family:var(--sans);font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:10px">
-        <span style="flex:1">${msg}</span>
-        <button onclick="localStorage.setItem('scripture-streak-dismissed-${new Date().toISOString().slice(0,10)}','1');document.getElementById('streak-banner').remove()" aria-label="Dismiss" style="background:none;border:none;color:var(--text-dim);font-size:18px;line-height:1;padding:0 4px;cursor:pointer">&times;</button>
-      </div>`;
-    }
-  } catch (e) {}
 
   // Verse of the Day — deterministic, date-seeded. Shows on the FIRST chapter
   // the user opens each day (any book/chapter), then auto-suppresses on
@@ -6234,17 +6208,9 @@ function showSidebar(key, verseNum, refs) {
           <div class="mb-title">Copy text</div>
           <div class="mb-sub">Verse text only, no link</div>
         </button>
-        <button class="more-box" role="menuitem" onclick="showImagePickerModal(${_vts}, '${_vref}'); window._toggleMoreMenu('${moreId}', false)">
-          <div class="mb-title">Save as image</div>
-          <div class="mb-sub">Shareable verse card</div>
-        </button>
         <button class="more-box" role="menuitem" id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this); window._toggleMoreMenu('${moreId}', false)">
           <div class="mb-title">Compare translations</div>
-          <div class="mb-sub">KJV / ESV / BSB side-by-side</div>
-        </button>
-        <button class="more-box" role="menuitem" onclick="startClozePractice(0, {ref:'${key}', snippet:${_vts}}); window._toggleMoreMenu('${moreId}', false)">
-          <div class="mb-title">Memorize</div>
-          <div class="mb-sub">Fill-in-the-blank practice</div>
+          <div class="mb-sub">KJV / ESV side-by-side</div>
         </button>
       </div>
       <div id="${cmpId}" style="margin-top:8px"></div>
