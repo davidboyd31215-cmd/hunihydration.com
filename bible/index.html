@@ -289,6 +289,40 @@ button.more-box .mb-sub {
   margin-top: 2px;
 }
 
+/* Toast (bookmark confirmations, errors, etc) — iter 99 */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--text);
+  color: var(--bg);
+  padding: 11px 20px;
+  border-radius: 24px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.18s cubic-bezier(0.32, 0.72, 0, 1), transform 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.22), 0 1px 2px rgba(0, 0, 0, 0.08);
+  letter-spacing: 0.01em;
+  max-width: 88vw;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast.error {
+  background: #9B2828;
+  color: #fff;
+}
+
 /* Book byline — italic subtitle that orients cold-open visitors. On mobile
    the long Theme field can wrap into 2-3 lines and start to compete with
    verse 1 visually; line-clamp to one line keeps it as metadata. */
@@ -2326,7 +2360,11 @@ body.mode-timeline .timeline-help { display: block; }
     <button id="commentary-toggle" class="theme-toggle" hidden aria-label="Toggle commentary" title="Show/hide verse commentary">Notes</button>
     <button id="wordstudy-toggle" class="theme-toggle" hidden aria-label="Toggle word study" title="Show/hide Hebrew & Greek with Strong's numbers">Original</button>
     <button id="redletter-toggle" class="theme-toggle" hidden aria-label="Toggle red-letter NT" title="Show Jesus' words in red (NT only)">Red Letter</button>
-    <input type="search" id="header-search" class="desktop-only" placeholder="Verse or keyword (e.g. John 3:16, hope)" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false" enterkeyhint="go" inputmode="search" aria-label="Search verse or keyword" />
+    <!-- Iter 99: search bar collapses to an icon. Click the magnifier to
+         expand to a full input; press Enter or Esc / click-outside to collapse.
+         Saves header real estate when not actively searching. -->
+    <button id="header-search-toggle" class="theme-toggle icon-btn" aria-label="Search" title="Search verse or keyword (/)" onclick="window._toggleHeaderSearch && window._toggleHeaderSearch(true)"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="6" cy="6" r="4"/><line x1="9" y1="9" x2="13" y2="13"/></svg></button>
+    <input type="search" id="header-search" placeholder="Verse or keyword (e.g. John 3:16, hope)" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false" enterkeyhint="go" inputmode="search" aria-label="Search verse or keyword" hidden />
     <button id="settings-toggle" class="theme-toggle icon-btn" aria-label="Open settings" title="Settings & display options"><svg width="16" height="14" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1 2 L15 2 M1 7 L15 7 M1 12 L15 12"/></svg></button>
     <button id="read-aloud-btn" class="theme-toggle icon-btn" aria-label="Read chapter aloud" aria-pressed="false" title="Read this chapter aloud"><svg width="16" height="14" viewBox="0 0 16 14" fill="currentColor"><path d="M1 4 L4 4 L8 1 L8 13 L4 10 L1 10 Z"/><path d="M10 4 Q12 7 10 10" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M11.5 2.5 Q15 7 11.5 11.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></button>
     <button id="share-link" class="theme-toggle desktop-only icon-btn" aria-label="Copy share link" title="Copy direct link to this verse/chapter"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="3" cy="7" r="2"/><circle cx="11" cy="3" r="2"/><circle cx="11" cy="11" r="2"/><line x1="4.7" y1="6" x2="9.3" y2="3.8"/><line x1="4.7" y1="8" x2="9.3" y2="10.2"/></svg></button>
@@ -3267,19 +3305,39 @@ function init() {
       closeSettings();
     }
   }
-  // Header search (desktop only) — same resolver, no drawer to close.
+  // Header search — collapses to magnifier icon by default; expand on click
+  // of #header-search-toggle. Iter 99.
   const headerSearch = document.getElementById('header-search');
+  const headerSearchToggle = document.getElementById('header-search-toggle');
+  window._toggleHeaderSearch = function(open) {
+    if (!headerSearch) return;
+    if (open) {
+      headerSearch.hidden = false;
+      headerSearch.classList.add('expanded');
+      if (headerSearchToggle) headerSearchToggle.hidden = true;
+      setTimeout(() => headerSearch.focus(), 0);
+    } else {
+      headerSearch.hidden = true;
+      headerSearch.classList.remove('expanded');
+      headerSearch.value = '';
+      if (headerSearchToggle) headerSearchToggle.hidden = false;
+    }
+  };
   if (headerSearch) {
     headerSearch.addEventListener('keydown', e => {
       if (e.key === 'Enter') {
         if (window._scriptureResolveInput(headerSearch.value)) {
           headerSearch.value = '';
-          headerSearch.blur();
+          window._toggleHeaderSearch(false);
         }
       } else if (e.key === 'Escape') {
         if (headerSearch.value) { headerSearch.value = ''; e.preventDefault(); }
-        else headerSearch.blur();
+        else window._toggleHeaderSearch(false);
       }
+    });
+    headerSearch.addEventListener('blur', () => {
+      // collapse if empty when focus leaves
+      if (!headerSearch.value) window._toggleHeaderSearch(false);
     });
   }
   // Render a small modal with the curated verses for a famous word
@@ -5147,15 +5205,17 @@ function showToast(msg, kind) {
   if (!t) {
     t = document.createElement('div');
     t.id = 'toast';
-    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:24px;font-family:var(--sans);font-size:13px;font-weight:500;z-index:1000;opacity:0;transition:opacity 0.2s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.18)';
+    t.className = 'toast';
     document.body.appendChild(t);
   }
   t.textContent = msg;
-  if (kind === 'error') { t.style.background = '#9B2828'; t.style.color = 'white'; }
-  else { t.style.background = ''; t.style.color = ''; }
-  t.style.opacity = '1';
+  // Iter 99: toast restyled. The previous reset path cleared the background
+  // (t.style.background = '') leaving the toast transparent after the first
+  // non-error call. Now governed by CSS class + a single .error modifier.
+  t.classList.toggle('error', kind === 'error');
+  t.classList.add('show');
   clearTimeout(t._timer);
-  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2400);
+  t._timer = setTimeout(() => { t.classList.remove('show'); }, 2400);
 }
 
 function parseHash() {
@@ -5850,17 +5910,28 @@ function renderChapter(book, verses) {
 
   const osisBook = OSIS_BY_IDX[state.bookIdx];
 
-  // Iter 81: collapsible 'About this book' card replaced with one inline
-  // italic byline on EVERY chapter (was chapter-1-only). One-line, no click
-  // required, gives Habakkuk-cold-open visitors enough context to orient.
-  // Composes Author + Date + Genre + Theme into a single sentence.
+  // Iter 99: card-style book-bg display restored per user feedback ('liked
+  // the card icon for this last time a lot better'). Shows on every chapter
+  // (not just chapter 1 like the original). Collapsible details so it can
+  // be tucked away after first read.
   if (BOOK_BG && BOOK_BG[osisBook]) {
     const bg = BOOK_BG[osisBook];
-    // Iter 95: author truncation removed per user feedback (they liked the
-    // full byline). The 28-char clamp was producing "Moses (traditional);
-    // compi…" which they preferred to see whole.
-    const byline = `${bg.author} · ${bg.date} · ${bg.genre} · ${bg.theme}`;
-    html += `<div class="book-byline">${byline}</div>`;
+    html += `
+      <details class="book-bg-card">
+        <summary class="book-bg-summary">
+          <span class="book-bg-summary-label">About ${book.name}</span>
+          <span class="book-bg-summary-hint">expand</span>
+        </summary>
+        <div class="book-bg-body">
+          <div class="book-bg-row"><span class="book-bg-key">Author</span><span class="book-bg-val">${bg.author}</span></div>
+          <div class="book-bg-row"><span class="book-bg-key">Date</span><span class="book-bg-val">${bg.date}</span></div>
+          <div class="book-bg-row"><span class="book-bg-key">Genre</span><span class="book-bg-val">${bg.genre}</span></div>
+          <div class="book-bg-row"><span class="book-bg-key">Audience</span><span class="book-bg-val">${bg.audience}</span></div>
+          <div class="book-bg-row"><span class="book-bg-key">Theme</span><span class="book-bg-val">${bg.theme}</span></div>
+          ${bg.summary ? `<div class="book-bg-summary-text">${bg.summary}</div>` : ''}
+        </div>
+      </details>
+    `;
   }
 
   const bookOsis = OSIS_BY_IDX[state.bookIdx];
