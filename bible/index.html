@@ -2245,7 +2245,7 @@ body.mode-timeline .timeline-help { display: block; }
     </svg>
     <span class="logo-text">
       <span class="logo-name">Scripture Link</span>
-      <span class="logo-tag">Bible · Cross-refs · Hebrew &amp; Greek · Sermons</span>
+      <!-- Tagline removed iter 79 — the UI proves itself on first verse-tap. -->
     </span>
   </a>
   <div class="header-controls">
@@ -2487,15 +2487,13 @@ body.mode-timeline .timeline-help { display: block; }
          These are profile-style features (themes/plans/bookmarks/streak)
          that don't change what you're reading right now, so they sit
          below the reading-functionality controls. -->
-    <div class="settings-group-title">My library &amp; discovery</div>
+    <div class="settings-group-title">My library</div>
     <div class="settings-section">
-      <div class="settings-row" id="settings-streak-row" style="display:none">
-        <div class="settings-row-main">
-          <div class="settings-row-label" id="settings-streak-label">Reading streak</div>
-          <div class="settings-row-sub" id="settings-streak-sub">Show up every day to keep your streak alive</div>
-        </div>
-        <div class="settings-row-value" id="settings-streak-value" style="font-variant-numeric:tabular-nums">0</div>
-      </div>
+      <!-- Iter 79 simplification: drawer reduced to actual personal-content
+           shortcuts. Reading streak, Browse-by-theme, Today's-verse plan,
+           Gospel-of-John 21-day plan, and Surprise-me rows all hidden.
+           Their backing JS handlers and storage keys are preserved (not
+           deleted) so we can revive any feature without a rebuild. -->
       <div class="settings-row" data-action="bookmarks">
         <div class="settings-row-main">
           <div class="settings-row-label">My saved verses</div>
@@ -2509,34 +2507,6 @@ body.mode-timeline .timeline-help { display: block; }
           <div class="settings-row-sub" id="settings-highlights-sub">Long-press a verse to highlight in 4 colors</div>
         </div>
         <div class="settings-row-value" id="settings-highlights-value">0</div>
-      </div>
-      <div class="settings-row" data-action="themes">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Browse by theme</div>
-          <div class="settings-row-sub">Faithfulness, hope, fear, grief, prayer, love…</div>
-        </div>
-        <div class="settings-row-value">Open</div>
-      </div>
-      <div class="settings-row" data-action="plan">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Today's verse (30-day starter)</div>
-          <div class="settings-row-sub" id="settings-plan-sub">A different famous verse each day for 30 days</div>
-        </div>
-        <div class="settings-row-value" id="settings-plan-value">Day 1</div>
-      </div>
-      <div class="settings-row" data-action="planjohn">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Gospel of John in 21 days</div>
-          <div class="settings-row-sub" id="settings-planjohn-sub">One chapter of John per day, ch 1 → 21</div>
-        </div>
-        <div class="settings-row-value" id="settings-planjohn-value">Day 1</div>
-      </div>
-      <div class="settings-row" data-action="random">
-        <div class="settings-row-main">
-          <div class="settings-row-label">Surprise me with a verse</div>
-          <div class="settings-row-sub">Jump to a famous verse at random</div>
-        </div>
-        <div class="settings-row-value">Pick</div>
       </div>
     </div>
 
@@ -5740,33 +5710,10 @@ function renderChapter(book, verses) {
   // Verse of the Day — deterministic, date-seeded. Shows on the FIRST chapter
   // the user opens each day (any book/chapter), then auto-suppresses on
   // subsequent navigations until tomorrow. Hard-dismiss via the X button.
+  // Today's-verse (VOTD) banner suppressed per simplification pass (iter 79).
+  // Devotional pattern doesn't fit a study-tool brand; users come with intent
+  // ("I want Romans 8"), not for a server-chosen verse. State + data preserved.
   let votdHTML = '';
-  const dayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const votdDismissed = localStorage.getItem('scripture-votd-dismissed-' + dayKey);
-  const votdSeen = localStorage.getItem('scripture-votd-seen-' + dayKey);
-  if (THEOLOGY_Q && !votdDismissed && !votdSeen) {
-    const keys = Object.keys(THEOLOGY_Q);
-    if (keys.length > 0) {
-      const today = new Date();
-      const startOfYear = new Date(today.getFullYear(), 0, 0);
-      const dayOfYear = Math.floor((today - startOfYear) / 86400000);
-      const verseRef = keys[dayOfYear % keys.length];
-      const safeRef = verseRef.replace(/[^A-Za-z0-9.\-]/g, '');
-      const human = osisToHuman(verseRef);
-      const question = THEOLOGY_Q[verseRef];
-      votdHTML = `
-        <div id="votd-banner" style="background:linear-gradient(135deg,var(--accent-soft),transparent);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:0 0 18px 0;font-family:var(--sans);display:flex;align-items:center;gap:14px;position:relative">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:var(--accent);text-transform:uppercase;flex-shrink:0;writing-mode:horizontal-tb">Today's verse</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-family:var(--serif);font-size:14px;color:var(--text);font-style:italic;line-height:1.45">${question}</div>
-            <a href="#${safeRef}" onclick="document.getElementById('votd-banner').remove(); navigateToOsis('${safeRef}'); return false" style="display:inline-block;margin-top:6px;font-size:12px;color:var(--accent);font-weight:600;text-decoration:none">Read ${human} →</a>
-          </div>
-          <button onclick="localStorage.setItem('scripture-votd-dismissed-${dayKey}','1'); document.getElementById('votd-banner').remove()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px 8px;font-size:18px;line-height:1;flex-shrink:0" aria-label="Dismiss for today">&times;</button>
-        </div>`;
-      // Mark as seen for today so subsequent navigations don't re-pop the banner
-      try { localStorage.setItem('scripture-votd-seen-' + dayKey, '1'); } catch(e) {}
-    }
-  }
 
   // Per user request: book-title, inline chapter-arrows row, and chapter-overview
   // card all dropped from the chapter top. Header (book/chapter selector + arrows)
