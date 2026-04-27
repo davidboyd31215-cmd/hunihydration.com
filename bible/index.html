@@ -2252,13 +2252,10 @@ body.mode-timeline .timeline-help { display: block; }
       <button class="settings-close-btn" onclick="closeSettings()" aria-label="Close">Done</button>
     </div>
 
-    <!-- Top: just the verse-or-keyword search. Reading-functionality
-         (translation, commentary, word study) follows next. Discovery
-         rows (themes, plans, bookmarks, streak, highlights) are now
-         lower in the drawer — they're profile-style features, not
-         changes to what you're reading right now. -->
-    <div class="settings-group-title">Find a verse</div>
-    <div class="settings-section">
+    <!-- Top: jump-to-verse search (no group title — it's the only row,
+         and a label-less section breaks the row-based visual rhythm of
+         the rest of the drawer). Reading-functionality follows. -->
+    <div class="settings-section" style="padding-top:6px">
       <div class="settings-search">
         <input type="text" id="settings-jump-input" placeholder="Verse (John 3:16) or keyword (love, hope, peace)" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false" list="verse-suggestions" enterkeyhint="go" inputmode="search" />
         <datalist id="verse-suggestions">
@@ -5724,7 +5721,7 @@ function renderChapter(book, verses) {
     html += `
       <div class="verse ${hasRefs?'has-refs':''}${isRed?' red-letter':''}" id="v-${v.verse}" data-verse="${v.verse}" data-key="${key}" onclick="onVerseClick(this)">
         <span class="verse-num${hasExtra?' has-extra':''}" onclick="event.stopPropagation(); copyCitation('${book.name} ${state.chapter}:${v.verse}')" title="${hasExtra ? 'Has commentary or sermons — tap verse for details' : ''}Copy reference (${book.name} ${state.chapter}:${v.verse})">${v.verse}</span>
-        <span class="verse-text">${v.text.trim()}${dotsHtml}</span>
+        <span class="verse-text">${v.text.trim()}</span>${dotsHtml}
       </div>
     `;
     if (state.wordStudyOn && INTERLINEAR_CACHE[bookOsis]) {
@@ -6066,7 +6063,10 @@ function showSidebar(key, verseNum, refs) {
       const originLabel = `${originBookName} ${top.chapter}:${top.activeVerse}`;
       // Truncate long labels (e.g. "Song of Solomon 8:14") to keep the pill compact.
       const truncated = originLabel.length > 28 ? originLabel.slice(0, 27) + '…' : originLabel;
-      backPillHTML = `<div onclick="window.popVerseStack()" title="Back to ${originLabel.replace(/"/g, '&quot;')}" style="padding: 6px 10px; background: var(--accent-soft); border-radius: 6px; color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: 8px; display: inline-flex; align-items: center; gap: 6px;"><span aria-hidden="true">←</span><span>Back to ${truncated}</span></div>`;
+      const moreCount = backStack.length - 1;
+      const moreSuffix = moreCount > 0 ? ` <span style="opacity:0.7;font-weight:500">(${moreCount} more)</span>` : '';
+      // <button> not <div> so it's keyboard-focusable + announced by screen readers.
+      backPillHTML = `<button type="button" onclick="window.popVerseStack()" aria-label="Back to ${originLabel.replace(/"/g, '&quot;')}" title="Back to ${originLabel.replace(/"/g, '&quot;')}" style="padding: 6px 10px; background: var(--accent-soft); border: none; border-radius: 6px; color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: 8px; display: inline-flex; align-items: center; gap: 6px; font-family: var(--sans); -webkit-tap-highlight-color: transparent;"><span aria-hidden="true">←</span><span>Back to ${truncated}${moreSuffix}</span></button>`;
     }
   }
 
@@ -6690,7 +6690,11 @@ function _showTextHlPalette(rect, onPick) {
     const end = _offsetWithin(verseTextEl, range.endContainer, range.endOffset);
     const key = verseEl.dataset.key;
     const all = getTextHighlights();
-    const arr = (all[key] || []).filter(r => !(r.start === start && r.end === end));
+    // Use overlap filter (not strict equality) — applyTextHighlights merges
+    // same-color overlapping ranges before painting, so one rendered <mark>
+    // can correspond to multiple stored entries. Strict equality would miss
+    // them; overlap removes any range whose span intersects the clicked mark.
+    const arr = (all[key] || []).filter(r => r.end <= start || r.start >= end);
     if (arr.length) all[key] = arr; else delete all[key];
     saveTextHighlights(all);
     applyTextHighlights(verseEl);
