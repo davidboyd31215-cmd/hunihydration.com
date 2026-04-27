@@ -220,8 +220,26 @@ select:hover { border-color: var(--border-strong); }
   border-radius: 6px;
   color: var(--text);
   cursor: pointer;
-  margin: 0 4px;
+  margin: 0 4px 0 4px;
 }
+/* Prev/next chapter arrows — sit immediately after chapter-select so the
+   3 controls (book / chapter / arrows) read as one navigation cluster. */
+button.ch-arrow {
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 9px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  margin: 0 1px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+button.ch-arrow:hover { background: var(--bg); border-color: var(--border-strong); }
+button.ch-arrow:active { transform: scale(0.96); }
 #chapter-display * {
   color: var(--text) !important;
   text-decoration: none !important;
@@ -2179,6 +2197,11 @@ body.mode-timeline .timeline-help { display: block; }
     <span class="ctrl-label">Book</span>
     <select id="book-select"></select>
     <select id="chapter-select" aria-label="Chapter" title="Jump to chapter"></select>
+    <!-- Prev/next chapter arrows live RIGHT next to the chapter selector
+         so the cluster reads as one navigation unit. (User feedback —
+         was previously stranded on the far right of the header.) -->
+    <button id="prev-ch" class="ch-arrow" aria-label="Previous chapter" title="Previous chapter">&#8592;</button>
+    <button id="next-ch" class="ch-arrow" aria-label="Next chapter" title="Next chapter">&#8594;</button>
 
     <span class="ctrl-label" style="margin-left:8px">Translation</span>
     <div class="pill-group" id="translation-group">
@@ -2212,9 +2235,10 @@ body.mode-timeline .timeline-help { display: block; }
     <button id="read-aloud-btn" class="theme-toggle icon-btn" aria-label="Read chapter aloud" aria-pressed="false" title="Read this chapter aloud"><svg width="16" height="14" viewBox="0 0 16 14" fill="currentColor"><path d="M1 4 L4 4 L8 1 L8 13 L4 10 L1 10 Z"/><path d="M10 4 Q12 7 10 10" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M11.5 2.5 Q15 7 11.5 11.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></button>
     <button id="share-link" class="theme-toggle desktop-only icon-btn" aria-label="Copy share link" title="Copy direct link to this verse/chapter"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="3" cy="7" r="2"/><circle cx="11" cy="3" r="2"/><circle cx="11" cy="11" r="2"/><line x1="4.7" y1="6" x2="9.3" y2="3.8"/><line x1="4.7" y1="8" x2="9.3" y2="10.2"/></svg></button>
     <button id="theme-toggle" class="theme-toggle desktop-only" aria-label="Toggle theme" title="Toggle light/dark">Dark</button>
-    <button id="prev-ch" aria-label="Previous chapter">&#8592;</button>
-    <span id="chapter-display" class="noTag">Genesis 1</span>
-    <button id="next-ch" aria-label="Next chapter">&#8594;</button>
+    <!-- Old chapter-display + prev/next moved to the left cluster, right
+         next to the chapter selector. Hidden span kept so existing JS
+         that writes to #chapter-display still works without a null check. -->
+    <span id="chapter-display" class="noTag" hidden>Genesis 1</span>
   </div>
 </header>
 
@@ -4253,6 +4277,9 @@ document.addEventListener('keydown', (e) => {
   if (e.key === ',') { e.preventDefault(); document.getElementById('settings-toggle')?.click() || document.getElementById('mode-group')?.querySelector('button[data-m="sidebar"]')?.click(); return; }
   // ? → keyboard help
   if (e.key === '?') { e.preventDefault(); showKeyboardHelp(); return; }
+  // Don't swallow Cmd/Ctrl shortcuts (Cmd+N new window, Cmd+P print, Cmd+]
+  // browser forward, Cmd+G find next) — let the browser handle them.
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
   // n / p as alternates for arrow keys (vim-ish)
   if (e.key === 'n' || e.key === 'j') { document.getElementById('next-ch')?.click(); return; }
   if (e.key === 'p' || e.key === 'k') { document.getElementById('prev-ch')?.click(); return; }
@@ -5694,8 +5721,30 @@ function renderChapter(book, verses) {
     <div class="chapter-title">Chapter ${state.chapter}</div>
   `;
 
-  // Show book-background card on chapter 1 only
   const osisBook = OSIS_BY_IDX[state.bookIdx];
+
+  // Inline chapter-overview card — sits between the chapter title and the
+  // first verse so the reader gets a 1-line setup of what's coming. Pulls
+  // from commentary_chapter.json (the same source the sidebar fallback uses).
+  // Dismissible per-chapter; remembered in scripture-overview-dismissed.
+  if (typeof COMMENTARY_CHAPTER !== 'undefined' && COMMENTARY_CHAPTER) {
+    const chKey = `${osisBook}.${state.chapter}`;
+    const overview = COMMENTARY_CHAPTER[chKey];
+    let dismissed = {};
+    try { dismissed = JSON.parse(localStorage.getItem('scripture-overview-dismissed') || '{}'); } catch(e) {}
+    if (overview && !dismissed[chKey]) {
+      const safeKey = chKey.replace(/[^A-Za-z0-9.]/g, '');
+      html += `<div id="chapter-overview-card" data-key="${safeKey}" style="margin:0 0 18px;padding:11px 14px;background:linear-gradient(135deg,rgba(212,184,112,0.08),transparent);border:1px solid var(--border);border-left:3px solid #6B4D00;border-radius:6px;font-family:var(--sans);font-size:13px;line-height:1.5;color:var(--text);display:flex;gap:10px;align-items:flex-start">
+        <div style="flex:1">
+          <div style="font-size:9.5px;letter-spacing:0.1em;color:#A07A20;text-transform:uppercase;margin-bottom:3px;font-weight:600">Chapter overview</div>
+          <div style="color:var(--text-muted)">${overview}</div>
+        </div>
+        <button onclick="(function(b){const k=b.parentElement.dataset.key;let d={};try{d=JSON.parse(localStorage.getItem('scripture-overview-dismissed')||'{}');}catch(e){}d[k]=1;try{localStorage.setItem('scripture-overview-dismissed',JSON.stringify(d));}catch(e){}b.parentElement.remove();})(this)" aria-label="Dismiss overview" title="Dismiss for this chapter" style="background:none;border:none;color:var(--text-dim);font-size:18px;line-height:1;padding:0 4px;cursor:pointer;-webkit-tap-highlight-color:transparent;flex-shrink:0">&times;</button>
+      </div>`;
+    }
+  }
+
+  // Show book-background card on chapter 1 only
   if (state.chapter === 1 && BOOK_BG && BOOK_BG[osisBook]) {
     const bg = BOOK_BG[osisBook];
     html += `
@@ -6104,24 +6153,32 @@ function showSidebar(key, verseNum, refs) {
     }
   }
 
+  // Scholarly, condensed verse-action row. The address + Save sit on one
+  // line. Two primary actions (Copy, More) below. Less-used actions
+  // (text-only copy, image, compare, practice) tucked behind 'More' so
+  // the default surface stays calm and study-focused.
+  const _vts = JSON.stringify(verseText).replace(/"/g, '&quot;');
+  const _vref = `${book.name} ${state.chapter}:${verseNum}`;
+  const moreId = `more-${cmpId}`;
   document.getElementById('sidebar-content').innerHTML = `
     <div class="sidebar-header">
       ${backPillHTML}
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-        <div style="flex:1;min-width:0">
-          <div class="sidebar-verse-address">${book.name} ${state.chapter}:${verseNum}</div>
-          <div class="sidebar-verse-text">${verseText}</div>
-        </div>
-        <button class="bookmark-btn ${isBkmk ? 'active' : ''}" onclick="onBookmarkClick('${key}', this)" aria-label="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" title="${isBkmk ? 'Remove from bookmarks' : 'Save to bookmarks'}">${isBkmk ? '★ Saved' : '☆ Save'}</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div class="sidebar-verse-address" style="flex:1;min-width:0">${_vref}</div>
+        <button class="bookmark-btn ${isBkmk ? 'active' : ''}" onclick="onBookmarkClick('${key}', this)" aria-label="${isBkmk ? 'Remove bookmark' : 'Add bookmark'}" title="${isBkmk ? 'Remove from bookmarks' : 'Save to bookmarks'}" style="padding:4px 10px;font-size:12px;border-radius:12px;line-height:1.2;flex-shrink:0">${isBkmk ? '★ Saved' : '☆ Save'}</button>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-        <button onclick="copyVerseLink('${key}', ${JSON.stringify(verseText).replace(/"/g, '&quot;')}, '${book.name} ${state.chapter}:${verseNum}')" style="background:var(--accent);border:1px solid var(--accent);color:white;padding:6px 14px;border-radius:14px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy verse text + link to share">Copy verse + link</button>
-        <button onclick="copyVerseText(${JSON.stringify(verseText).replace(/"/g, '&quot;')}, '${book.name} ${state.chapter}:${verseNum}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy the verse text to paste anywhere">Copy text</button>
-        <button onclick="showImagePickerModal(${JSON.stringify(verseText).replace(/"/g, '&quot;')}, '${book.name} ${state.chapter}:${verseNum}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Save as a shareable image">Save as image</button>
-        <button id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent">Compare versions</button>
-        <button onclick="startClozePractice(0, {ref:'${key}', snippet:${JSON.stringify(verseText).replace(/"/g, '&quot;')}})" style="background:transparent;border:1px solid var(--accent);color:var(--accent);padding:6px 12px;border-radius:14px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Practice memorizing this verse (fill-in-the-blank)">🧠 Practice</button>
+      <div class="sidebar-verse-text" style="margin-top:6px">${verseText}</div>
+      <div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <button onclick="copyVerseLink('${key}', ${_vts}, '${_vref}')" style="background:var(--accent);border:none;color:white;padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Copy verse text + link to share">Copy</button>
+        <button id="${moreId}" onclick="(function(b){const m=document.getElementById('${moreId}-menu');m.style.display=m.style.display==='flex'?'none':'flex';})(this)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:5px 11px;border-radius:12px;font-family:var(--sans);font-size:11px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="More verse actions" aria-expanded="false">More ▾</button>
       </div>
-      <div id="${cmpId}" style="margin-top:10px"></div>
+      <div id="${moreId}-menu" style="display:none;flex-wrap:wrap;gap:5px;margin-top:6px;padding:8px;background:var(--bg-alt);border:1px solid var(--border);border-radius:8px">
+        <button onclick="copyVerseText(${_vts}, '${_vref}')" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Copy text only</button>
+        <button onclick="showImagePickerModal(${_vts}, '${_vref}')" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Save as image</button>
+        <button id="compare-btn-${cmpId}" onclick="compareTranslations('${key}', this)" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Compare translations</button>
+        <button onclick="startClozePractice(0, {ref:'${key}', snippet:${_vts}})" style="background:transparent;border:none;color:var(--text);padding:4px 9px;border-radius:8px;font-family:var(--sans);font-size:11px;cursor:pointer">Practice memorizing</button>
+      </div>
+      <div id="${cmpId}" style="margin-top:8px"></div>
     </div>
     ${tqHTML}
     ${refHTML}
