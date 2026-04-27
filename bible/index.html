@@ -3746,6 +3746,7 @@ function applyTheme(theme) {
 }
 
 function setMode(mode) {
+  const prev = state.mode;
   state.mode = mode;
   document.body.className = 'mode-' + mode;
   if (mode !== 'sidebar') {
@@ -3753,6 +3754,14 @@ function setMode(mode) {
     document.body.classList.remove('sidebar-open');
   }
   document.querySelectorAll('.inline-refs').forEach(el => el.classList.remove('open'));
+  // Iter 85 perf: inline-refs are now only rendered when mode === 'inline'.
+  // Toggling between sidebar <-> inline therefore needs a re-render to add or
+  // strip the per-verse hidden inline-refs DOM blocks (saves ~300+ DOM nodes
+  // on Psalm 119-class chapters when reading in sidebar mode).
+  const wasInlineToggle = (prev === 'inline') !== (mode === 'inline');
+  if (wasInlineToggle && typeof loadChapter === 'function') {
+    loadChapter();
+  }
   if (mode === 'graph') { startGraph(); } else { stopGraph(); }
   if (mode === 'arc') { startArc(); } else { stopArc(); }
   if (mode === 'timeline') { startTimeline(); } else { stopTimeline(); }
@@ -5837,7 +5846,10 @@ function renderChapter(book, verses) {
       }
     }
 
-    if (hasRefs) {
+    // Iter 85: only render inline-refs when in 'inline' mode. In default
+    // 'sidebar' mode this hidden DOM was never used but inflated render time
+    // on long chapters (Psalm 119 was building 176 hidden inline-refs blocks).
+    if (hasRefs && state.mode === 'inline') {
       html += `<div class="inline-refs" id="inline-${v.verse}"><button class="inline-close" aria-label="Close" onclick="event.stopPropagation();this.parentElement.classList.remove('open')" style="position:absolute;top:6px;right:8px;background:transparent;border:none;color:var(--text-dim);font-size:18px;line-height:1;padding:4px 8px;cursor:pointer;-webkit-tap-highlight-color:transparent">&times;</button>`;
       refs.forEach(r => {
         html += `
