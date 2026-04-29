@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Messages</title>
+<style>
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f7;
+    color: #1d1d1f;
+    display: grid;
+    place-items: center;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0b0b0c; color: #ececec; }
+    .card { background: #161618; border-color: #2a2a2d; }
+    input { background: #0b0b0c; color: #ececec; border-color: #2a2a2d; }
+  }
+  .card {
+    width: min(360px, calc(100vw - 32px));
+    padding: 28px 24px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e5e5ea;
+    box-shadow: 0 10px 30px rgba(0,0,0,.06);
+  }
+  h1 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
+  p.sub { margin: 0 0 18px; font-size: 13px; opacity: .65; }
+  label { display: block; font-size: 12px; opacity: .7; margin-bottom: 6px; }
+  input[type=password] {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 15px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #d2d2d7;
+    background: #fff;
+    color: inherit;
+  }
+  button {
+    margin-top: 14px;
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 0;
+    background: #1d1d1f;
+    color: #fff;
+    cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: progress; }
+  .err { margin-top: 10px; font-size: 13px; color: #c0392b; min-height: 1em; }
+  .status { margin-top: 10px; font-size: 13px; opacity: .7; min-height: 1em; }
+  iframe.full {
+    position: fixed; inset: 0;
+    width: 100vw; height: 100vh;
+    border: 0; background: #fff;
+  }
+</style>
+</head>
+<body>
+<div class="card" id="gate">
+  <h1>Messages</h1>
+  <p class="sub">Password required.</p>
+  <form id="f">
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" autofocus>
+    <button id="go" type="submit">Unlock</button>
+    <div class="err" id="err"></div>
+    <div class="status" id="status"></div>
+  </form>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const err = m => { $("err").textContent = m; };
+  const stat = m => { $("status").textContent = m; };
+
+  const b64 = s => {
+    const bin = atob(s);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return buf;
+  };
+
+  let payload = null;
+  const loadPayload = async () => {
+    if (payload) return payload;
+    stat("Loading…");
+    const res = await fetch("payload.json", { cache: "force-cache" });
+    if (!res.ok) throw new Error("payload missing");
+    payload = await res.json();
+    stat("");
+    return payload;
+  };
+
+  const deriveKey = async (password, salt, iter) => {
+    const enc = new TextEncoder();
+    const baseKey = await crypto.subtle.importKey(
+      "raw", enc.encode(password),
+      { name: "PBKDF2" }, false, ["deriveKey"]
+    );
+    return crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt, iterations: iter, hash: "SHA-256" },
+      baseKey,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["decrypt"]
+    );
+  };
+
+  const unlock = async (password) => {
+    const p = await loadPayload();
+    stat("Decrypting…");
+    const key = await deriveKey(password, b64(p.salt), p.iter);
+    const plain = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: b64(p.iv) },
+      key,
+      b64(p.ct)
+    );
+    return plain;
+  };
+
+  $("f").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    err(""); stat("");
+    const btn = $("go");
+    btn.disabled = true;
+    try {
+      const pw = $("pw").value;
+      const plain = await unlock(pw);
+      const blob = new Blob([plain], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      $("gate").remove();
+      const frame = document.createElement("iframe");
+      frame.className = "full";
+      frame.src = url;
+      document.body.appendChild(frame);
+    } catch (ex) {
+      btn.disabled = false;
+      stat("");
+      err("Wrong password.");
+      $("pw").select();
+    }
+  });
+})();
+</script>
+</body>
+</html>
