@@ -6269,18 +6269,16 @@ function showSidebar(key, verseNum, refs) {
     const noteEntry = (typeof getCommentaryFor === 'function') ? getCommentaryFor(key) : null;
     const refStr = encodeURIComponent(book.name + ' ' + state.chapter + ':' + verseNum);
     const gtyURL = `https://www.gty.org/search?q=${refStr}`;
-    if (noteEntry) {
-      const isChapter = noteEntry.scope === 'chapter';
-      const headerLabel = isChapter ? 'Chapter overview' : 'Editorial note';
-      const subLabel = isChapter
-        ? `Whole-chapter context · By Scripture Link · Reformed/expositional`
-        : `By Scripture Link · Reformed/expositional`;
-      commentaryHTML = `<div class="sidebar-section" style="border-left:3px solid #6B4D00;background:linear-gradient(135deg,rgba(212,184,112,${isChapter ? '0.05' : '0.08'}),transparent);padding:14px 16px;margin-top:8px;border-radius:4px">
+    // Chapter-scoped notes render as a separate "Chapter overview" card,
+    // which we no longer want in the verse sidebar — only show verse-level
+    // editorial notes here, and fall through to the generic fallback otherwise.
+    if (noteEntry && noteEntry.scope !== 'chapter') {
+      commentaryHTML = `<div class="sidebar-section" style="border-left:3px solid #6B4D00;background:linear-gradient(135deg,rgba(212,184,112,0.08),transparent);padding:14px 16px;margin-top:8px;border-radius:4px">
         <div style="font-size:10px;letter-spacing:0.1em;color:#A07A20;text-transform:uppercase;margin-bottom:8px;font-weight:600;display:flex;justify-content:space-between;align-items:center">
-          <span>${headerLabel}</span>
-          <span style="font-size:9px;font-style:italic;color:var(--text-dim);text-transform:none;letter-spacing:0" title="Original to Scripture Link, not John MacArthur. Reformed/expositional perspective.">${subLabel}</span>
+          <span>Editorial note</span>
+          <span style="font-size:9px;font-style:italic;color:var(--text-dim);text-transform:none;letter-spacing:0" title="Original to Scripture Link, not John MacArthur. Reformed/expositional perspective.">By Scripture Link · Reformed/expositional</span>
         </div>
-        <div style="font-family:var(--serif);font-size:${isChapter ? '13.5' : '14'}px;line-height:1.65;color:${isChapter ? 'var(--text-muted)' : 'var(--text)'}">${noteEntry.text}</div>
+        <div style="font-family:var(--serif);font-size:14px;line-height:1.65;color:var(--text)">${noteEntry.text}</div>
         <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
           <a href="${gtyURL}" target="_blank" rel="noopener" style="display:inline-block;background:#6B4D00;color:#FFF3D6;padding:6px 12px;border-radius:4px;font-family:var(--sans);font-size:11px;text-decoration:none">MacArthur sermons on this passage ↗</a>
         </div>
