@@ -1064,28 +1064,29 @@ mark.thl-blue   { background: rgba(66,133,244,0.32); color: inherit; padding: 0;
   .mobile-only { display: inline-flex !important; }
 }
 
-/* Desktop-only header search input — fixed width to avoid shoving the
-   sibling header buttons left when focused (which caused a chapter-title
-   jolt and could miss in-flight clicks). */
+/* Header search input — expanded state overlays the rest of the header
+   row (position:absolute) so it doesn't shove book/chapter selectors or
+   pill clusters around. iter 103. */
 #header-search {
   font-family: var(--sans);
-  font-size: 13px;
-  padding: 6px 12px;
+  font-size: 14px;
+  padding: 7px 14px;
   border-radius: 14px;
   border: 1px solid var(--border-strong);
-  background: var(--bg-alt);
+  background: var(--bg);
   color: var(--text);
   outline: none;
-  width: 260px;
-  margin-right: 6px;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  box-shadow: 0 0 0 3px var(--accent-soft), 0 4px 14px rgba(0,0,0,0.08);
 }
-#header-search:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-  background: var(--bg);
-}
+#header-search:focus { border-color: var(--accent); }
 #header-search::placeholder { color: var(--text-muted); opacity: 0.85; }
+#header-search[hidden] { display: none; }
 
 /* Settings drawer (mobile) */
 #settings-drawer {
