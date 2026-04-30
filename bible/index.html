@@ -97,7 +97,12 @@ body {
   padding-top: env(safe-area-inset-top, 0px);
   padding-left: calc(24px + env(safe-area-inset-left, 0px));
   padding-right: calc(24px + env(safe-area-inset-right, 0px));
-  background: var(--bg);
+  /* Iter 104: explicit opaque background with !important so the header
+     covers verse text underneath when the page scrolls. The previous
+     var(--bg) with no isolation was letting iOS Safari render verse
+     text bleeding through during dynamic-toolbar transitions. */
+  background-color: var(--bg) !important;
+  isolation: isolate;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -1066,14 +1071,16 @@ mark.thl-blue   { background: rgba(66,133,244,0.32); color: inherit; padding: 0;
 
 /* Header search input — expanded state overlays the rest of the header
    row (position:absolute) so it doesn't shove book/chapter selectors or
-   pill clusters around. iter 103. */
+   pill clusters around. iter 104: z-index lifted to 200 so it sits above
+   the .header (z 100) when expanded, and the input itself gets an opaque
+   background so the book/chapter selectors visually disappear. */
 #header-search {
   font-family: var(--sans);
   font-size: 14px;
   padding: 7px 14px;
   border-radius: 14px;
-  border: 1px solid var(--border-strong);
-  background: var(--bg);
+  border: 1px solid var(--accent);
+  background-color: var(--bg) !important;
   color: var(--text);
   outline: none;
   position: absolute;
@@ -1081,8 +1088,8 @@ mark.thl-blue   { background: rgba(66,133,244,0.32); color: inherit; padding: 0;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 10;
-  box-shadow: 0 0 0 3px var(--accent-soft), 0 4px 14px rgba(0,0,0,0.08);
+  z-index: 200;
+  box-shadow: 0 0 0 3px var(--accent-soft), 0 6px 20px rgba(0,0,0,0.18);
 }
 #header-search:focus { border-color: var(--accent); }
 #header-search::placeholder { color: var(--text-muted); opacity: 0.85; }
@@ -1402,7 +1409,10 @@ mark.thl-blue   { background: rgba(66,133,244,0.32); color: inherit; padding: 0;
   top: var(--header-height);
   width: var(--sidebar-width);
   height: calc(100vh - var(--header-height));
-  background: var(--bg);
+  /* Iter 104: explicit opaque background with isolation so dimmed chapter
+     content doesn't bleed through the sidebar bottom-sheet. */
+  background-color: var(--bg) !important;
+  isolation: isolate;
   border-left: 1px solid var(--border);
   overflow-y: auto;
   transition: right 0.34s cubic-bezier(0.32, 0.72, 0, 1);
