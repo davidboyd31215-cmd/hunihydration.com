@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mag 5 Earnings Digest — Q1 2026</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --rule: #d9d6cf;
+    --accent: #8a1c1c;
+    --bg: #fbfaf6;
+    --card: #ffffff;
+    --good: #1f6b3a;
+    --bad: #8a1c1c;
+    --serif: "Iowan Old Style", "Hoefler Text", "Source Serif Pro", Georgia, "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--serif);
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.55;
+    font-size: 17px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 56px 32px 96px; }
+  header.masthead {
+    border-top: 4px double var(--ink);
+    border-bottom: 1px solid var(--rule);
+    padding: 28px 0 20px;
+    margin-bottom: 36px;
+  }
+  .kicker {
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 48px;
+    line-height: 1.05;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+    font-weight: 700;
+  }
+  .subtitle {
+    font-style: italic;
+    color: var(--muted);
+    font-size: 20px;
+    margin: 0 0 14px;
+  }
+  .dateline {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  h2 {
+    font-size: 26px;
+    margin: 48px 0 14px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--rule);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    display: block;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  h3 {
+    font-size: 18px;
+    margin: 26px 0 10px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  p { margin: 0 0 14px; }
+  ul { margin: 0 0 16px; padding-left: 22px; }
+  ul li { margin-bottom: 6px; }
+  strong { font-weight: 700; }
+  em { font-style: italic; }
+
+  /* TOC */
+  nav.toc {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    padding: 18px 24px;
+    margin-bottom: 40px;
+    columns: 2;
+    column-gap: 28px;
+    font-family: var(--sans);
+    font-size: 13.5px;
+  }
+  nav.toc .toc-title {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    column-span: all;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--rule);
+  }
+  nav.toc ol { list-style: none; padding: 0; margin: 0; }
+  nav.toc li { margin: 3px 0; break-inside: avoid; }
+  nav.toc a { color: var(--ink); text-decoration: none; }
+  nav.toc a:hover { color: var(--accent); text-decoration: underline; }
+  nav.toc .sec-num { color: var(--muted); display: inline-block; width: 28px; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 20px;
+    font-family: var(--sans);
+    font-size: 14px;
+  }
+  thead th {
+    text-align: left;
+    border-bottom: 2px solid var(--ink);
+    padding: 8px 10px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    background: transparent;
+  }
+  tbody td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: 1px solid var(--ink); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pos { color: var(--good); }
+  .neg { color: var(--bad); }
+
+  /* Pull quote */
+  blockquote {
+    margin: 18px 0;
+    padding: 14px 22px;
+    border-left: 3px solid var(--accent);
+    background: #f5f1e8;
+    font-style: italic;
+    color: #2a2a2a;
+  }
+  blockquote .src {
+    display: block;
+    font-style: normal;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  /* Highlight box */
+  .callout {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    padding: 16px 22px;
+    margin: 18px 0;
+  }
+  .callout-title {
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  /* 30 second read styling */
+  .section-30 ul li { margin-bottom: 10px; }
+
+  /* Top line table */
+  .topline td:first-child, .topline th:first-child { font-weight: 600; }
+
+  /* Footnote / source */
+  footer {
+    margin-top: 60px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Risks list */
+  ol.risks { padding-left: 26px; }
+  ol.risks li { margin-bottom: 14px; }
+  ol.risks li b { display: block; margin-bottom: 2px; }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 32px 18px 64px; }
+    h1 { font-size: 34px; }
+    nav.toc { columns: 1; }
+    body { font-size: 16px; }
+    table { font-size: 13px; }
+    thead th, tbody td { padding: 6px 6px; }
+  }
+
+  @media print {
+    body { background: white; }
+    .wrap { padding: 0; max-width: none; }
+    h2 { page-break-after: avoid; }
+    table, blockquote, .callout { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker">Quarterly Brief &middot; Mag 5 Hyperscalers</div>
+  <h1>Mag 5 Earnings Digest</h1>
+  <p class="subtitle">Where the money is going. Who is receiving it.</p>
+  <div class="dateline">
+    Q1 2026 calendar reports (FY26 Q3 for MSFT, FY26 Q2 for AAPL) &nbsp;&middot;&nbsp;
+    Filed April 29–30, 2026 &nbsp;&middot;&nbsp;
+    Numbers from 10-Q / 8-K Ex. 99.1 + earnings calls
+  </div>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <div class="toc-title">Contents</div>
+  <ol>
+    <li><a href="#s1"><span class="sec-num">1</span> The 30-Second Read</a></li>
+    <li><a href="#s2"><span class="sec-num">2</span> The Top-Line Numbers</a></li>
+    <li><a href="#s3"><span class="sec-num">3</span> Microsoft (FY26 Q3)</a></li>
+    <li><a href="#s4"><span class="sec-num">4</span> Alphabet (Q1 2026)</a></li>
+    <li><a href="#s5"><span class="sec-num">5</span> Meta (Q1 2026)</a></li>
+    <li><a href="#s6"><span class="sec-num">6</span> Amazon (Q1 2026)</a></li>
+    <li><a href="#s7"><span class="sec-num">7</span> Apple (FY26 Q2)</a></li>
+    <li><a href="#s8"><span class="sec-num">8</span> Where the Money Is Going</a></li>
+    <li><a href="#s9"><span class="sec-num">9</span> Who Is Receiving It</a></li>
+    <li><a href="#s10"><span class="sec-num">10</span> Risks and Watch Items</a></li>
+    <li><a href="#s11"><span class="sec-num">11</span> Backlog Comparison</a></li>
+    <li><a href="#s12"><span class="sec-num">12</span> Quick Reference: Money Flow</a></li>
+  </ol>
+</nav>
+
+<section id="s1" class="section-30">
+  <h2><span class="num">Section 1</span>The 30-Second Read</h2>
+  <p><strong>The headline:</strong> The four hyperscalers (MSFT, GOOGL, META, AMZN) committed roughly <strong>$650–725B</strong> in 2026 capex, almost all of it for AI infrastructure. Apple is the outlier — it shipped cash back to shareholders instead of pouring concrete. Every cloud company on its call said the same thing: <em>compute constrained.</em></p>
+  <ul>
+    <li>Money flows in a tight loop: <strong>NVIDIA</strong> (GPUs), <strong>TSMC</strong> (custom silicon for TPU / Trainium / Maia / MTIA), <strong>HBM memory</strong> (SK Hynix, Micron, Samsung), networking (Broadcom, Arista, Marvell), nuclear and grid power (Vistra, Constellation, Oklo, NextEra, X-energy), and construction / land for new data centers.</li>
+    <li>Apple ran the opposite playbook: <strong>$100B fresh buyback authorization</strong>, $0.27 dividend (up 4%), $37.0B already repurchased in the first half of FY26. No multi-hundred-billion AI capex line.</li>
+    <li>Two earnings "beats" had asterisks: Amazon's $30.3B net income includes a <strong>$16.8B pre-tax gain</strong> on its Anthropic stake. Alphabet's results included a <strong>$37B equity-securities gain</strong>. Meta's net income was inflated by an <strong>$8.0B tax benefit</strong>. Strip those out and earnings are narrower than the headlines.</li>
+    <li>Stock reaction split: META <span class="neg">–7%</span>, AMZN <span class="neg">–3%</span> (capex jitters); GOOGL <span class="pos">+7%</span> (cleanest AI-revenue evidence); MSFT roughly flat to down on the $190B capex ramp; AAPL <span class="pos">+3%</span> on the buyback news.</li>
+  </ul>
+</section>
+
+<section id="s2">
+  <h2><span class="num">Section 2</span>The Top-Line Numbers</h2>
+  <table class="topline">
+    <thead>
+      <tr>
+        <th>Company</th>
+        <th class="num">Revenue</th>
+        <th class="num">YoY</th>
+        <th class="num">Net Income</th>
+        <th class="num">Diluted EPS</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Microsoft (FY26 Q3)</td><td class="num">$82.9B</td><td class="num pos">+18%</td><td class="num">$31.8B</td><td class="num">$4.27 (+23%)</td></tr>
+      <tr><td>Alphabet (Q1)</td><td class="num">$109.9B</td><td class="num pos">+22% / +19% cc</td><td class="num">$62.6B</td><td class="num">$5.11 (+82%)</td></tr>
+      <tr><td>Meta (Q1)</td><td class="num">$56.3B</td><td class="num pos">+33%</td><td class="num">$26.8B</td><td class="num">$10.44 (+62%)</td></tr>
+      <tr><td>Amazon (Q1)</td><td class="num">$181.5B</td><td class="num pos">+17%</td><td class="num">$30.3B</td><td class="num">$2.78 (+75%)</td></tr>
+      <tr><td>Apple (FY26 Q2)</td><td class="num">$111.2B</td><td class="num pos">+17%</td><td class="num">$29.6B</td><td class="num">$2.01 (+22%)</td></tr>
+    </tbody>
+  </table>
+  <div class="callout">
+    <div class="callout-title">Three asterisks investors should not skip</div>
+    (1) Meta's net income includes an <strong>$8.0B income-tax benefit</strong> tied to U.S. Treasury guidance on the Corporate Alternative Minimum Tax. (2) Amazon's includes a <strong>$16.8B pre-tax gain</strong> on Anthropic equity. (3) Alphabet's includes a <strong>$37B gain</strong> on equity securities. Operating earnings are the cleaner number.
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="num">Section 3</span>Microsoft (FY26 Q3, ended Mar 31, 2026)</h2>
+
+  <h3>3.1 &nbsp; Income Statement</h3>
+  <ul>
+    <li>Revenue <strong>$82.9B</strong> (+18% YoY, +15% constant currency)</li>
+    <li>Operating income <strong>$38.4B</strong>; operating margin <strong>46.3%</strong> — a record</li>
+    <li>Net income $31.8B (+23% GAAP); diluted EPS $4.27</li>
+  </ul>
+
+  <h3>3.2 &nbsp; Segments</h3>
+  <table>
+    <thead><tr><th>Segment</th><th class="num">Q3 Rev</th><th class="num">YoY</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Productivity &amp; Business Processes</td><td class="num">$35.0B</td><td class="num pos">+17%</td><td>M365 Commercial cloud +19%; LinkedIn +12%; Dynamics +18%</td></tr>
+      <tr><td>Intelligent Cloud</td><td class="num">$34.7B</td><td class="num pos">+30%</td><td>Azure +40% (+39% cc); IC op. income $13.8B</td></tr>
+      <tr><td>More Personal Computing</td><td class="num">$13.2B</td><td class="num neg">–1%</td><td>Mostly devices and Xbox</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.3 &nbsp; Capital Allocation</h3>
+  <ul>
+    <li>Capex (PP&amp;E purchases) <strong>$30.9B</strong>; including finance lease principal $31.9B, +49% YoY. 9-month capex $80.1B.</li>
+    <li>Operating cash flow $46.7B for the quarter</li>
+    <li>Share repurchases $4.6B; dividends paid $6.8B</li>
+    <li>2026 calendar-year capex guide raised to <strong>$190B</strong> — up roughly 61% from 2025. Amy Hood attributed about $25B of the increase to higher component pricing rather than more units. She said Q4 capex will exceed $40B.</li>
+  </ul>
+
+  <blockquote>
+    "Even with these additional investments and continued efforts to bring GPU, CPU and storage capacity online faster, we expect to remain capacity constrained at least through 2026."
+    <span class="src">— Amy Hood, CFO, Microsoft Q3 earnings call</span>
+  </blockquote>
+
+  <h3>3.4 &nbsp; AI Disclosure</h3>
+  <p>AI run-rate roughly <strong>$37B annualized</strong>, up 123% YoY. More than 20 million paid Copilot seats. Microsoft Cloud (combined) $54.5B, +29%. Commercial Remaining Performance Obligations (RPO) reached <strong>$627B</strong>, up 99% YoY. Roughly 25% will be recognized in the next 12 months. The figure includes Azure commitments tied to OpenAI; excluding OpenAI, commercial bookings grew 7%.</p>
+</section>
+
+<section id="s4">
+  <h2><span class="num">Section 4</span>Alphabet (Q1 2026, ended Mar 31, 2026)</h2>
+
+  <h3>4.1 &nbsp; Income Statement</h3>
+  <ul>
+    <li>Revenue <strong>$109.9B</strong> (+22% reported, +19% constant currency)</li>
+    <li>Operating income $39.7B; operating margin 36.1%</li>
+    <li>Net income $62.6B (+81%) — includes a <strong>$37B equity-securities gain</strong>. Strip it and EPS would have missed by about $0.01.</li>
+    <li>Diluted EPS $5.11 on 12.24B diluted shares</li>
+  </ul>
+
+  <h3>4.2 &nbsp; Segments and Lines</h3>
+  <table>
+    <thead><tr><th>Line</th><th class="num">Q1 Rev</th><th class="num">YoY</th></tr></thead>
+    <tbody>
+      <tr><td>Google Search &amp; other</td><td class="num">$60.4B</td><td class="num pos">+19%</td></tr>
+      <tr><td>YouTube ads</td><td class="num">$9.9B</td><td class="num pos">+11%</td></tr>
+      <tr><td>Google Network</td><td class="num">$7.0B</td><td class="num neg">–4%</td></tr>
+      <tr><td>Subscriptions, platforms, devices</td><td class="num">$12.4B</td><td class="num pos">+19%</td></tr>
+      <tr><td>Google Cloud</td><td class="num">$20.0B</td><td class="num pos">+63%</td></tr>
+      <tr><td>Other Bets</td><td class="num">$0.4B</td><td class="num neg">–9%</td></tr>
+      <tr><td>Google Services op. inc.</td><td class="num">$40.6B</td><td></td></tr>
+      <tr><td>Google Cloud op. inc.</td><td class="num">$6.6B (33% margin)</td><td></td></tr>
+      <tr><td>Other Bets op. loss</td><td class="num neg">$(2.1)B</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.3 &nbsp; Capital Allocation</h3>
+  <ul>
+    <li>Capex <strong>$35.7B</strong> for Q1, roughly double Q1 2025. Ashkenazi: "about 60% in servers and 40% in data centers and networking."</li>
+    <li>Operating cash flow $45.8B (Q); TTM $174.4B</li>
+    <li>Free cash flow $10.1B Q1; TTM $64.4B</li>
+    <li>Issued <strong>$31.1B in senior unsecured notes</strong> (capex is now partly debt-funded)</li>
+    <li>Dividends paid $2.5B; <strong>zero share repurchases</strong> in Q1 (vs. $15B+ Q1 2025)</li>
+    <li>2026 capex guide raised to <strong>$180–190B</strong> (from $175–185B), reflecting the Intersect acquisition. Ashkenazi said 2027 capex will increase "meaningfully" from there.</li>
+  </ul>
+
+  <blockquote>
+    "We are compute constrained in the near term. Our cloud revenue would have been higher if we were able to meet the demand."
+    <span class="src">— Sundar Pichai, CEO, Alphabet Q1 earnings call</span>
+  </blockquote>
+  <p>Ashkenazi: the company is seeing "unprecedented internal and external demand for AI compute resources."</p>
+
+  <div class="callout">
+    <div class="callout-title">Backlog signal</div>
+    Cloud backlog <strong>$460B</strong>, "nearly doubled quarter-on-quarter" per Pichai. That backlog is roughly 6&times; Google Cloud's annualized run-rate (~$80B). Combined with Microsoft's $627B commercial RPO and AWS's $364B (excluding the new $100B+ Anthropic deal), the three cloud backlogs total <strong>over $1.45 trillion in contracted future revenue</strong> — the cleanest evidence that the capex is meeting demand.
+  </div>
+</section>
+
+<section id="s5">
+  <h2><span class="num">Section 5</span>Meta (Q1 2026, ended Mar 31, 2026)</h2>
+
+  <h3>5.1 &nbsp; Income Statement</h3>
+  <ul>
+    <li>Revenue <strong>$56.3B</strong> (+33%) — fastest growth since 2021</li>
+    <li>Operating income $22.9B (+30%); operating margin 41%</li>
+    <li>Net income $26.8B; diluted EPS $10.44 (+62%) — includes <strong>$8.0B tax benefit</strong>. Without it diluted EPS would be $7.31.</li>
+    <li>Effective tax rate Q1: <strong>negative 23%</strong>. Guidance: 13–16% for the rest of the year.</li>
+  </ul>
+
+  <h3>5.2 &nbsp; Family of Apps vs Reality Labs</h3>
+  <table>
+    <thead><tr><th>Segment</th><th class="num">Revenue</th><th class="num">Op. Income / (Loss)</th></tr></thead>
+    <tbody>
+      <tr><td>Family of Apps (advertising $55.0B + other $0.9B)</td><td class="num">$55.9B</td><td class="num">— (segment positive)</td></tr>
+      <tr><td>Reality Labs</td><td class="num">$0.4B</td><td class="num neg">$(4.0)B</td></tr>
+    </tbody>
+  </table>
+  <p>Operational metrics: ad impressions +19%, average price per ad +12%, Family DAP 3.56B (+4%), headcount 77,986 (+1%).</p>
+
+  <h3>5.3 &nbsp; Capital Allocation</h3>
+  <ul>
+    <li>Capex (PP&amp;E) <strong>$19.0B</strong>; including finance leases $19.84B</li>
+    <li>Operating cash flow $32.2B; free cash flow $12.4B</li>
+    <li>Dividends $1.3B; no share repurchases this quarter</li>
+    <li>Cash and marketable securities $81.2B</li>
+    <li>2026 capex guide raised to <strong>$125–145B</strong> (from $115–135B)</li>
+    <li>2026 total expense guide $162–169B</li>
+  </ul>
+
+  <blockquote>
+    "We have continued to underestimate our compute needs even as we have been ramping capacity significantly."
+    <span class="src">— Susan Li, CFO, Meta Q1 earnings call</span>
+  </blockquote>
+  <p>She added that compute will be "critical to determining the quality of the models we develop, the types of products we can introduce, and how productive we can be as an organization." Stated reason for the capex raise: "higher component pricing this year and, to a lesser extent, additional data center costs." <strong>Memory pricing was singled out.</strong></p>
+</section>
+
+<section id="s6">
+  <h2><span class="num">Section 6</span>Amazon (Q1 2026, ended Mar 31, 2026)</h2>
+
+  <h3>6.1 &nbsp; Income Statement</h3>
+  <ul>
+    <li>Revenue <strong>$181.5B</strong> (+17% reported, +15% ex-FX)</li>
+    <li>Operating income $23.9B (+30%); operating margin <strong>13.1%</strong> — a record</li>
+    <li>Net income $30.3B — includes <strong>$16.8B pre-tax gain</strong> on Anthropic investments</li>
+    <li>Diluted EPS $2.78 (+75%)</li>
+    <li>Effective tax rate ~24%</li>
+  </ul>
+
+  <h3>6.2 &nbsp; Segments</h3>
+  <table>
+    <thead><tr><th>Segment</th><th class="num">Revenue</th><th class="num">YoY</th><th class="num">Op. Income / Margin</th></tr></thead>
+    <tbody>
+      <tr><td>North America</td><td class="num">$104.1B</td><td class="num pos">+12%</td><td class="num">$8.3B / 7.9%</td></tr>
+      <tr><td>International</td><td class="num">$39.8B</td><td class="num pos">+19% (+11% cc)</td><td class="num">$1.4B / 3.6%</td></tr>
+      <tr><td>AWS</td><td class="num">$37.6B</td><td class="num pos">+28%</td><td class="num">$14.2B / 37.7%</td></tr>
+    </tbody>
+  </table>
+  <p>AWS was the fastest growth in 15 quarters. Annualized run-rate now approximately <strong>$150B</strong>. Subscription services line $13.4B (+15%); ads TTM north of $70B.</p>
+
+  <h3>6.3 &nbsp; Capital Allocation</h3>
+  <ul>
+    <li>Capex <strong>$44.2B</strong> Q1 gross ($43.2B cash) — nearly double Q1 2025 ($25B)</li>
+    <li>TTM capex $147.3B, +67% YoY</li>
+    <li>Operating cash flow $148.5B TTM</li>
+    <li>Free cash flow TTM crashed to <strong>$1.2B, down 95% YoY</strong></li>
+    <li>No dividends, no share repurchases</li>
+    <li>2026 capex guide <strong>~$200B</strong>, primarily AWS / generative AI</li>
+    <li>Q2 2026 revenue guide $194–199B (+16% to +19%); Q2 op. income $20–24B (assumes Prime Day)</li>
+  </ul>
+
+  <blockquote>
+    "Cash capex was $43.2 billion in Q1, primarily related to AWS and generative AI investments."
+    <span class="src">— Brian Olsavsky, CFO, Amazon Q1 earnings call</span>
+  </blockquote>
+  <p>Olsavsky added that AWS "must invest ahead of demand because it typically lays out cash for land, power, buildings, and hardware <strong>6 to 24 months</strong> before we start billing customers." Jassy: AWS Q1 backlog <strong>$364B</strong>, not including the recently announced Anthropic deal "for over $100 billion."</p>
+
+  <div class="callout">
+    <div class="callout-title">The squeeze</div>
+    Operating cash flow grew strongly, but every additional dollar plus another $50B was redeployed into capex, leaving FCF at $1.2B TTM. <strong>That's the most stretched balance sheet of the five.</strong>
+  </div>
+</section>
+
+<section id="s7">
+  <h2><span class="num">Section 7</span>Apple (FY26 Q2, ended Mar 28, 2026)</h2>
+
+  <h3>7.1 &nbsp; Income Statement</h3>
+  <ul>
+    <li>Revenue <strong>$111.2B</strong> (+17%) — a March-quarter record</li>
+    <li>Operating income $35.9B (+21%); op. margin 32.3%</li>
+    <li>Net income $29.6B (+19%); diluted EPS $2.01 (+22%)</li>
+    <li>Gross margin 49.3% (incorporates tariff costs, partially offset by IPEA tariff reductions)</li>
+  </ul>
+
+  <h3>7.2 &nbsp; Product / Geo</h3>
+  <table>
+    <thead><tr><th>Product</th><th class="num">Revenue</th><th class="num">YoY</th></tr></thead>
+    <tbody>
+      <tr><td>iPhone</td><td class="num">$57.0B</td><td class="num pos">+21.6%</td></tr>
+      <tr><td>Mac</td><td class="num">$8.4B</td><td class="num pos">+5.6%</td></tr>
+      <tr><td>iPad</td><td class="num">$6.9B</td><td class="num pos">+8.0%</td></tr>
+      <tr><td>Wearables / Home / Accessories</td><td class="num">$7.9B</td><td class="num pos">+5.0%</td></tr>
+      <tr><td>Services</td><td class="num">$31.0B</td><td class="num pos">+16.2%</td></tr>
+    </tbody>
+  </table>
+  <p>Geographic: Greater China $20.5B (+28%), Americas $45.1B (+12%), Europe $28.1B (+15%), Japan $8.4B (+15%), RoAP $9.1B (+25%).</p>
+
+  <h3>7.3 &nbsp; Capital Allocation — The Outlier</h3>
+  <ul>
+    <li>New <strong>$100B buyback authorization</strong>; dividend raised 4% to $0.27/share</li>
+    <li>First half of FY26: share repurchases <strong>$37.0B</strong>; dividends paid $7.7B</li>
+    <li>Capex (PP&amp;E, six months) only <strong>$4.3B</strong> — less than 10% of any hyperscaler quarter</li>
+    <li>Operating cash flow (six months) $82.6B</li>
+  </ul>
+
+  <div class="callout">
+    <div class="callout-title">The contrast</div>
+    While the four hyperscalers spent roughly <strong>$130B in this single quarter</strong> on capex, Apple spent $2–3B. The cash difference went to shareholders.
+  </div>
+  <p>Tim Cook flagged this was effectively his last earnings call as CEO. <strong>John Ternus</strong> has been named successor.</p>
+</section>
+
+<section id="s8">
+  <h2><span class="num">Section 8</span>Where the Money Is Going (Sources)</h2>
+
+  <h3>8.1 &nbsp; Capex Side-by-Side</h3>
+  <table>
+    <thead><tr><th>Spender</th><th class="num">Q1 Capex</th><th class="num">2026 FY</th><th>vs. Prior</th></tr></thead>
+    <tbody>
+      <tr><td>Amazon</td><td class="num">$44.2B</td><td class="num">~$200B</td><td>Roughly unchanged</td></tr>
+      <tr><td>Alphabet</td><td class="num">$35.7B</td><td class="num">$180–190B</td><td>Raised $5B (Intersect)</td></tr>
+      <tr><td>Microsoft</td><td class="num">$30.9B ($31.9B w/ leases)</td><td class="num">$190B</td><td>+$25B (component pricing)</td></tr>
+      <tr><td>Meta</td><td class="num">$19.0B ($19.8B w/ leases)</td><td class="num">$125–145B</td><td>Raised $10B</td></tr>
+      <tr><td>Apple</td><td class="num">$4.3B (H1 only)</td><td class="num">— not the story</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h3>8.2 &nbsp; What the Money Buys</h3>
+  <ul>
+    <li><strong>GPUs (NVIDIA).</strong> Single biggest line. Blackwell and Blackwell Ultra ramp.</li>
+    <li><strong>Custom silicon.</strong> Google TPU v7 (Trillium / Ironwood), Amazon Trainium 3, Microsoft Maia 200, Meta MTIA — all fabricated by TSMC, mostly on N3 / N3P.</li>
+    <li><strong>HBM3e memory.</strong> The actual supply bottleneck. SK Hynix, Micron, Samsung. Component pricing was Microsoft's stated reason for adding $25B to its 2026 capex.</li>
+    <li><strong>Networking and ASIC partners.</strong> Broadcom, Arista, Marvell. Marvell co-designs Maia.</li>
+    <li><strong>Data center shells, land, fiber, cooling.</strong> Heavy concentration in Northern Virginia, central Ohio, Phoenix, the PNW, and Iowa.</li>
+    <li><strong>Power.</strong> The newest constraint. See below.</li>
+  </ul>
+</section>
+
+<section id="s9">
+  <h2><span class="num">Section 9</span>Who Is Receiving It</h2>
+
+  <h3>9.1 &nbsp; NVIDIA</h3>
+  <p>NVIDIA Q4 FY26 (period ended late Jan 2026, reported Feb 25): revenue <strong>$68.1B</strong> (+73%), data center $62B (+75%). Hyperscalers were &gt;50% of data-center revenue. FY26 total revenue $215.9B. Q1 FY27 guidance $78B, well above the $72.6B consensus.</p>
+
+  <h3>9.2 &nbsp; TSMC — the common denominator</h3>
+  <div class="callout">
+    <div class="callout-title">Key insight</div>
+    Every custom chip on this list (TPU, Trainium, Maia, MTIA) is fabricated by TSMC, mostly on N3 or N3P. So is most of NVIDIA's lineup. <strong>TSMC sits at the bottom of the funnel</strong> and collects from all four hyperscalers no matter who wins the chip race.
+  </div>
+
+  <h3>9.3 &nbsp; Power and Nuclear</h3>
+  <table>
+    <thead><tr><th>Buyer</th><th>Counterparty</th><th>Deal</th></tr></thead>
+    <tbody>
+      <tr><td>Meta</td><td>Vistra</td><td>~2.2 GW PPA, Ohio nuclear, late 2026</td></tr>
+      <tr><td>Meta</td><td>Constellation</td><td>20-yr deal, Clinton Power Station IL, from 2027</td></tr>
+      <tr><td>Meta</td><td>Oklo</td><td>1.2 GW SMR (Ohio, 2030+)</td></tr>
+      <tr><td>Meta</td><td>TerraPower</td><td>690 MW (2032), plus 2.1 GW future SMR rights</td></tr>
+      <tr><td>Microsoft</td><td>Constellation</td><td>$16B restart of Three Mile Island PA</td></tr>
+      <tr><td>Amazon</td><td>X-energy</td><td>SMR investment + offtake</td></tr>
+      <tr><td>Alphabet</td><td>Kairos / NextEra</td><td>SMR investment + Iowa nuclear restart</td></tr>
+    </tbody>
+  </table>
+
+  <h3>9.4 &nbsp; Memory, Networking, Construction</h3>
+  <p>HBM is sold out and price-rising; Microsoft explicitly named component pricing as $25B of its capex hike. Marvell, Broadcom, Arista take the networking and ASIC-design spend. Construction/real estate beneficiaries cluster in Northern Virginia, central Ohio, Phoenix, and Iowa.</p>
+
+  <h3>9.5 &nbsp; Shareholders</h3>
+  <table>
+    <thead><tr><th>Company</th><th class="num">Buybacks Q1</th><th class="num">Dividends Q1</th></tr></thead>
+    <tbody>
+      <tr><td>Apple (FY26 H1)</td><td class="num">$37.0B (H1, six months)</td><td class="num">$0.27/sh (+4%); $7.7B H1</td></tr>
+      <tr><td>Microsoft</td><td class="num">$4.6B</td><td class="num">$6.8B</td></tr>
+      <tr><td>Alphabet</td><td class="num">$0</td><td class="num">$2.5B</td></tr>
+      <tr><td>Meta</td><td class="num">$0</td><td class="num">$1.3B</td></tr>
+      <tr><td>Amazon</td><td class="num">$0</td><td class="num">$0</td></tr>
+    </tbody>
+  </table>
+  <p>Apple is the only one of the five running a meaningful capital-return program right now. <strong>Alphabet's zero in Q1</strong> (vs. $15B+ Q1 2025) is the cleanest signal of the new priority order.</p>
+</section>
+
+<section id="s10">
+  <h2><span class="num">Section 10</span>Risks and Watch Items</h2>
+  <ol class="risks">
+    <li>
+      <b>Free cash flow squeeze</b>
+      Amazon TTM FCF fell 95% to $1.2B as capex tripled. OCF is fine; FCF is collapsing because every dollar is redeployed. If revenue growth slows even slightly, the math breaks.
+    </li>
+    <li>
+      <b>Capex is increasingly debt-funded</b>
+      Alphabet issued $31.1B in senior unsecured notes this quarter. The buybacks stopped. The cash isn't there to do both. Watch leverage ratios next quarter.
+    </li>
+    <li>
+      <b>ROIC question is real</b>
+      The market punished META (–7%) and AMZN (–3%) on capex announcements even with revenue beats. Microsoft's $37B AI run-rate and Google Cloud's $460B backlog are the cleanest proof points. Meta and Amazon are still mostly promise.
+    </li>
+    <li>
+      <b>Component pricing, not unit volume</b>
+      Microsoft's $25B capex hike was explicitly the same chips and memory at higher prices. HBM and N3 wafer pricing is doing the talking. TSMC and SK Hynix are pricing accordingly.
+    </li>
+    <li>
+      <b>One-time gains are flattering reported earnings</b>
+      Strip Meta's $8B tax benefit, Alphabet's $37B equity gain, and Amazon's $16.8B Anthropic mark-up, and the EPS beats are far less impressive. <strong>Watch operating income, not net income.</strong>
+    </li>
+  </ol>
+</section>
+
+<section id="s11">
+  <h2><span class="num">Section 11</span>Backlog Comparison (Demand Visibility)</h2>
+  <table>
+    <thead><tr><th>Company</th><th class="num">Backlog / RPO</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Microsoft</td><td class="num">$627B</td><td>Commercial RPO; +99% YoY; ~2.5-yr weighted duration</td></tr>
+      <tr><td>Alphabet</td><td class="num">$460B</td><td>Google Cloud backlog; nearly doubled QoQ</td></tr>
+      <tr><td>Amazon</td><td class="num">$364B</td><td>AWS backlog; excludes new Anthropic deal of $100B+</td></tr>
+      <tr><td>Meta</td><td class="num">n/a</td><td>Consumer ad business; no comparable disclosure</td></tr>
+      <tr><td>Apple</td><td class="num">n/a</td><td>Hardware + Services; no backlog disclosed</td></tr>
+    </tbody>
+  </table>
+  <div class="callout">
+    <div class="callout-title">The bull case for the capex</div>
+    Cloud backlogs total <strong>$1.45T+</strong> in contracted revenue, up sharply from a year ago. That money has to be served by infrastructure that does not yet exist. From management's seat, building it now is the rational call.
+  </div>
+</section>
+
+<section id="s12">
+  <h2><span class="num">Section 12</span>Quick Reference: Money Flow</h2>
+  <table>
+    <thead><tr><th>From (Spender)</th><th>To (Recipient)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>MSFT $190B</strong></td><td>NVIDIA, TSMC (Maia), Marvell, Constellation, SK Hynix, builders</td></tr>
+      <tr><td><strong>AMZN ~$200B</strong></td><td>NVIDIA, TSMC (Trainium), X-energy, Anthropic stake, builders</td></tr>
+      <tr><td><strong>GOOGL $180–190B</strong></td><td>TSMC (TPU), NVIDIA, Kairos / NextEra, Broadcom, builders</td></tr>
+      <tr><td><strong>META $125–145B</strong></td><td>NVIDIA, TSMC (MTIA), Vistra, Constellation, Oklo, TerraPower</td></tr>
+      <tr><td><strong>AAPL</strong></td><td>Shareholders ($100B buyback + div), TSMC (device chips)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<footer>
+  Compiled from 8-K Exhibit 99.1 press releases (Apr 29–30, 2026) and Q1 2026 earnings call transcripts (Motley Fool, company IR). Numbers from primary filings; quotes from call transcripts. Today: April 30, 2026.
+</footer>
+
+</div>
+</body>
+</html>
