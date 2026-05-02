@@ -2346,7 +2346,7 @@
                                     <div class="settings-item-label">Payment Reminders</div>
                                     <div class="settings-item-value">Get reminded when bills are due</div>
                                 </div>
-                                <input type="checkbox" id="notifToggle" checked onchange="toggleNotification()" style="width: 18px; height: 18px; accent-color: #3D95CE; cursor: pointer; flex-shrink: 0;">
+                                <button class="toggle-switch active" id="notifToggle" onclick="this.classList.toggle('active'); toggleNotification();" style="margin:0;padding:0;flex-shrink:0;"></button>
                             </div>
                         </div>
 
@@ -2408,7 +2408,12 @@
                                     <div class="settings-item-label">Auto-mark My Portion Paid</div>
                                     <div class="settings-item-value">Automatically consider your split portion as paid</div>
                                 </div>
-                                <input type="checkbox" id="settingsAutoMarkPaid" checked style="width: 18px; height: 18px; accent-color: #3D95CE; cursor: pointer; flex-shrink: 0;">
+                                <button class="toggle-switch active" id="settingsAutoMarkPaid" onclick="this.classList.toggle('active')" style="margin:0;padding:0;flex-shrink:0;"></button>
+                            </div>
+                            <div style="padding: 12px 0; border-top: 1px solid #E8EBED;">
+                                <div style="font-size: 13px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 12px;">Default Roommates</div>
+                                <div style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 12px;">Choose which roommates are included in new bill splits by default.</div>
+                                <div id="settingsDefaultRoommates" style="display: flex; flex-direction: column; gap: 8px;"></div>
                             </div>
                         </div>
 
@@ -2895,7 +2900,8 @@
             splitRules: {},
             defaultSplitType: 'equal',
             defaultReminderDays: 0,
-            autoMarkMyPaid: true
+            autoMarkMyPaid: true,
+            defaultRoommates: []
         };
 
         // ====== GLOBAL VARIABLES ======
@@ -3287,9 +3293,9 @@
 
         function toggleNotification() {
             const toggle = document.getElementById('notifToggle');
-            appState.notifications = toggle.checked;
+            appState.notifications = toggle.classList.contains('active');
             saveToLocalStorage();
-            showToast(toggle.checked ? 'Notifications enabled' : 'Notifications disabled', 'success');
+            showToast(toggle.classList.contains('active') ? 'Notifications enabled' : 'Notifications disabled', 'success');
         }
 
         function showConfirm(title, message, onConfirm, destructive) {
@@ -3883,7 +3889,7 @@
                 appState.bills.forEach(bill => {
                     if (bill.splitMembers && bill.status !== 'paid') {
                         const member = bill.splitMembers.find(m => m.name === rm.name);
-                        if (member) {
+                        if (member && member.paid !== true) {
                             totalOwed += member.amount;
                             billCount++;
                         }
@@ -4336,23 +4342,28 @@
 
         function buildDeepLink(app, amount, note, roommateName) {
             const rm = appState.roommates.find(r => r.name === roommateName);
-            const rmHandle = rm?.paymentHandles?.[app] || '';
+            const rmHandle = rm?.handle || '';
+            const rmPaymentApp = rm?.paymentApp || '';
+
+            // Only proceed if the roommate has this app configured
+            if (rmPaymentApp !== app) return null;
+
             switch(app) {
                 case 'venmo':
                     if (rmHandle) {
-                        // Use Venmo's current pay URL with recipient
+                        // Use Venmo's deep link for iOS/Android app
                         const cleanHandle = rmHandle.replace(/^@/, '');
-                        return `https://account.venmo.com/pay?recipients=${encodeURIComponent(cleanHandle)}&amount=${amount}&note=${encodeURIComponent(note)}`;
+                        return `venmo://paycharge?txn=charge&recipients=${encodeURIComponent(cleanHandle)}&amount=${amount}&note=${encodeURIComponent(note)}`;
                     }
-                    return `https://account.venmo.com/pay?amount=${amount}&note=${encodeURIComponent(note)}`;
+                    return null;
                 case 'cashapp':
                     if (rmHandle) {
                         const cleanTag = rmHandle.replace(/^\$/, '');
                         return `https://cash.app/$${cleanTag}/${amount}`;
                     }
-                    return `https://cash.app/`;
+                    return null;
                 case 'zelle':
-                    return null; // Zelle has no web deep link; UI shows copy-to-clipboard instead
+                    return null; // Zelle has no web deep link; UI shows instructions instead
                 default: return null;
             }
         }
@@ -4558,7 +4569,7 @@
                     appState.bills.forEach(bill => {
                         if (bill.splitMembers && bill.status !== 'paid') {
                             const member = bill.splitMembers.find(m => m.name === rm.name);
-                            if (member) {
+                            if (member && member.paid !== true) {
                                 totalOwed += member.amount;
                             }
                         }
@@ -5257,15 +5268,23 @@
             document.getElementById('splitTotalAmount').textContent = 'Total: $' + bill.amount.toFixed(2);
             hideSplitAddRoommate();
 
-            // Load from bill's existing split, fall back to provider rules, then default
+            // Load from bill's existing split, fall back to provider rules, then default roommates
             let selectedNames, includeYou;
             if (bill.splitMembers && bill.splitMembers.length > 0) {
                 selectedNames = bill.splitMembers.filter(m => m.name !== 'You').map(m => m.name);
                 includeYou = bill.splitMembers.some(m => m.name === 'You');
             } else {
                 const rule = appState.splitRules[bill.provider.toLowerCase()];
-                selectedNames = rule ? [...rule.roommates] : appState.roommates.map(r => r.name);
-                includeYou = rule ? (rule.includeYou !== false) : true;
+                if (rule) {
+                    selectedNames = [...rule.roommates];
+                    includeYou = rule.includeYou !== false;
+                } else {
+                    // Use default roommates if set, otherwise use all roommates
+                    selectedNames = (appState.defaultRoommates && appState.defaultRoommates.length > 0)
+                        ? [...appState.defaultRoommates]
+                        : appState.roommates.map(r => r.name);
+                    includeYou = true;
+                }
             }
 
             renderSplitMembers(selectedNames, includeYou);
@@ -5300,9 +5319,10 @@
                 html += `</div>`;
             });
 
-            if (appState.roommates.length === 0) {
-                html += '<p style="font-size: 12px; color: var(--color-text-secondary); padding: 8px 0;">No roommates added yet. Use the dropdown below to add one.</p>';
-            }
+            // Add Roommate button
+            html += `<div style="padding: 12px 0; display: flex; gap: 6px; border-top: 1px solid #F0F2F4;">`;
+            html += `<button class="btn btn-secondary" onclick="openAddRoommateModal(); setTimeout(() => renderSplitMembers(getSplitCurrentSelections().names, getSplitCurrentSelections().includeYou), 100);" style="flex: 1; font-size: 12px; padding: 8px;">+ Add Roommate</button>`;
+            html += `</div>`;
 
             var el = document.getElementById('splitMembersList'); if (el) el.innerHTML = html;
             updateSplitPreview();
@@ -6125,7 +6145,19 @@
             const reminderSelect = document.getElementById('settingsDefaultReminder');
             if (reminderSelect) appState.defaultReminderDays = parseInt(reminderSelect.value) || 0;
             const autoMarkPaid = document.getElementById('settingsAutoMarkPaid');
-            if (autoMarkPaid) appState.autoMarkMyPaid = autoMarkPaid.checked;
+            if (autoMarkPaid) appState.autoMarkMyPaid = autoMarkPaid.classList.contains('active');
+
+            // Save default roommates
+            const defaultRoommateToggles = document.querySelectorAll('.default-roommate-toggle');
+            const defaultRoommates = [];
+            defaultRoommateToggles.forEach(toggle => {
+                if (toggle.classList.contains('active')) {
+                    const name = toggle.dataset.roommateId;
+                    if (name) defaultRoommates.push(name);
+                }
+            });
+            appState.defaultRoommates = defaultRoommates;
+
             saveToLocalStorage();
             showToast('Settings saved', 'success');
         }
@@ -6499,7 +6531,23 @@
             const reminderSelect = document.getElementById('settingsDefaultReminder');
             if (reminderSelect) reminderSelect.value = String(appState.defaultReminderDays || 0);
             const autoMarkPaid = document.getElementById('settingsAutoMarkPaid');
-            if (autoMarkPaid) autoMarkPaid.checked = appState.autoMarkMyPaid !== false;
+            if (autoMarkPaid) autoMarkPaid.classList.toggle('active', appState.autoMarkMyPaid !== false);
+
+            // Populate default roommates section
+            const defaultRoommatesDiv = document.getElementById('settingsDefaultRoommates');
+            if (defaultRoommatesDiv) {
+                const defaultRoommates = appState.defaultRoommates || [];
+                defaultRoommatesDiv.innerHTML = appState.roommates.map(rm => {
+                    const isDefault = defaultRoommates.includes(rm.name);
+                    return `<div style="display: flex; align-items: center; gap: 8px;">
+                        <button class="toggle-switch default-roommate-toggle ${isDefault ? 'active' : ''}" data-roommate-id="${escapeHTML(rm.name)}" onclick="this.classList.toggle('active')" style="margin:0;padding:0;flex-shrink:0;"></button>
+                        <label style="font-size: 13px; cursor: default; flex: 1;">${escapeHTML(rm.name)}</label>
+                    </div>`;
+                }).join('');
+                if (appState.roommates.length === 0) {
+                    defaultRoommatesDiv.innerHTML = '<p style="font-size: 12px; color: var(--color-text-secondary);">No roommates yet. Add roommates to set defaults.</p>';
+                }
+            }
 
             // Auto-scan if API is available and enough time has passed
             if (byepassApi && appState.emailConnected) {
