@@ -1930,8 +1930,13 @@ body.mode-timeline .timeline-help { display: block; }
   :root { --header-height: 56px; }
   .header {
     flex-wrap: nowrap;
-    padding: 8px 10px;
-    height: var(--header-height);
+    /* iOS Safari fix: restore safe-area accounting that the shorthand `padding: 8px 10px`
+       was wiping out. Without this, the header height is only --header-height (e.g. 56px)
+       while .layout margin-top still adds env(safe-area-inset-top), causing the header to
+       be shorter than the content offset — nav items disappear behind the Dynamic Island /
+       notch on portrait iPhones. */
+    padding: env(safe-area-inset-top, 0px) 10px 8px;
+    height: calc(var(--header-height) + env(safe-area-inset-top, 0px));
     align-items: center;
     gap: 6px;
     overflow: visible;
@@ -2043,7 +2048,16 @@ body.mode-timeline .timeline-help { display: block; }
   #book-select, #translation-group { flex-shrink: 0; }
   .status-pill { display: none; }
 
-  .bible-text { padding: 16px 10px 24vh; max-width: none; }
+  .bible-text { padding: 16px 10px 24vh; max-width: none;
+    /* iOS Safari fix: will-change:transform promotes .bible-text to its own GPU compositing
+       layer. On iOS Safari this layer renders above position:fixed .header (z-index 100),
+       causing verse text to appear on top of / sliding over the nav bar — same stacking-
+       context mechanism as the sidebar fix in commit 93ed4ddb. On mobile the sidebar never
+       translateX's .bible-text, so will-change:transform is unused and harmful here.
+       Also drop transform from transition since no transform runs on mobile. */
+    will-change: auto;
+    transition: padding-bottom 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+  }
   /* Tighter verse padding on mobile — was leaving ~22px of whitespace
      either side of the verse text. */
   .verse { padding: 4px 4px 4px 2px; gap: 8px; margin-bottom: 6px; }
