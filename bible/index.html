@@ -862,8 +862,8 @@ mark.thl-blue   { background: rgba(66,133,244,0.32); color: inherit; padding: 0;
 
 /* End-of-chapter nav (continue reading) */
 .end-of-chapter {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: row;
   gap: 12px;
   margin-top: 40px;
   padding-top: 28px;
@@ -871,6 +871,8 @@ mark.thl-blue   { background: rgba(66,133,244,0.32); color: inherit; padding: 0;
 }
 .end-of-chapter-link {
   display: flex;
+  flex: 1;
+  min-width: 0;
   align-items: center;
   gap: 10px;
   padding: 14px 18px;
@@ -910,7 +912,9 @@ mark.thl-blue   { background: rgba(66,133,244,0.32); color: inherit; padding: 0;
   color: var(--text);
 }
 @media (max-width: 540px) {
-  .end-of-chapter { grid-template-columns: 1fr; }
+  .end-of-chapter-link { padding: 12px 12px; }
+  .end-of-chapter-link .end-name { font-size: 14px; }
+  .end-of-chapter-link .end-arrow { font-size: 22px; }
 }
 
 /* Currently-speaking verse highlight (read-aloud) */
