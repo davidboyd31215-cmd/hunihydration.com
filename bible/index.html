@@ -1,4 +1,7 @@
-<!DOCTYPE html>
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1417,7 +1420,7 @@ mark.thl-blue   { background: rgba(66,133,244,0.32); color: inherit; padding: 0;
   overflow-y: auto;
   transition: right 0.34s cubic-bezier(0.32, 0.72, 0, 1);
   z-index: 50;
-  will-change: right, bottom, transform;
+  will-change: right, bottom; /* iOS Safari: removed transform — sidebar animates right/bottom only; will-change:transform creates stacking context that breaks position:fixed on header */
 }
 .sidebar.open { right: 0; }
 
@@ -2068,7 +2071,7 @@ body.mode-timeline .timeline-help { display: block; }
     transition: bottom 0.28s cubic-bezier(0.32, 0.72, 0, 1);
     box-shadow: 0 -10px 28px rgba(0,0,0,0.22);
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    /* iOS Safari: -webkit-overflow-scrolling removed — deprecated stacking context creator; overscroll-behavior:contain below handles containment */
     overscroll-behavior: contain;
   }
   .sidebar.open { right: 0; bottom: 0; }
@@ -8134,7 +8137,9 @@ function renderGraph(ctx, nodes, edges, cw, ch) {
 
   // Pre-compute median target-node degree so labels go to the more-connected
   // (more interesting) target verses, not random ones.
-  const targetDegs = nodes.filter(n => !n.isSource).map(n => n.deg || 0).sort((a,b) => b - a);
+  const targetDegs = nodes.filter(n => !n.isSource).map(n => n.deg || 0).sort
+100  581k  100  581k    0     0  1769k      0 --:--:-- --:--:-- --:--:-- 1773k
+((a,b) => b - a);
   const labelThreshold = targetDegs[Math.min(10, targetDegs.length - 1)] || 0;
 
   nodes.forEach(n => {
