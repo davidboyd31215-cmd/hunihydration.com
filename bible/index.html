@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Scripture">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%232A4D6E'/%3E%3Ctext x='50' y='68' font-family='Georgia,serif' font-size='62' fill='white' text-anchor='middle' font-weight='600'%3ES%3C/text%3E%3C/svg%3E">
 
-<!-- Open Graph -->
+<!-- OpenGaph -->
 <meta property="og:title" content="Scripture Link — Bible study with cross-references, Hebrew/Greek, and sermons">
 <meta property="og:description" content="Read the Bible with 344K cross-references, original-language word study, original editorial commentary in the Reformed tradition, and sermons from MacArthur, Joby Martin, Ardavanis, JP Pokluda, and Watermark.">
 <meta property="og:url" content="https://hunihydration.com/bible/">
@@ -102,7 +102,7 @@ body {
      var(--bg) with no isolation was letting iOS Safari render verse
      text bleeding through during dynamic-toolbar transitions. */
   background-color: var(--bg) !important;
-  isolation: isolate;
+  
   display: flex;
   align-items: center;
   gap: 16px;
@@ -1412,7 +1412,7 @@ mark.thl-blue   { background: rgba(66,133,244,0.32); color: inherit; padding: 0;
   /* Iter 104: explicit opaque background with isolation so dimmed chapter
      content doesn't bleed through the sidebar bottom-sheet. */
   background-color: var(--bg) !important;
-  isolation: isolate;
+  
   border-left: 1px solid var(--border);
   overflow-y: auto;
   transition: right 0.34s cubic-bezier(0.32, 0.72, 0, 1);
@@ -1605,6 +1605,7 @@ mark.thl-blue   { background: rgba(66,133,244,0.32); color: inherit; padding: 0;
 body.sidebar-open #sidebar-backdrop {
   background: rgba(0, 0, 0, 0.32);
 }
+    body.sidebar-open .header { z-index: 44; } /* below sidebar-backdrop (45) */
 body.sidebar-open #sidebar-backdrop { display: block; }
 @media (min-width: 821px) { body.sidebar-open #sidebar-backdrop { display: none; } }
 
