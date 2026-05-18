@@ -5937,6 +5937,18 @@ function renderChapter(book, verses) {
 
   const bookOsis = OSIS_BY_IDX[state.bookIdx];
 
+  // Chapter-level notice when word-study is enabled but the loaded interlinear
+  // file has no data for this chapter (some chapters are not yet covered).
+  // Without this banner, word-study mode just renders nothing under each verse
+  // and users assume the feature is broken.
+  if (state.wordStudyOn
+      && INTERLINEAR_CACHE[bookOsis]
+      && !INTERLINEAR_CACHE[bookOsis][String(state.chapter)]) {
+    html += `<div style="border-left:3px solid var(--border);background:var(--bg-alt);padding:10px 14px;margin:8px 0 12px;border-radius:4px;font-family:var(--sans);font-size:12.5px;color:var(--text-muted);line-height:1.5">
+      Hebrew/Greek interlinear isn't available for ${book.name} ${state.chapter} yet — verse text only.
+    </div>`;
+  }
+
   verses.forEach(v => {
     const osisKey = `${bookOsis}.${state.chapter}.${v.verse}`;
     const legacyKey = `${getBookAbbr3(state.bookIdx)}.${state.chapter}.${v.verse}`;
